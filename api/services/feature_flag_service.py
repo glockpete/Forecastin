@@ -1,0 +1,779 @@
+"""
+Feature Flag Service with Database Integration and Multi-Tier Caching
+
+Implements the FeatureFlagService for the geopolitical intelligence platform
+following the patterns specified in AGENTS.md:
+
+- Database integration with PostgreSQL and feature_flags table
+- Multi-tier caching strategy (L1 Memory, L2 Redis, L3 DB, L4 Materialized Views)
+- WebSocket notifications for real-time flag changes
+- Thread-safe operations with RLock synchronization
+- Exponential backoff retry mechanism
+- Gradual rollout support (10% -> 25% -> 50% -> 100%)
+"""
+
+import asyncio
+import logging
+import threading
+import time
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
+from uuid import UUID
+
+import asyncpg
+from fastapi import HTTPException
+
+from api.services.database_manager import DatabaseManager
+from api.services.cache_service import CacheService
+from api.services.realtime_service import RealtimeService
+
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class FeatureFlag:
+    """Feature flag data model."""
+    id: UUID
+    flag_name: str
+    description: Optional[str]
+    is_enabled: bool
+    rollout_percentage: int
+    created_at: float
+    updated_at: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert feature flag to dictionary."""
+        return {
+            'id': str(self.id),
+            'flag_name': self.flag_name,
+            'description': self.description,
+            'is_enabled': self.is_enabled,
+            'rollout_percentage': self.rollout_percentage,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+
+
+@dataclass
+class CreateFeatureFlagRequest:
+    """Request model for creating feature flags."""
+    flag_name: str
+    description: Optional[str] = None
+    is_enabled: bool = False
+    rollout_percentage: int = 0
+
+
+@dataclass
+class UpdateFeatureFlagRequest:
+    """Request model for updating feature flags."""
+    description: Optional[str] = None
+    is_enabled: Optional[bool] = None
+    rollout_percentage: Optional[int] = None
+
+
+@dataclass
+class FeatureFlagMetrics:
+    """Feature flag service performance metrics."""
+    total_flags: int = 0
+    enabled_flags: int = 0
+    cache_hits: int = 0
+    cache_misses: int = 0
+    database_queries: int = 0
+    websocket_notifications: int = 0
+    avg_response_time_ms: float = 0.0
+
+
+class FeatureFlagService:
+    """
+    Feature Flag Service with database integration and multi-tier caching.
+    
+    This service implements comprehensive feature flag management with:
+    - CRUD operations for feature flags
+    - Multi-tier caching strategy (L1 Memory -> L2 Redis -> L3 DB)
+    - WebSocket notifications for real-time updates
+    - Gradual rollout support with percentage-based targeting
+    - Thread-safe operations with RLock synchronization
+    - Exponential backoff retry mechanism for database operations
+    
+    Performance Targets:
+    - <1.25ms average response time for flag lookups
+    - 99.2% cache hit rate
+    - Thread-safe operations across all tiers
+    """
+    
+    # Cache key prefixes for multi-tier strategy
+    CACHE_PREFIX_FLAG = "ff:flag:"
+    CACHE_PREFIX_ALL = "ff:all"
+    CACHE_TTL = 3600  # 1 hour
+    
+    # Retry configuration for database operations
+    RETRY_ATTEMPTS = 3
+    RETRY_DELAYS = [0.5, 1.0, 2.0]  # Exponential backoff
+    
+    def __init__(
+        self,
+        database_manager: DatabaseManager,
+        cache_service: Optional[CacheService] = None,
+        realtime_service: Optional[RealtimeService] = None
+    ):
+        """
+        Initialize the Feature Flag Service.
+        
+        Args:
+            database_manager: Database manager for PostgreSQL operations
+            cache_service: Optional cache service for multi-tier caching
+            realtime_service: Optional real-time service for WebSocket notifications
+        """
+        self.db_manager = database_manager
+        self.cache_service = cache_service
+        self.realtime_service = realtime_service
+        self.logger = logging.getLogger(__name__)
+        
+        # Use RLock for thread safety as specified
+        self._lock = threading.RLock()
+        
+        # Performance metrics
+        self._metrics = FeatureFlagMetrics()
+        
+        # Flag change callbacks for cache invalidation
+        self._change_callbacks: List[callable] = []
+    
+    async def initialize(self) -> None:
+        """Initialize the feature flag service."""
+        self.logger.info("FeatureFlagService initialized")
+    
+    async def cleanup(self) -> None:
+        """Cleanup the feature flag service."""
+        # Clear any pending callbacks or connections
+        with self._lock:
+            self._change_callbacks.clear()
+        
+        self.logger.info("FeatureFlagService cleanup completed")
+    
+    def _get_cache_key(self, flag_name: str) -> str:
+        """Generate cache key for feature flag."""
+        return f"{self.CACHE_PREFIX_FLAG}{flag_name}"
+    
+    def _get_all_flags_cache_key(self) -> str:
+        """Generate cache key for all flags list."""
+        return self.CACHE_PREFIX_ALL
+    
+    def _serialize_flag(self, flag: FeatureFlag) -> str:
+        """Serialize feature flag for cache storage."""
+        import orjson
+        return orjson.dumps(flag.to_dict()).decode('utf-8')
+    
+    def _deserialize_flag(self, data: str) -> FeatureFlag:
+        """Deserialize feature flag from cache data."""
+        import orjson
+        import json
+        from uuid import UUID
+        
+        # Handle both orjson and regular JSON data
+        try:
+            if data.startswith('{'):
+                # Regular JSON
+                data_dict = json.loads(data)
+            else:
+                # orjson data
+                data_dict = orjson.loads(data.encode('utf-8'))
+        except Exception as e:
+            self.logger.error(f"Failed to deserialize feature flag: {e}")
+            raise ValueError(f"Invalid feature flag data format")
+        
+        return FeatureFlag(
+            id=UUID(data_dict['id']),
+            flag_name=data_dict['flag_name'],
+            description=data_dict.get('description'),
+            is_enabled=data_dict['is_enabled'],
+            rollout_percentage=data_dict['rollout_percentage'],
+            created_at=data_dict['created_at'],
+            updated_at=data_dict['updated_at']
+        )
+    
+    async def _retry_database_operation(self, coro):
+        """Execute database operation with exponential backoff retry."""
+        last_exception = None
+        
+        for attempt in range(self.RETRY_ATTEMPTS):
+            try:
+                return await coro
+            except Exception as e:
+                last_exception = e
+                self.logger.warning(
+                    f"Database operation attempt {attempt + 1} failed: {e}"
+                )
+                
+                if attempt == self.RETRY_ATTEMPTS - 1:
+                    # Last attempt failed
+                    break
+                
+                # Wait before retry (exponential backoff)
+                await asyncio.sleep(self.RETRY_DELAYS[attempt])
+        
+        # All attempts failed
+        raise last_exception
+    
+    async def create_flag(self, request: CreateFeatureFlagRequest) -> FeatureFlag:
+        """
+        Create a new feature flag.
+        
+        Args:
+            request: Feature flag creation request
+            
+        Returns:
+            Created feature flag
+            
+        Raises:
+            HTTPException: If flag creation fails or flag name already exists
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate rollout percentage
+            if not 0 <= request.rollout_percentage <= 100:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Rollout percentage must be between 0 and 100"
+                )
+            
+            async with self.db_manager.get_connection() as conn:
+                # Check if flag name already exists
+                existing = await conn.fetchrow(
+                    "SELECT id FROM feature_flags WHERE flag_name = $1",
+                    request.flag_name
+                )
+                
+                if existing:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Feature flag '{request.flag_name}' already exists"
+                    )
+                
+                # Create the feature flag
+                row = await self._retry_database_operation(
+                    conn.fetchrow("""
+                        INSERT INTO feature_flags 
+                        (flag_name, description, is_enabled, rollout_percentage)
+                        VALUES ($1, $2, $3, $4)
+                        RETURNING id, flag_name, description, is_enabled, 
+                                 rollout_percentage, created_at, updated_at
+                    """, request.flag_name, request.description, 
+                                  request.is_enabled, request.rollout_percentage)
+                )
+                
+                if not row:
+                    raise HTTPException(status_code=500, detail="Failed to create feature flag")
+                
+                flag = FeatureFlag(
+                    id=row['id'],
+                    flag_name=row['flag_name'],
+                    description=row['description'],
+                    is_enabled=row['is_enabled'],
+                    rollout_percentage=row['rollout_percentage'],
+                    created_at=row['created_at'].timestamp(),
+                    updated_at=row['updated_at'].timestamp()
+                )
+            
+            # Update cache (L1 and L2)
+            await self._update_cache(flag)
+            
+            # Invalidate all flags cache
+            if self.cache_service:
+                await self.cache_service.delete(self._get_all_flags_cache_key())
+            
+            # Send WebSocket notification
+            if self.realtime_service:
+                await self.realtime_service.notify_flag_created(flag.to_dict())
+                
+                with self._lock:
+                    self._metrics.websocket_notifications += 1
+            
+            # Trigger change callbacks
+            await self._trigger_change_callbacks('created', flag)
+            
+            # Update metrics
+            response_time_ms = (time.time() - start_time) * 1000
+            with self._lock:
+                self._metrics.database_queries += 1
+                self._metrics.total_flags += 1
+                if flag.is_enabled:
+                    self._metrics.enabled_flags += 1
+                self._metrics.avg_response_time_ms = (
+                    (self._metrics.avg_response_time_ms + response_time_ms) / 2
+                )
+            
+            self.logger.info(
+                f"Created feature flag: {flag.flag_name} "
+                f"(enabled: {flag.is_enabled}, rollout: {flag.rollout_percentage}%)"
+            )
+            
+            return flag
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to create feature flag {request.flag_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    
+    async def get_flag(self, flag_name: str) -> Optional[FeatureFlag]:
+        """
+        Get a feature flag by name with multi-tier caching.
+        
+        Args:
+            flag_name: Name of the feature flag
+            
+        Returns:
+            Feature flag or None if not found
+        """
+        start_time = time.time()
+        cache_key = self._get_cache_key(flag_name)
+        
+        try:
+            # Try L1 and L2 cache first
+            if self.cache_service:
+                cached_data = await self.cache_service.get(cache_key)
+                if cached_data:
+                    try:
+                        flag = self._deserialize_flag(cached_data)
+                        
+                        with self._lock:
+                            self._metrics.cache_hits += 1
+                        
+                        return flag
+                    except Exception as e:
+                        self.logger.warning(f"Cache deserialization failed for {flag_name}: {e}")
+                        # Continue to database
+            
+            # L3: Query database
+            async with self.db_manager.get_connection() as conn:
+                row = await self._retry_database_operation(
+                    conn.fetchrow("""
+                        SELECT id, flag_name, description, is_enabled, 
+                               rollout_percentage, created_at, updated_at
+                        FROM feature_flags 
+                        WHERE flag_name = $1
+                    """, flag_name)
+                )
+                
+                if not row:
+                    return None
+                
+                flag = FeatureFlag(
+                    id=row['id'],
+                    flag_name=row['flag_name'],
+                    description=row['description'],
+                    is_enabled=row['is_enabled'],
+                    rollout_percentage=row['rollout_percentage'],
+                    created_at=row['created_at'].timestamp(),
+                    updated_at=row['updated_at'].timestamp()
+                )
+            
+            # Update cache (L1 and L2)
+            await self._update_cache(flag)
+            
+            # Update metrics
+            with self._lock:
+                self._metrics.cache_misses += 1
+                self._metrics.database_queries += 1
+                self._metrics.avg_response_time_ms = (
+                    (self._metrics.avg_response_time_ms + (time.time() - start_time) * 1000) / 2
+                )
+            
+            return flag
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get feature flag {flag_name}: {e}")
+            return None
+    
+    async def get_all_flags(self) -> List[FeatureFlag]:
+        """
+        Get all feature flags with caching.
+        
+        Returns:
+            List of all feature flags
+        """
+        start_time = time.time()
+        cache_key = self._get_all_flags_cache_key()
+        
+        try:
+            # Try cache first
+            if self.cache_service:
+                cached_data = await self.cache_service.get(cache_key)
+                if cached_data:
+                    try:
+                        flags_data = cached_data
+                        flags = [self._deserialize_flag(flag_data) for flag_data in flags_data]
+                        
+                        with self._lock:
+                            self._metrics.cache_hits += 1
+                        
+                        return flags
+                    except Exception as e:
+                        self.logger.warning(f"Cache deserialization failed for all flags: {e}")
+            
+            # Query database
+            async with self.db_manager.get_connection() as conn:
+                rows = await self._retry_database_operation(
+                    conn.fetch("""
+                        SELECT id, flag_name, description, is_enabled, 
+                               rollout_percentage, created_at, updated_at
+                        FROM feature_flags 
+                        ORDER BY flag_name
+                    """)
+                )
+                
+                flags = []
+                for row in rows:
+                    flag = FeatureFlag(
+                        id=row['id'],
+                        flag_name=row['flag_name'],
+                        description=row['description'],
+                        is_enabled=row['is_enabled'],
+                        rollout_percentage=row['rollout_percentage'],
+                        created_at=row['created_at'].timestamp(),
+                        updated_at=row['updated_at'].timestamp()
+                    )
+                    flags.append(flag)
+            
+            # Update cache
+            if self.cache_service:
+                try:
+                    flags_data = [self._serialize_flag(flag) for flag in flags]
+                    await self.cache_service.set(cache_key, flags_data, self.CACHE_TTL)
+                except Exception as e:
+                    self.logger.warning(f"Failed to cache all flags: {e}")
+            
+            # Update metrics
+            with self._lock:
+                self._metrics.cache_misses += 1
+                self._metrics.database_queries += 1
+                self._metrics.total_flags = len(flags)
+                self._metrics.enabled_flags = sum(1 for flag in flags if flag.is_enabled)
+            
+            return flags
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get all feature flags: {e}")
+            return []
+    
+    async def update_flag(
+        self, 
+        flag_name: str, 
+        request: UpdateFeatureFlagRequest
+    ) -> Optional[FeatureFlag]:
+        """
+        Update an existing feature flag.
+        
+        Args:
+            flag_name: Name of the feature flag to update
+            request: Update request
+            
+        Returns:
+            Updated feature flag
+            
+        Raises:
+            HTTPException: If flag not found or update fails
+        """
+        start_time = time.time()
+        
+        try:
+            # Get current flag for comparison
+            current_flag = await self.get_flag(flag_name)
+            if not current_flag:
+                raise HTTPException(status_code=404, detail=f"Feature flag '{flag_name}' not found")
+            
+            # Build dynamic update query
+            updates = []
+            values = []
+            param_count = 1
+            
+            if request.description is not None:
+                updates.append(f"description = ${param_count}")
+                values.append(request.description)
+                param_count += 1
+            
+            if request.is_enabled is not None:
+                updates.append(f"is_enabled = ${param_count}")
+                values.append(request.is_enabled)
+                param_count += 1
+            
+            if request.rollout_percentage is not None:
+                if not 0 <= request.rollout_percentage <= 100:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Rollout percentage must be between 0 and 100"
+                    )
+                updates.append(f"rollout_percentage = ${param_count}")
+                values.append(request.rollout_percentage)
+                param_count += 1
+            
+            if not updates:
+                # Nothing to update
+                return current_flag
+            
+            # Add updated_at timestamp
+            updates.append(f"updated_at = NOW()")
+            values.append(flag_name)
+            
+            # Execute update
+            async with self.db_manager.get_connection() as conn:
+                query = f"""
+                    UPDATE feature_flags 
+                    SET {', '.join(updates)}
+                    WHERE flag_name = ${param_count}
+                    RETURNING id, flag_name, description, is_enabled, 
+                             rollout_percentage, created_at, updated_at
+                """
+                
+                row = await self._retry_database_operation(
+                    conn.fetchrow(query, *values)
+                )
+                
+                if not row:
+                    raise HTTPException(status_code=500, detail="Failed to update feature flag")
+                
+                updated_flag = FeatureFlag(
+                    id=row['id'],
+                    flag_name=row['flag_name'],
+                    description=row['description'],
+                    is_enabled=row['is_enabled'],
+                    rollout_percentage=row['rollout_percentage'],
+                    created_at=row['created_at'].timestamp(),
+                    updated_at=row['updated_at'].timestamp()
+                )
+            
+            # Update cache
+            await self._update_cache(updated_flag)
+            
+            # Invalidate all flags cache
+            if self.cache_service:
+                await self.cache_service.delete(self._get_all_flags_cache_key())
+            
+            # Send WebSocket notification if important fields changed
+            if (self.realtime_service and 
+                (request.is_enabled is not None or request.rollout_percentage is not None)):
+                
+                old_enabled = current_flag.is_enabled
+                new_enabled = updated_flag.is_enabled
+                old_percentage = current_flag.rollout_percentage
+                new_percentage = updated_flag.rollout_percentage
+                
+                if old_enabled != new_enabled or old_percentage != new_percentage:
+                    await self.realtime_service.notify_feature_flag_change(
+                        flag_name=flag_name,
+                        old_value=old_enabled,
+                        new_value=new_enabled,
+                        rollout_percentage=new_percentage
+                    )
+                    
+                    with self._lock:
+                        self._metrics.websocket_notifications += 1
+            
+            # Trigger change callbacks
+            await self._trigger_change_callbacks('updated', updated_flag)
+            
+            # Update metrics
+            response_time_ms = (time.time() - start_time) * 1000
+            with self._lock:
+                self._metrics.database_queries += 1
+                if updated_flag.is_enabled:
+                    self._metrics.enabled_flags += 1
+                else:
+                    self._metrics.enabled_flags -= 1
+                self._metrics.avg_response_time_ms = (
+                    (self._metrics.avg_response_time_ms + response_time_ms) / 2
+                )
+            
+            self.logger.info(
+                f"Updated feature flag: {flag_name} "
+                f"(enabled: {current_flag.is_enabled} -> {updated_flag.is_enabled}, "
+                f"rollout: {current_flag.rollout_percentage}% -> {updated_flag.rollout_percentage}%)"
+            )
+            
+            return updated_flag
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to update feature flag {flag_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    
+    async def delete_flag(self, flag_name: str) -> bool:
+        """
+        Delete a feature flag.
+        
+        Args:
+            flag_name: Name of the feature flag to delete
+            
+        Returns:
+            True if flag was deleted, False if not found
+            
+        Raises:
+            HTTPException: If deletion fails
+        """
+        start_time = time.time()
+        
+        try:
+            # Get current flag for WebSocket notification
+            current_flag = await self.get_flag(flag_name)
+            
+            async with self.db_manager.get_connection() as conn:
+                result = await self._retry_database_operation(
+                    conn.execute(
+                        "DELETE FROM feature_flags WHERE flag_name = $1",
+                        flag_name
+                    )
+                )
+                
+                if result == "DELETE 0":
+                    # Flag not found
+                    return False
+            
+            # Remove from cache
+            cache_key = self._get_cache_key(flag_name)
+            if self.cache_service:
+                await self.cache_service.delete(cache_key)
+            
+            # Invalidate all flags cache
+            if self.cache_service:
+                await self.cache_service.delete(self._get_all_flags_cache_key())
+            
+            # Send WebSocket notification
+            if self.realtime_service and current_flag:
+                await self.realtime_service.notify_flag_deleted(flag_name)
+                
+                with self._lock:
+                    self._metrics.websocket_notifications += 1
+            
+            # Trigger change callbacks
+            if current_flag:
+                await self._trigger_change_callbacks('deleted', current_flag)
+            
+            # Update metrics
+            response_time_ms = (time.time() - start_time) * 1000
+            with self._lock:
+                self._metrics.database_queries += 1
+                self._metrics.total_flags -= 1
+                if current_flag and current_flag.is_enabled:
+                    self._metrics.enabled_flags -= 1
+                self._metrics.avg_response_time_ms = (
+                    (self._metrics.avg_response_time_ms + response_time_ms) / 1000
+                )
+            
+            self.logger.info(f"Deleted feature flag: {flag_name}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to delete feature flag {flag_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    
+    async def _update_cache(self, flag: FeatureFlag) -> None:
+        """Update cache for a feature flag."""
+        if not self.cache_service:
+            return
+        
+        try:
+            cache_key = self._get_cache_key(flag.flag_name)
+            serialized_flag = self._serialize_flag(flag)
+            await self.cache_service.set(cache_key, serialized_flag, self.CACHE_TTL)
+        except Exception as e:
+            self.logger.warning(f"Failed to update cache for flag {flag.flag_name}: {e}")
+    
+    async def _trigger_change_callbacks(self, action: str, flag: FeatureFlag) -> None:
+        """Trigger registered change callbacks."""
+        for callback in self._change_callbacks:
+            try:
+                await callback(action, flag)
+            except Exception as e:
+                self.logger.warning(f"Change callback failed: {e}")
+    
+    def add_change_callback(self, callback: callable) -> None:
+        """Add a callback for feature flag changes."""
+        with self._lock:
+            self._change_callbacks.append(callback)
+    
+    def remove_change_callback(self, callback: callable) -> None:
+        """Remove a change callback."""
+        with self._lock:
+            if callback in self._change_callbacks:
+                self._change_callbacks.remove(callback)
+    
+    async def is_flag_enabled(self, flag_name: str) -> bool:
+        """
+        Check if a feature flag is enabled.
+        
+        This is a convenience method for quick flag status checks.
+        
+        Args:
+            flag_name: Name of the feature flag
+            
+        Returns:
+            True if flag is enabled, False otherwise
+        """
+        flag = await self.get_flag(flag_name)
+        return flag.is_enabled if flag else False
+    
+    async def get_flag_with_rollout(self, flag_name: str, user_id: Optional[str] = None) -> bool:
+        """
+        Check if a feature flag is enabled for a specific user/context.
+        
+        This method implements gradual rollout logic, checking if the user
+        should receive the feature based on the rollout percentage.
+        
+        Args:
+            flag_name: Name of the feature flag
+            user_id: Optional user identifier for rollout targeting
+            
+        Returns:
+            True if feature should be enabled for the user/context
+        """
+        flag = await self.get_flag(flag_name)
+        if not flag or not flag.is_enabled:
+            return False
+        
+        # If no user context, return based on rollout percentage
+        if not user_id:
+            import random
+            return random.randint(1, 100) <= flag.rollout_percentage
+        
+        # Use user_id for consistent rollout targeting
+        # Hash the user_id to get a consistent percentage
+        import hashlib
+        user_hash = int(hashlib.md5(user_id.encode()).hexdigest()[:8], 16)
+        user_percentage = (user_hash % 100) + 1
+        
+        return user_percentage <= flag.rollout_percentage
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get feature flag service performance metrics."""
+        with self._lock:
+            total_requests = self._metrics.cache_hits + self._metrics.cache_misses
+            cache_hit_rate = (
+                self._metrics.cache_hits / total_requests if total_requests > 0 else 0.0
+            )
+            
+            return {
+                'total_flags': self._metrics.total_flags,
+                'enabled_flags': self._metrics.enabled_flags,
+                'cache': {
+                    'hits': self._metrics.cache_hits,
+                    'misses': self._metrics.cache_misses,
+                    'hit_rate': cache_hit_rate,
+                    'efficiency': 'EXCELLENT' if cache_hit_rate > 0.95 else 
+                                 'GOOD' if cache_hit_rate > 0.90 else 'FAIR'
+                },
+                'database': {
+                    'queries': self._metrics.database_queries
+                },
+                'realtime': {
+                    'notifications': self._metrics.websocket_notifications
+                },
+                'performance': {
+                    'avg_response_time_ms': self._metrics.avg_response_time_ms,
+                    'meets_slo': self._metrics.avg_response_time_ms < 1.25
+                }
+            }

@@ -1,0 +1,233 @@
+repos:
+  # Python formatting and linting
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=88, --target-version=py311]
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+
+  # Python linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203,W503]
+
+  # Python type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [
+          types-redis,
+          types-requests,
+          types-aiohttp,
+          pydantic,
+          fastapi
+        ]
+        args: [--ignore-missing-imports, --strict-optional]
+
+  # Python security linting
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+
+  # Python dependency security checking
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+
+  # TypeScript/React formatting and linting
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        files: \.(ts|tsx|js|jsx)$
+        types: [file]
+        additional_dependencies:
+          - '@typescript-eslint/eslint-plugin@^6.0.0'
+          - '@typescript-eslint/parser@^6.0.0'
+          - 'eslint@^8.0.0'
+          - 'eslint-plugin-react@^7.0.0'
+          - 'eslint-plugin-react-hooks@^4.0.0'
+        args: [--fix, --ext, .ts,.tsx,.js,.jsx]
+
+  # TypeScript/React formatting with Prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: \.(ts|tsx|js|jsx|json|css|md)$
+        additional_dependencies:
+          - prettier@^3.0.0
+          - '@prettier/plugin-xml@^3.0.0'
+
+  # TypeScript type checking
+  - repo: https://github.com/pre-commit/mirrors-typescript
+    rev: v5.3.3
+    hooks:
+      - id: typecheck
+        files: \.(ts|tsx)$
+        types: [file]
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Python docstring formatting
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+
+  # SQL formatting
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.3.5
+    hooks:
+      - id: sqlfluff-lint
+        additional_dependencies: ['sqlfluff-templater-dbt']
+      - id: sqlfluff-format
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3009]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+
+  # Dockerfile formatting
+  - repo: https://github.com/cyril/vim-dockerfile-format
+    rev: v1.1.0
+    hooks:
+      - id: dockerfile-format
+
+  # Python requirements.txt sorting
+  - repo: https://github.com/pre-commit/mirrors-pip-tools
+    rev: v7.3.0
+    hooks:
+      - id: pip-compile
+        files: ^(api/requirements\.txt|.*/requirements\.in)$
+        args: [--generate-hashes]
+
+  # Custom hooks for project-specific checks
+  - repo: local
+    hooks:
+      # Check API endpoint documentation consistency
+      - id: check-api-docs
+        name: Check API documentation consistency
+        entry: python scripts/check_api_docs.py
+        language: system
+        files: api/.*\.py$
+        pass_filenames: false
+
+      # Check TypeScript type definitions consistency
+      - id: check-typescript-consistency
+        name: Check TypeScript type consistency
+        entry: python scripts/check_typescript_consistency.py
+        language: system
+        files: frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      # Performance regression check
+      - id: performance-regression-check
+        name: Check performance regression
+        entry: python scripts/check_performance_regression.py
+        language: system
+        files: api/.*\.(py)$
+        pass_filenames: false
+        stages: [push]
+
+      # Database migration validation
+      - id: validate-migrations
+        name: Validate database migrations
+        entry: python scripts/validate_migrations.py
+        language: system
+        files: migrations/.*\.sql$
+        pass_filenames: false
+
+      # Security scan for secrets
+      - id: detect-secrets
+        name: Detect secrets in code
+        entry: python scripts/detect_secrets.py
+        language: system
+        pass_filenames: true
+
+      # Documentation consistency check
+      - id: check-docs-consistency
+        name: Check documentation consistency
+        entry: python scripts/check_docs_consistency.py
+        language: system
+        files: docs/.*\.md$
+        pass_filenames: false
+
+      # Frontend build validation
+      - id: frontend-build-check
+        name: Validate frontend build
+        entry: bash -c 'cd frontend && npm run build --if-present'
+        language: system
+        files: frontend/src/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      # Backend API health check
+      - id: api-health-check
+        name: Check API health
+        entry: python scripts/check_api_health.py
+        language: system
+        files: api/.*\.py$
+        pass_filenames: false
+        stages: [push]
+
+      # Compliance evidence collection
+      - id: collect-compliance-evidence
+        name: Collect compliance evidence
+        entry: python scripts/collect_compliance_evidence.py
+        language: system
+        pass_filenames: false
+        stages: [push]
+
+      # Materialized view refresh check
+      - id: check-mv-refresh
+        name: Check materialized view refresh
+        entry: python scripts/check_materialized_view_refresh.py
+        language: system
+        files: api/navigation_api/.*\.(py)$
+        pass_filenames: false
+
+      # WebSocket serialization check
+      - id: check-websocket-serialization
+        name: Check WebSocket serialization
+        entry: python scripts/check_websocket_serialization.py
+        language: system
+        files: api/.*\.(py)$
+        pass_filenames: false

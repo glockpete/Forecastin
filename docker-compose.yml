@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with LTREE and PostGIS
+  postgres:
+    image: postgis/postgis:13-3.1
+    container_name: forecastin_postgres
+    environment:
+      POSTGRES_DB: forecastin
+      POSTGRES_USER: forecastin
+      POSTGRES_PASSWORD: forecastin_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forecastin -d forecastin"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - forecastin_network
+
+  # Redis Cache
+  redis:
+    image: redis:6-alpine
+    container_name: forecastin_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - forecastin_network
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: forecastin_api
+    ports:
+      - "9000:9000"
+    environment:
+      - DATABASE_URL=postgresql://forecastin:forecastin_password@postgres:5432/forecastin
+      - REDIS_URL=redis://redis:6379/0
+      - API_PORT=9000
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+      - api_logs:/app/logs
+    networks:
+      - forecastin_network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:9000
+        - REACT_APP_WS_URL=ws://localhost:9000
+    container_name: forecastin_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - forecastin_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  api_logs:
+    driver: local
+
+networks:
+  forecastin_network:
+    driver: bridge
+    name: forecastin_network

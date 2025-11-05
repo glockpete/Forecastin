@@ -1,0 +1,226 @@
+# Product Requirements Document (PRD)
+**Product:** Master Solutions — Geopolitical Intelligence Platform  
+**Repo Root:** `/home/pete/dev/Forecastin`  
+**Doc Path:** `.taskmaster/docs/prd.md`  
+**Owners:** Product (Roo – Architect), Eng (Backend/Frontend/Infra), Data/ML  
+**Approvers:** Product Lead, Eng Lead, Security, Data Lead  
+**Status:** Draft → Review → **Approved**  
+**Version:** 1.1  
+**Last Updated:** 04 Nov 2025
+
+---
+
+## 0. Document Control
+- **Stakeholders:** Product, Eng, Data/ML, SRE, Security, Compliance, Design
+- **Related Docs:** `.taskmaster/docs/pds.md`, `unified-build-plan.md`, `frontend/README.md`
+- **Evidence Folders:** `deliverables/compliance/`, `deliverables/perf/`, `.taskmaster/reports/`
+- **Task Master Linkage:** Tasks are generated from this PRD (see §15)
+
+---
+
+## 1. Background & Business Goals
+Fragmented sources and siloed tools cause context switching and slow traceability from world-level trends to granular signals. Goal: a unified, hierarchical drill-down platform with real-time updates, provenance, and curator controls.
+
+**Business outcomes**
+- 30% faster time-to-insight for analysts
+- Differentiated UX: world → region → country → sector → actor in ≤3 clicks
+- Lower operating cost via caching and precomputation
+
+---
+
+## 2. In-Scope / Out-of-Scope
+**In-Scope (Phase 1–4):**
+- Hierarchical datastore (LTREE + PostGIS)
+- Optimised ancestor/descendant resolution and materialised views
+- Real-time updates (WebSocket + Redis Pub/Sub)
+- Frontend: Miller’s columns, breadcrumbs, progressive loading
+- Ingestion: RSSHub, Email (IMAP)
+- Governance: curator overrides, provenance, confidence
+- Observability, CI/CD, security baselines
+
+**Out-of-Scope (for now):**
+- Full text search UI
+- Multi-tenant billing
+- Advanced forecasting workbench beyond signals/steep
+
+---
+
+## 3. Personas
+- **Analyst:** scans world→signal, saves/export views, trusts provenance
+- **Curator:** corrects entities, overrides classifications, manages sources
+- **Ops/SRE:** monitors SLOs, handles incidents, validates rollbacks
+
+---
+
+## 4. Scenarios & User Stories (acceptance criteria)
+**S1 — Hierarchy drill-down**
+- *As an Analyst*, I drill from World → Region → Country → Sector → Actor and see signals and STEEP context.
+- **AC:** P95 API <100 ms; breadcrumb reflects current node; deep links open the same view.
+
+**S2 — Real-time updates**
+- *As an Analyst*, I see new signals appear without refresh.
+- **AC:** WS latency P95 <200 ms; reconnect auto-recovers; no client drop on serialisation errors.
+
+**S3 — Provenance & curator override**
+- *As a Curator*, I can override classification with logged provenance.
+- **AC:** overrides persist, emit audit event, and are reversible.
+
+**S4 — Ingestion**
+- *As a Curator/Analyst*, I add feeds via RSSHub and receive signals; email ingestion processes tagged mailboxes.
+- **AC:** ≥95% daily ingest success; backoff/retry recorded; cursors persisted.
+
+**S5 — Performance**
+- *As an Analyst*, navigation and stats remain responsive under load.
+- **AC:** ancestor resolution avg 1.25 ms (P95 ≤10 ms); end-to-end drill-down <500 ms P95.
+
+---
+
+## 5. Functional Requirements (must/should/could)
+**Must**
+- F-001 Hierarchy API v3 with optimised endpoints
+- F-002 WS updates with Redis Pub/Sub
+- F-003 Provenance and curator overrides
+- F-004 RSSHub + Email ingestion with cursors
+- F-005 STEEP breakdown and confidence scoring
+
+**Should**
+- F-006 Map visualisation with PostGIS proximity
+- F-007 Shared filter state and Miller’s columns
+
+**Could**
+- F-008 A/B model routing and automatic rollback
+
+---
+
+## 6. Non-Functional Requirements (NFRs)
+- **Performance:** see §13 SLOs; ancestor P95 <10 ms, end-to-end nav <500 ms P95
+- **Availability:** 99.9% platform; WS reconnect ≤5 s
+- **Scalability:** tested to ≥40k RPS hierarchy reads
+- **Security:** JWT auth; secret scanning; SBOM; CI policy gates
+- **Privacy:** DPIA, data map, retention policy, PII minimisation
+- **Accessibility:** WCAG 2.1 AA; keyboard and screen-reader flows
+- **I18N/L10N:** UTC normalisation; locale formats; copy externalised
+- **Observability:** Prometheus metrics, structured logs, traces, alerts
+- **Cost:** cache hit ≥90%; Redis and DB size budgets captured
+
+---
+
+## 7. Architecture & Implementation Map (ground-truth paths)
+**Backend**
+- `api/main.py` — FastAPI service and routing
+- `api/navigation_api/database/optimized_hierarchy_resolver.py` — precomputation, query paths, **L1 LRU with `RLock`**
+- `api/navigation_api/migrations/003_optimize_hierarchy_performance.sql` — MV, indexes, triggers
+- `api/realtime_service.py` — WebSockets, Redis Pub/Sub, `safe_serialize_message` using `orjson`
+
+**Frontend**
+- `frontend/src/components/TreeNavigation.tsx` — Miller’s columns + lazy load
+- `frontend/src/components/Breadcrumb.tsx` — deep links
+- `frontend/src/ws/WebSocketManager.tsx`, `frontend/src/hooks/useWebSocket.ts` — live updates
+- Progressive loading everywhere long lists appear
+
+**Ingestion**
+- RSSHub integration via config; Email via `imap_tools` with durable cursors
+
+**Scripts**
+- `scripts/gather_metrics.py` — ground-truth counters
+- `scripts/check_consistency.py`, `scripts/fix_roadmap.py` — documentation consistency
+
+**Evidence**
+- Perf: `deliverables/perf/`
+- Compliance: `deliverables/compliance/`
+- Reports: `.taskmaster/reports/`
+
+---
+
+## 8. API Surface (v3)
+- `GET /api/v3/hierarchy/world`
+- `GET /api/v3/hierarchy/{node}` — query by LTREE path
+- `GET /api/v3/steep?path=…`
+- `GET /api/v3/signals?path=…&since=…&limit=…`
+- `WS /ws/updates` — payload `{type, path, ids, ts}`
+
+**Contract notes**
+- All timestamps ISO-8601 UTC; include server clock in headers
+- Pagination: cursor-based for large lists
+- Error model: problem+json; correlation-id per request
+
+---
+
+## 9. Data Model (summary)
+- `entity(id, kind, name, path LTREE, geo GEOGRAPHY, meta JSONB, path_depth INT, path_hash TEXT)`
+- `entity_fact(id, entity_id, k, v, source_id, confidence, ts)`
+- `source(id, type, url, meta, first_seen, last_seen)`
+- `ingest_cursor(source_id, cursor, ts)`
+
+---
+
+## 10. Telemetry & Analytics Plan
+- **Key product metrics:** time-to-insight, drill-down completion rate, saves/exports, curator overrides frequency
+- **Tech metrics:** P95 latencies by endpoint, WS latency, cache hit rates L1/L2/L3, Redis/DB utilisation
+- **Dashboards:** Grafana boards for API, WS, Redis, DB; product analytics board
+- **Alerting:** SLO burn rates, WS disconnect spikes, Redis latency, DB queue depth
+
+---
+
+## 11. Privacy, Security, Compliance
+- **Data classification:** content = Low/Moderate; account metadata = Moderate; no sensitive PII without DPA
+- **DPIA:** required before GA; retention policy documented
+- **AuthN/Z:** JWT with short-lived tokens; role-based access for curator features
+- **Threat model:** STRIDE reviewed; rate-limit WS, input validation, SQL parameterisation
+- **Secrets:** `.env` in dev only; CI secrets via vault/runner; scanners in CI
+
+---
+
+## 12. Accessibility & Internationalisation
+- WCAG 2.1 AA components; keyboard navigation of Miller’s columns and breadcrumbs
+- Text alternatives for maps; focus outlines; reduced-motion support
+- Locale formatters; multi-timezone rendering; server stores UTC
+
+---
+
+## 13. SLOs, Capacity & Load
+- **API P95:** <100 ms; **Hierarchy drill-down:** <500 ms P95
+- **Ancestor resolution:** avg 1.25 ms (P95 ≤10 ms)
+- **WS latency P95:** <200 ms; reconnect <5 s
+- **Throughput target:** ≥40k RPS reads (validated 42,726)
+- **Cache hit:** ≥90% combined; alert at <85%
+
+---
+
+## 14. Rollout, Flighting, Experimentation, Rollback
+- **Feature flags:** `ff.hierarchy_optimized`, `ff.ws_v1`, `ff.map_v1`, `ff.ab_routing`
+- **Flights:** internal → beta → GA; 10%/25%/50%/100%
+- **Experimentation:** A/B for extraction variants; guardrail metrics (latency, error rate, accuracy)
+- **Rollback:** flag off first; DB migration rollback scripts; static fallback endpoints
+
+---
+
+## 15. Delivery Plan & Task Master Mapping
+**Milestones (Phase 1–4):**
+1. DB core + migrations
+2. Optimised hierarchy + API
+3. WS + Redis fan-out
+4. Frontend core + shared state + progressive loading
+5. Ingestion (RSSHub/Email)
+6. Observability + CI/CD + security baselines
+
+**Task Master seed (examples)**  
+> _You already have 10 tasks; keep IDs stable where possible._
+
+- #1 Database Schema Design and Core Table Creation → §7, §9
+- #2 Initial Data Ingestion Framework → §7 Ingestion
+- #3 RSSHub Integration and Feed Ingestion → §7 Ingestion
+- #4 Email Ingestion via IMAP IDLE → §7 Ingestion
+- #5 STEEP Categorisation and Scoring Engine → §5 F-005
+- #6 Hierarchy API Endpoints Implementation → §8
+- #7 WebSocket Real-time Broadcasts → §7 Backend realtime
+- #8 Frontend Core Setup and Initial Display → §7 Frontend
+- #9 Shared Filter State and Breadcrumbs → §7 Frontend
+- #10 Observability and CI/CD Baseline → §§10–11
+
+**Commands**
+```bash
+cd /home/pete/dev/Forecastin
+task-master parse-prd .taskmaster/docs/prd.md
+task-master expand --id=1
+task-master next

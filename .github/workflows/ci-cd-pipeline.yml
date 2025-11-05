@@ -1,0 +1,422 @@
+name: CI/CD Pipeline with Performance Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  # Pre-commit hooks for type checking and formatting
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      # Install pre-commit
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+          cd frontend && npm ci
+      
+      # Run pre-commit hooks
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files
+          
+      # Type checking for Python
+      - name: Run mypy type checking
+        run: |
+          pip install mypy types-redis
+          mypy api/ --ignore-missing-imports
+          
+      # Type checking for TypeScript
+      - name: Run TypeScript type checking
+        run: |
+          cd frontend
+          npm run build --if-present
+
+  # Unit tests
+  test-api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forecastin_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt
+          pip install pytest-cov pytest-benchmark locust
+          
+      # Setup database
+      - name: Setup database
+        run: |
+          # Create extensions
+          psql -h localhost -U postgres -d forecastin_test -c "CREATE EXTENSION IF NOT EXISTS ltree;"
+          psql -h localhost -U postgres -d forecastin_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          
+      # Run unit tests
+      - name: Run unit tests
+        run: |
+          cd api
+          pytest tests/ --cov=./ --cov-report=xml --cov-report=html
+          
+      # Run unit tests for frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm ci
+          npm test -- --coverage --watchAll=false
+
+  # Performance validation tests
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: [test-api]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forecastin_perf
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install performance testing dependencies
+        run: |
+          pip install -r api/requirements.txt
+          pip install pytest-benchmark locust k6 gunicorn
+          pip install memory-profiler psutil
+          
+      # Setup performance test database
+      - name: Setup performance database
+        run: |
+          psql -h localhost -U postgres -d forecastin_perf -c "CREATE EXTENSION IF NOT EXISTS ltree;"
+          psql -h localhost -U postgres -d forecastin_perf -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          psql -h localhost -U postgres -d forecastin_perf -f migrations/001_initial_schema.sql
+          psql -h localhost -U postgres -d forecastin_perf -f migrations/002_ml_ab_testing_framework.sql
+          
+      # Load test data
+      - name: Load performance test data
+        run: |
+          cd scripts
+          python load_performance_data.py --size=large --db-url=postgresql://postgres:postgres@localhost:5432/forecastin_perf
+          
+      # Test O(log n) hierarchy resolution performance
+      - name: Test hierarchy resolution performance
+        run: |
+          cd api
+          pytest tests/test_performance.py::test_hierarchy_resolution_o_log_n -v --benchmark-json=../benchmark_results.json
+          
+      # Test cache hit rate under load
+      - name: Test cache hit rate under load
+        run: |
+          cd api
+          pytest tests/test_performance.py::test_cache_hit_rate_under_load -v --benchmark-json=../cache_results.json
+          
+      # Run load testing with locust
+      - name: Run load testing with Locust
+        run: |
+          cd tests/load
+          locust -f locustfile.py \
+            --host=http://localhost:9000 \
+            --headless \
+            --users=100 \
+            --spawn-rate=10 \
+            --run-time=2m \
+            --csv=load_test_results
+          
+      # Run k6 performance testing
+      - name: Run k6 performance tests
+        run: |
+          cd tests/performance
+          k6 run --out json=results.json hierarchy_performance.js
+          
+      # Collect performance metrics
+      - name: Collect performance metrics
+        run: |
+          mkdir -p performance_reports
+          python scripts/gather_metrics.py --output=performance_reports/metrics.json
+          python scripts/check_performance_slos.py --metrics=performance_reports/metrics.json
+          
+      # Upload performance reports
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-reports
+          path: |
+            benchmark_results.json
+            cache_results.json
+            load_test_results_*.csv
+            performance_reports/
+          retention-days: 30
+
+  # Database performance validation
+  db-performance:
+    runs-on: ubuntu-latest
+    needs: [performance-tests]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forecastin_db_perf
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install database testing tools
+        run: |
+          pip install -r api/requirements.txt
+          pip install pgbench psycopg2-binary
+          
+      - name: Setup database for benchmarking
+        run: |
+          psql -h localhost -U postgres -d forecastin_db_perf -c "CREATE EXTENSION IF NOT EXISTS ltree;"
+          psql -h localhost -U postgres -d forecastin_db_perf -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          psql -h localhost -U postgres -d forecastin_db_perf -f migrations/001_initial_schema.sql
+          psql -h localhost -U postgres -d forecastin_db_perf -f migrations/002_ml_ab_testing_framework.sql
+          
+      - name: Run database performance tests
+        run: |
+          cd tests
+          python test_db_performance.py --db-url=postgresql://postgres:postgres@localhost:5432/forecastin_db_perf
+          
+      - name: Validate materialized view performance
+        run: |
+          cd api/navigation_api
+          python test_materialized_views.py --db-url=postgresql://postgres:postgres@localhost:5432/forecastin_db_perf
+
+  # Compliance automation and evidence collection
+  compliance-check:
+    runs-on: ubuntu-latest
+    needs: [db-performance]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install compliance tools
+        run: |
+          pip install bandit safety semgrep
+          npm install -g @typescript-eslint/typescript-estree @typescript-eslint/eslint-plugin
+          
+      - name: Run security scans
+        run: |
+          mkdir -p deliverables/compliance/evidence
+          bandit -r api/ -f json -o deliverables/compliance/evidence/bandit_report.json
+          safety check --json --output deliverables/compliance/evidence/safety_report.json
+          semgrep --config=auto --json --output=deliverables/compliance/evidence/semgrep_report.json api/
+          
+      - name: Run compliance automation scripts
+        run: |
+          cd scripts
+          python gather_metrics.py --output=../deliverables/compliance/evidence/metrics_$(date +%Y%m%d).json
+          python check_consistency.py --target=../deliverables/compliance/evidence/consistency_check.json
+          
+      - name: Generate compliance report
+        run: |
+          python scripts/generate_compliance_report.py \
+            --evidence-dir=deliverables/compliance/evidence \
+            --output=deliverables/compliance/performance_validation_report.md
+            
+      - name: Upload compliance evidence
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-evidence
+          path: deliverables/compliance/
+          retention-days: 90
+
+  # Integration tests
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [compliance-check]
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forecastin_integration
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup and build application
+        run: |
+          # Install backend dependencies
+          pip install -r api/requirements.txt
+          
+          # Install frontend dependencies and build
+          cd frontend
+          npm ci
+          npm run build
+          
+      - name: Start application
+        run: |
+          # Start the API server in background
+          cd api
+          uvicorn main:app --host 0.0.0.0 --port 9000 &
+          API_PID=$!
+          
+          # Wait for API to be ready
+          sleep 10
+          
+          # Test API health
+          curl -f http://localhost:9000/health || exit 1
+          
+          # Keep API running for integration tests
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          
+      - name: Run integration tests
+        run: |
+          # Test WebSocket performance
+          python tests/integration/test_websocket_performance.py
+          
+          # Test end-to-end performance
+          python tests/integration/test_e2e_performance.py
+          
+          # Test cache coordination
+          python tests/integration/test_cache_coordination.py
+          
+      - name: Final performance validation
+        run: |
+          cd api
+          # Validate against SLOs
+          python validate_performance_slos.py \
+            --ancestor-resolution-target=10ms \
+            --throughput-target=10000 \
+            --cache-hit-rate-target=90 \
+            --results-file=../final_performance_validation.json
+            
+      - name: Stop API server
+        if: always()
+        run: |
+          kill $API_PID || true
+          
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: |
+            final_performance_validation.json
+            tests/integration/results/
+          retention-days: 30
+
+  # Deploy (only on main branch)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add deployment steps here
+          
+      - name: Run smoke tests on staging
+        run: |
+          echo "Running smoke tests on staging..."
+          # Add smoke test steps here
+          
+      - name: Performance regression test
+        run: |
+          echo "Running performance regression tests..."
+          # Add regression test steps here
