@@ -27,16 +27,17 @@ This repository contains the complete architecture for the Forecastin Geopolitic
 - Responsive design with mobile adaptation
 
 **Performance Targets (Current Status):**
-- Ancestor resolution: ✅ **1.25ms** (P95: 1.87ms) - **SLO validated**
+- Ancestor resolution: ❌ **3.46ms** (P95: 5.20ms) - **SLO regression detected**
 - Descendant retrieval: ✅ **1.25ms** (P99: 17.29ms)
 - Throughput: ✅ **42,726 RPS**
 - Cache hit rate: ✅ **99.2%**
 - Materialized view refresh: ✅ **850ms**
 - WebSocket serialization: ✅ **0.019ms**
 - Connection pool health: ✅ **65% utilization**
-- WebSocket connectivity: ✅ **Stable with 20-second keepalive intervals**
+- WebSocket connectivity: ✅ **Stable with runtime URL configuration**
+- RSS ingestion: ✅ **Architecture complete** (pending implementation)
 
-**TypeScript Status:** ❌ **186 compilation errors** pending resolution
+**TypeScript Status:** ✅ **FULLY COMPLIANT** - 0 compilation errors (strict mode enabled)
 **CI/CD Status:** ✅ **Fully implemented** with performance validation workflow
 **WebSocket Status:** ✅ **Fully operational** with zero console errors
 
@@ -53,13 +54,20 @@ forecastin/
 │       ├── cache_service.py           # Multi-tier cache service (L1/L2/L3/L4)
 │       ├── realtime_service.py        # WebSocket service with safe serialization
 │       ├── database_manager.py        # Database connection management
-│       └── test_services.py           # Service integration tests
+│       ├── test_services.py           # Service integration tests
+│       └── rss/                       # RSS ingestion service
+│           ├── rss_ingestion_service.py    # Main RSS ingestion orchestration
+│           ├── route_processors/           # RSSHub-inspired route processing
+│           │   └── base_processor.py       # CSS selector-based content extraction
+│           └── anti_crawler/               # Anti-crawler strategies
+│               └── manager.py              # Exponential backoff management
 ├── frontend/              # React frontend
 │   ├── package.json       # Node.js dependencies
 │   └── src/               # Source code
 ├── migrations/            # Database migrations
 │   ├── 001_initial_schema.sql
-│   └── 002_ml_ab_testing_framework.sql
+│   ├── 002_ml_ab_testing_framework.sql
+│   └── 004_rss_entity_extraction_schema.sql
 ├── docker-compose.yml     # Development environment
 ├── .github/workflows/     # CI/CD pipelines
 └── docs/                  # Documentation
@@ -188,6 +196,78 @@ The FeatureFlagService provides comprehensive feature flag management with real-
 - **CacheService**: Multi-tier caching with health monitoring
 - **RealtimeService**: WebSocket notifications with safe serialization
 - **Performance Monitoring**: Comprehensive metrics and health checks
+
+## RSS Ingestion Service
+
+The RSS Ingestion Service provides comprehensive RSS feed processing with RSSHub-inspired patterns, integrated seamlessly with the existing Forecastin infrastructure.
+
+### Key Features
+
+- **RSSHub-Inspired Architecture**: Route system with CSS selectors for content extraction
+- **Anti-Crawler Strategies**: Domain-specific exponential backoff with user agent rotation
+- **5-W Entity Extraction**: Who, What, Where, When, Why framework with confidence scoring
+- **Four-Tier Cache Integration**: Seamless integration with existing L1-L4 caching strategy
+- **Real-time Notifications**: WebSocket updates with orjson serialization
+- **Content Deduplication**: 0.8 similarity threshold with audit trail logging
+- **LTREE Hierarchy Integration**: O(log n) performance via existing materialized views
+
+### Architecture Components
+
+| Component | Description | Integration Point |
+|-----------|-------------|------------------|
+| **RSSIngestionService** | Main orchestration service | [`api/services/rss/rss_ingestion_service.py`](api/services/rss/rss_ingestion_service.py:1) |
+| **BaseRouteProcessor** | CSS selector-based extraction | [`api/services/rss/route_processors/base_processor.py`](api/services/rss/route_processors/base_processor.py:1) |
+| **AntiCrawlerManager** | Exponential backoff strategies | [`api/services/rss/anti_crawler/manager.py`](api/services/rss/anti_crawler/manager.py:1) |
+| **EntityExtractor** | 5-W framework with confidence scoring | Integration with existing entity system |
+| **ContentDeduplicator** | Similarity-based duplicate detection | 0.8 threshold with canonical key assignment |
+| **WebSocketNotifier** | Real-time RSS notifications | Integration with existing realtime_service.py |
+
+### Performance Targets
+
+- **Ingestion Latency**: P95 <500ms per article
+- **Entity Extraction**: <50ms per article (5-W framework)
+- **Deduplication**: <10ms similarity calculation
+- **Anti-Crawler Success**: >95% crawling success rate
+- **Cache Hit Rate**: Maintains existing 99.2% performance
+- **Throughput**: Integrates with existing 42,726 RPS infrastructure
+
+### RSS-Specific Feature Flags
+
+The RSS service uses granular feature flags for controlled rollout:
+
+- `rss_ingestion_v1` - Enable RSS ingestion service V1
+- `rss_route_processing` - Enable RSSHub-inspired route processing
+- `rss_anti_crawler` - Enable anti-crawler strategies
+- `rss_entity_extraction` - Enable 5-W entity extraction from RSS
+- `rss_deduplication` - Enable RSS content deduplication
+- `rss_websocket_notifications` - Enable real-time RSS notifications
+
+### Rollout Strategy
+
+1. **Phase 1 (10%)**: Basic RSS ingestion with route processing
+2. **Phase 2 (25%)**: Anti-crawler strategies activation
+3. **Phase 3 (50%)**: 5-W entity extraction deployment
+4. **Phase 4 (75%)**: Deduplication system activation
+5. **Phase 5 (100%)**: Full WebSocket notifications
+
+### Integration with Existing Infrastructure
+
+- **LTREE Materialized Views**: Automatic geographic entity linking with manual refresh coordination
+- **Multi-Tier Caching**: L1 (RLock LRU) → L2 (Redis) → L3 (DB buffer) → L4 (Materialized views)
+- **WebSocket Infrastructure**: orjson serialization with safe error handling for datetime objects
+- **Database Schema**: Uses existing [`migrations/004_rss_entity_extraction_schema.sql`](migrations/004_rss_entity_extraction_schema.sql:1)
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/rss/feeds` | List all RSS feed sources |
+| POST | `/api/v1/rss/feeds` | Add new RSS feed source |
+| POST | `/api/v1/rss/ingest` | Trigger manual RSS ingestion |
+| GET | `/api/v1/rss/articles/{article_id}` | Get RSS article with entities |
+| GET | `/api/v1/rss/metrics` | RSS ingestion performance metrics |
+
+See [`docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md`](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md) and [`docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md`](docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md) for complete specifications.
 
 ## Geospatial Layer System
 
@@ -362,27 +442,39 @@ The platform includes comprehensive SLO validation via [`scripts/slo_validation.
 - ✅ **Phase 6-8**: Advanced Scenario Construction, UI Enhancement, Performance Optimization
 
 ### Current Focus (Phase 9):
-- 🔄 **TypeScript Error Resolution**: 186 compilation errors in geospatial layers
+- ✅ **TypeScript Error Resolution**: 0 compilation errors - fully compliant with strict mode
 - ✅ **WebSocket Connectivity**: Fully operational with runtime URL configuration
 - ✅ **Port Configuration**: Resolved (correct port is 9000)
-- ✅ **Performance Validation**: All SLOs met (1.25ms resolution, 42,726 RPS, 99.2% cache hit rate)
+- ⚠️ **Performance Validation**: SLO regression detected (3.46ms ancestor resolution vs 1.25ms target)
 - 🔄 **Community Engagement**: Framework establishment and documentation
 - 🔄 **Package Extraction**: Reusable components for open source
 
 ### Immediate Priorities:
-1. **Resolve TypeScript compilation errors** (186 errors across geospatial layers)
+1. ✅ **TypeScript compilation errors resolved** (0 errors - fully compliant)
 2. ✅ **WebSocket connectivity established** with zero console errors
 3. ✅ **Port configuration resolved** eliminating 9000 vs 9001 confusion
-4. ✅ **Performance SLOs validated** (1.25ms resolution, 42,726 RPS, 99.2% cache hit rate)
-5. **Complete CI/CD pipeline integration** with automated SLO validation
+4. ⚠️ **Performance SLO regression investigation** (3.46ms ancestor resolution vs 1.25ms target)
+5. ✅ **CI/CD pipeline integration** with automated SLO validation
 6. **Prepare for open source launch** with comprehensive documentation
 
 For detailed architectural constraints and non-obvious patterns, refer to `docs/AGENTS.md`.
 
 ## Documentation
 
+### Core Architecture
+- [`docs/GOLDEN_SOURCE.md`](docs/GOLDEN_SOURCE.md) - Core requirements and specifications
+- [`docs/AGENTS.md`](docs/AGENTS.md) - Non-obvious patterns and architectural constraints
+
+### RSS Ingestion Service
+- [`docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md`](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md) - Complete RSS architecture design
+- [`docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md`](docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md) - Detailed implementation specifications
+
+### Geospatial System
 - [`docs/GEOSPATIAL_FEATURE_FLAGS.md`](docs/GEOSPATIAL_FEATURE_FLAGS.md) - Feature flag rollout guide
 - [`docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md`](docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md) - Deployment procedures
 - [`docs/WEBSOCKET_LAYER_MESSAGES.md`](docs/WEBSOCKET_LAYER_MESSAGES.md) - WebSocket message specifications
 - [`frontend/src/layers/README.md`](frontend/src/layers/README.md) - BaseLayer architecture guide
+
+### Infrastructure
 - [`LTREE_REFRESH_IMPLEMENTATION.md`](LTREE_REFRESH_IMPLEMENTATION.md) - Materialized view refresh procedures
+- [`docs/WEBSOCKET_FIX_SUMMARY.md`](docs/WEBSOCKET_FIX_SUMMARY.md) - WebSocket connectivity resolution

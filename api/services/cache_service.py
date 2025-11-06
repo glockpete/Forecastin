@@ -541,6 +541,49 @@ class CacheService:
             }
         }
     
+    def invalidate_l1_cache(self, key_pattern: str = None) -> None:
+        """
+        Invalidate L1 cache entries, optionally matching a pattern.
+        
+        Args:
+            key_pattern: Optional pattern to match keys for selective invalidation
+        """
+        if key_pattern:
+            # Remove entries matching pattern
+            keys_to_remove = [
+                k for k in self._memory_cache.get_keys()
+                if key_pattern in k
+            ]
+            for key in keys_to_remove:
+                self._memory_cache.delete(key)
+        else:
+            # Clear entire cache
+            self._memory_cache.clear()
+        
+        logger.info(f"L1 cache invalidated {'partially' if key_pattern else 'fully'}")
+    
+    async def invalidate_l2_cache(self, key_pattern: str = None) -> None:
+        """
+        Invalidate L2 (Redis) cache entries, optionally matching a pattern.
+        
+        Args:
+            key_pattern: Optional pattern to match keys for selective invalidation
+        """
+        try:
+            if key_pattern:
+                # Find and delete keys matching pattern
+                pattern = f"*{key_pattern}*"
+                keys = await self._redis.keys(pattern)
+                if keys:
+                    await self._redis.delete(*keys)
+            else:
+                # Clear all cache entries
+                await self._redis.flushdb()
+            
+            logger.info(f"L2 cache invalidated {'partially' if key_pattern else 'fully'}")
+        except Exception as e:
+            logger.warning(f"Error invalidating L2 cache: {e}")
+    
     async def health_check(self) -> Dict[str, Any]:
         """Perform cache service health check."""
         health_status = {

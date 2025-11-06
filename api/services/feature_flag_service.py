@@ -1020,6 +1020,109 @@ class FeatureFlagService:
         
         return results
     
+    async def create_automated_refresh_flag(self) -> FeatureFlag:
+        """
+        Create the automated materialized view refresh feature flag with default settings.
+        
+        This flag controls the automated refresh system for materialized views
+        to resolve ancestor resolution performance regression.
+        
+        Returns:
+            Created feature flag
+        """
+        flag_name = 'ff.automated_refresh_v1'
+        description = 'Enable automated materialized view refresh system with smart triggers'
+        
+        try:
+            # Check if flag already exists
+            existing = await self.get_flag(flag_name)
+            if existing:
+                self.logger.info(f"Automated refresh flag {flag_name} already exists")
+                return existing
+            
+            # Create new flag with default configuration
+            request = CreateFeatureFlagRequest(
+                flag_name=flag_name,
+                description=description,
+                is_enabled=True,  # Enable by default for testing
+                rollout_percentage=100,  # 100% for initial deployment
+                flag_category='performance'
+            )
+            
+            flag = await self.create_flag(request)
+            self.logger.info(f"Created automated refresh flag: {flag_name}")
+            return flag
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create automated refresh flag {flag_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to create flag: {str(e)}")
+    
+    async def update_automated_refresh_config(
+        self,
+        enabled: Optional[bool] = None,
+        rollout_percentage: Optional[int] = None,
+        smart_triggers_enabled: Optional[bool] = None,
+        change_threshold: Optional[int] = None,
+        time_threshold_minutes: Optional[int] = None,
+        rollback_window_minutes: Optional[int] = None
+    ) -> Optional[FeatureFlag]:
+        """
+        Update configuration for the automated refresh feature flag.
+        
+        Args:
+            enabled: Whether the feature is enabled
+            rollout_percentage: Rollout percentage (0-100)
+            smart_triggers_enabled: Whether smart triggers are enabled
+            change_threshold: Number of changes to trigger refresh
+            time_threshold_minutes: Time threshold to trigger refresh
+            rollback_window_minutes: Rollback window in minutes
+            
+        Returns:
+            Updated feature flag or None if not found
+        """
+        flag_name = 'ff.automated_refresh_v1'
+        
+        try:
+            # Get current flag
+            current_flag = await self.get_flag(flag_name)
+            if not current_flag:
+                self.logger.warning(f"Automated refresh flag {flag_name} not found")
+                return None
+            
+            # Build configuration dictionary
+            config = {}
+            if smart_triggers_enabled is not None:
+                config['smart_triggers_enabled'] = smart_triggers_enabled
+            if change_threshold is not None:
+                config['change_threshold'] = change_threshold
+            if time_threshold_minutes is not None:
+                config['time_threshold_minutes'] = time_threshold_minutes
+            if rollback_window_minutes is not None:
+                config['rollback_window_minutes'] = rollback_window_minutes
+            
+            # Update flag with new configuration
+            update_request = UpdateFeatureFlagRequest(
+                is_enabled=enabled,
+                rollout_percentage=rollout_percentage,
+                description=current_flag.description  # Keep existing description
+            )
+            
+            updated_flag = await self.update_flag(flag_name, update_request)
+            
+            # If we have configuration updates, store them in a separate config field
+            # This is a simplified approach - in a real implementation, we might use
+            # a separate configuration table or JSON field
+            self.logger.info(
+                f"Updated automated refresh flag: {flag_name} "
+                f"(enabled: {enabled}, rollout: {rollout_percentage}%, config: {config})"
+            )
+            
+            return updated_flag
+            
+        except Exception as e:
+            self.logger.error(f"Failed to update automated refresh flag {flag_name}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to update flag: {str(e)}")
+    
     async def emergency_rollback_geospatial(self) -> Dict[str, bool]:
         """
         Emergency rollback - disable all geospatial feature flags immediately.

@@ -1,0 +1,48 @@
+# Prometheus configuration for Forecastin application
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/prometheus-alerts.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape
+scrape_configs:
+  # Scrape the API service
+  - job_name: 'api'
+    static_configs:
+      - targets: ['api:9000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Scrape the PostgreSQL database
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+
+  # Scrape the Redis cache
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # Scrape the frontend service
+  - job_name: 'frontend'
+    static_configs:
+      - targets: ['frontend:80']
+    scrape_interval: 30s
+
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s

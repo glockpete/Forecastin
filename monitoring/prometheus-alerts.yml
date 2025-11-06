@@ -1,0 +1,116 @@
+# Alert rules for Forecastin application
+groups:
+- name: forecastin-alerts
+  rules:
+  # API Service Alerts
+  - alert: APIDown
+    expr: up{job="api"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "API service is down"
+      description: "The API service has been down for more than 1 minute"
+
+  - alert: APIHighErrorRate
+    expr: rate(http_requests_total{job="api", status=~"5.."}[5m]) / rate(http_requests_total{job="api"}[5m]) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High API error rate"
+      description: "API error rate is above 5% for more than 2 minutes"
+
+  - alert: APILatencyHigh
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api"}[5m])) > 1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High API latency"
+      description: "API 95th percentile latency is above 1 second for more than 2 minutes"
+
+  # Database Alerts
+  - alert: DatabaseDown
+    expr: up{job="postgres"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database is down"
+      description: "The PostgreSQL database has been down for more than 1 minute"
+
+  - alert: DatabaseConnectionHigh
+    expr: pg_stat_activity_count{datname="forecastin"} > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High database connections"
+      description: "Database connection count is above 80 for more than 2 minutes"
+
+  # Cache Alerts
+  - alert: CacheDown
+    expr: up{job="redis"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Cache service is down"
+      description: "The Redis cache service has been down for more than 1 minute"
+
+  - alert: CacheMissRateHigh
+    expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.8
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High cache miss rate"
+      description: "Cache hit rate is below 80% for more than 2 minutes"
+
+  # Frontend Alerts
+  - alert: FrontendDown
+    expr: up{job="frontend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Frontend service is down"
+      description: "The frontend service has been down for more than 1 minute"
+
+  # SLO Alerts
+  - alert: AncestorResolutionSlow
+    expr: forecastin_ancestor_resolution_duration_seconds > 0.01
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Ancestor resolution slow"
+      description: "Ancestor resolution is taking more than 10ms (SLO violation)"
+
+  - alert: DescendantRetrievalSlow
+    expr: forecastin_descendant_retrieval_duration_seconds > 0.05
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Descendant retrieval slow"
+      description: "Descendant retrieval is taking more than 50ms (SLO violation)"
+
+  - alert: CacheHitRateLow
+    expr: forecastin_cache_hit_rate < 0.9
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Cache hit rate low"
+      description: "Cache hit rate is below 90% (SLO violation)"
+
+  - alert: ThroughputLow
+    expr: rate(forecastin_requests_total[5m]) < 10000
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Throughput low"
+      description: "Request throughput is below 10,000 RPS (SLO violation)"

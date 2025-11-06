@@ -31,6 +31,7 @@ from services.scenario_service import (
     CursorPaginator,
     RiskLevel
 )
+from services.automated_refresh_service import AutomatedRefreshService, initialize_automated_refresh_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +47,7 @@ forecast_manager: Optional[HierarchicalForecastManager] = None
 scenario_collaboration_service: Optional[ScenarioCollaborationService] = None
 analysis_engine: Optional[MultiFactorAnalysisEngine] = None
 cursor_paginator: Optional[CursorPaginator] = None
+automated_refresh_service: Optional[AutomatedRefreshService] = None
 
 
 class HealthResponse(BaseModel):
@@ -220,8 +222,27 @@ async def lifespan(app: FastAPI):
         
         cursor_paginator = CursorPaginator()
         
+        # Initialize automated refresh service
+        if database_manager and cache_service and feature_flag_service:
+            automated_refresh_service = initialize_automated_refresh_service(
+                database_manager, cache_service, feature_flag_service
+            )
+            # Create the feature flag for automated refresh
+            try:
+                await feature_flag_service.create_automated_refresh_flag()
+            except Exception as e:
+                logger.warning(f"Failed to create automated refresh feature flag: {e}")
+        else:
+            logger.warning("Automated refresh service not initialized due to missing dependencies")
+            automated_refresh_service = None
+        
         # Start background services
         await start_background_services()
+        
+        # Start automated refresh service if available
+        if automated_refresh_service:
+            automated_refresh_service.start_service()
+            logger.info("Automated refresh service started")
         
         logger.info("Forecastin API Phase 0 + Phase 6 initialization completed successfully")
         
@@ -235,6 +256,8 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Forecastin API")
     
     # Cleanup connections in reverse order
+    if automated_refresh_service:
+        automated_refresh_service.stop_service()
     if analysis_engine:
         await analysis_engine.cleanup()
     if scenario_collaboration_service:
@@ -444,15 +467,84 @@ async def get_refresh_status():
         cache_metrics = hierarchy_resolver.get_cache_performance_metrics()
         l4_cache_info = cache_metrics.get('l4_cache', {})
         
+        # Get automated refresh service status if available
+        automated_refresh_status = None
+        if automated_refresh_service:
+            try:
+                automated_refresh_status = automated_refresh_service.get_refresh_performance_summary()
+            except Exception as e:
+                logger.warning(f"Failed to get automated refresh status: {e}")
+        
         return {
             "status": "available",
             "last_refresh": l4_cache_info.get('last_refresh', 0),
             "cache_metrics": cache_metrics,
+            "automated_refresh_status": automated_refresh_status,
             "message": "LTREE materialized view refresh service is operational"
         }
         
     except Exception as e:
         logger.error(f"Error getting refresh status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/entities/refresh/automated/start")
+async def start_automated_refresh():
+    """Start the automated refresh service"""
+    try:
+        if not automated_refresh_service:
+            raise HTTPException(status_code=503, detail="Automated refresh service not initialized")
+        
+        automated_refresh_service.start_service()
+        return {"status": "success", "message": "Automated refresh service started"}
+        
+    except Exception as e:
+        logger.error(f"Error starting automated refresh service: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/entities/refresh/automated/stop")
+async def stop_automated_refresh():
+    """Stop the automated refresh service"""
+    try:
+        if not automated_refresh_service:
+            raise HTTPException(status_code=503, detail="Automated refresh service not initialized")
+        
+        automated_refresh_service.stop_service()
+        return {"status": "success", "message": "Automated refresh service stopped"}
+        
+    except Exception as e:
+        logger.error(f"Error stopping automated refresh service: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/entities/refresh/automated/force")
+async def force_automated_refresh():
+    """Force a refresh of all materialized views through the automated service"""
+    try:
+        if not automated_refresh_service:
+            raise HTTPException(status_code=503, detail="Automated refresh service not initialized")
+        
+        result = automated_refresh_service.force_refresh_all()
+        return {"status": "success", "result": result}
+        
+    except Exception as e:
+        logger.error(f"Error forcing automated refresh: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/entities/refresh/automated/metrics")
+async def get_automated_refresh_metrics(limit: int = 20):
+    """Get recent automated refresh metrics"""
+    try:
+        if not automated_refresh_service:
+            raise HTTPException(status_code=503, detail="Automated refresh service not initialized")
+        
+        metrics = automated_refresh_service.get_recent_metrics(limit)
+        return {"status": "success", "metrics": metrics}
+        
+    except Exception as e:
+        logger.error(f"Error getting automated refresh metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

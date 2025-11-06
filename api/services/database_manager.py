@@ -68,9 +68,14 @@ class DatabaseManager:
         self._retry_attempts = 3
         self._retry_delays = [0.5, 1.0, 2.0]  # Exponential backoff
         
-        # Note: TCP keepalives for asyncpg are handled differently than psycopg
-        # For production, configure at OS level or use asyncpg.connect() tcp_keepalive parameters
-        self._server_settings = self.server_settings
+        # TCP keepalives to prevent firewall drops
+        # Settings: keepalives_idle: 30, keepalives_interval: 10, keepalives_count: 5
+        self._server_settings = {
+            'keepalives_idle': '30',
+            'keepalives_interval': '10',
+            'keepalives_count': '5',
+            **self.server_settings
+        }
         
         # Health monitoring
         self._pool_utilization_warning_threshold = 0.8  # 80% utilization warning
@@ -92,6 +97,7 @@ class DatabaseManager:
                 min_size=self.min_connections,
                 max_size=self.max_connections,
                 command_timeout=self.command_timeout,
+                server_settings=self._server_settings,
             )
             
             logger.info(

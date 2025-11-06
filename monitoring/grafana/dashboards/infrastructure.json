@@ -1,0 +1,299 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Forecastin Infrastructure Overview",
+    "tags": ["forecastin", "infrastructure"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "10s",
+    "rows": [
+      {
+        "title": "Service Health Overview",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Status",
+            "type": "stat",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "up{job=\"api\"}",
+                "legendFormat": "API"
+              },
+              {
+                "expr": "up{job=\"postgres\"}",
+                "legendFormat": "PostgreSQL"
+              },
+              {
+                "expr": "up{job=\"redis\"}",
+                "legendFormat": "Redis"
+              },
+              {
+                "expr": "up{job=\"frontend\"}",
+                "legendFormat": "Frontend"
+              }
+            ],
+            "pluginVersion": "6.7.3",
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "title": "API Performance",
+        "panels": [
+          {
+            "id": 2,
+            "title": "API Request Rate",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"api\"}[5m])",
+                "legendFormat": "{{method}} {{status}}"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "req/s",
+                "label": "Requests per second"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "API Latency (95th percentile)",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"api\"}[5m]))",
+                "legendFormat": "{{handler}}"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "s",
+                "label": "Latency (seconds)"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Database Metrics",
+        "panels": [
+          {
+            "id": 4,
+            "title": "Database Connections",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "pg_stat_activity_count{datname=\"forecastin\"}",
+                "legendFormat": "Active Connections"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "short",
+                "label": "Connections"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Database Cache Hit Ratio",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "pg_stat_database_blks_hit{datname=\"forecastin\"} / (pg_stat_database_blks_hit{datname=\"forecastin\"} + pg_stat_database_blks_read{datname=\"forecastin\"})",
+                "legendFormat": "Cache Hit Ratio"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "percentunit",
+                "label": "Ratio"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Cache Metrics",
+        "panels": [
+          {
+            "id": 6,
+            "title": "Redis Memory Usage",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "redis_memory_used_bytes",
+                "legendFormat": "Memory Used"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "bytes",
+                "label": "Memory"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Redis Hit Rate",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))",
+                "legendFormat": "Hit Rate"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "percentunit",
+                "label": "Ratio"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Application SLOs",
+        "panels": [
+          {
+            "id": 8,
+            "title": "Ancestor Resolution Time",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "forecastin_ancestor_resolution_duration_seconds",
+                "legendFormat": "Resolution Time"
+              }
+            ],
+            "thresholds": [
+              {
+                "colorMode": "critical",
+                "op": "gt",
+                "value": 0.01,
+                "fill": true,
+                "line": true,
+                "yaxis": "left"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "s",
+                "label": "Time (seconds)"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "title": "Cache Hit Rate",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "forecastin_cache_hit_rate",
+                "legendFormat": "Hit Rate"
+              }
+            ],
+            "thresholds": [
+              {
+                "colorMode": "critical",
+                "op": "lt",
+                "value": 0.9,
+                "fill": true,
+                "line": true,
+                "yaxis": "left"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "percentunit",
+                "label": "Ratio"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Request Throughput",
+            "type": "graph",
+            "datasource": "Prometheus",
+            "targets": [
+              {
+                "expr": "rate(forecastin_requests_total[5m])",
+                "legendFormat": "Requests per second"
+              }
+            ],
+            "thresholds": [
+              {
+                "colorMode": "critical",
+                "op": "lt",
+                "value": 10000,
+                "fill": true,
+                "line": true,
+                "yaxis": "left"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "req/s",
+                "label": "Requests per second"
+              },
+              {
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
