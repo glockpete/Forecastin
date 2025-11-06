@@ -1,0 +1,616 @@
+{
+  "version": "1.0.0",
+  "project": "Forecastin Frontend Hardening",
+  "created": "2025-11-06",
+  "tasks": [
+    {
+      "id": "TS-1",
+      "phase": "TS",
+      "title": "Update tsconfig.json with strict compiler options",
+      "status": "completed",
+      "priority": "high",
+      "effort": "small",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "noImplicitOverride: true",
+        "exactOptionalPropertyTypes: true",
+        "noUncheckedIndexedAccess: true",
+        "noImplicitReturns: true"
+      ],
+      "files": ["frontend/tsconfig.json"],
+      "completedAt": "2025-11-06"
+    },
+    {
+      "id": "TS-2",
+      "phase": "TS",
+      "title": "Fix implicit any type errors from strict mode",
+      "status": "completed",
+      "priority": "high",
+      "effort": "small",
+      "dependencies": ["TS-1"],
+      "acceptanceCriteria": [
+        "All React Query retry callbacks have explicit types",
+        "All retryDelay callbacks have explicit types",
+        "No implicit any errors in App.tsx"
+      ],
+      "files": ["frontend/src/App.tsx", "frontend/src/hooks/useHierarchy.ts"],
+      "completedAt": "2025-11-06"
+    },
+    {
+      "id": "TS-3",
+      "phase": "TS",
+      "title": "Create types/brand.ts with branded type utilities",
+      "status": "completed",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Brand<T, K> type defined",
+        "EntityId<T> for all 12 entity types",
+        "PathString, ConfidenceScore, Timestamp branded types",
+        "Constructor functions with validation",
+        "Result<T, E> type with Ok/Err helpers"
+      ],
+      "files": ["frontend/src/types/brand.ts"],
+      "completedAt": "2025-11-06"
+    },
+    {
+      "id": "TS-4",
+      "phase": "TS",
+      "title": "Update canonical types to use branded IDs",
+      "status": "completed",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": ["TS-3"],
+      "acceptanceCriteria": [
+        "Entity<T> is generic over EntityType",
+        "All ID fields use EntityId<T>",
+        "Arrays marked as readonly",
+        "any replaced with unknown",
+        "All core interfaces updated"
+      ],
+      "files": ["frontend/src/types/index.ts"],
+      "completedAt": "2025-11-06"
+    },
+    {
+      "id": "TS-5",
+      "phase": "TS",
+      "title": "Remove duplicate type definitions in useHierarchy.ts",
+      "status": "pending",
+      "priority": "high",
+      "effort": "small",
+      "dependencies": ["TS-4"],
+      "acceptanceCriteria": [
+        "Import Entity from types/index.ts",
+        "Import BreadcrumbItem from types/index.ts",
+        "Import HierarchyNode from types/index.ts",
+        "Remove local duplicate definitions",
+        "Add missing type parameters to retry callbacks"
+      ],
+      "files": ["frontend/src/hooks/useHierarchy.ts"]
+    },
+    {
+      "id": "TS-6",
+      "phase": "TS",
+      "title": "Unify BreadcrumbItem schema across codebase",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "small",
+      "dependencies": ["TS-4"],
+      "acceptanceCriteria": [
+        "Single BreadcrumbItem definition in types/index.ts",
+        "Update uiStore.ts to use canonical schema",
+        "Document schema decision in SCOUT_LOG.md"
+      ],
+      "files": ["frontend/src/store/uiStore.ts", "frontend/src/types/index.ts"],
+      "notes": "uiStore has 'label' field while canonical has 'name'. Need to decide which is correct."
+    },
+    {
+      "id": "TS-7",
+      "phase": "TS",
+      "title": "Create brandIds.ts codemod using ts-morph",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["TS-4"],
+      "acceptanceCriteria": [
+        "Codemod finds entity ID assignments",
+        "Wraps raw strings with toEntityId(value, type)",
+        "Handles JSX attributes",
+        "Updates import statements",
+        "Generates patches/ with suggested changes",
+        "Dry-run on 3-5 representative files"
+      ],
+      "files": ["codemods/brandIds.ts"]
+    },
+    {
+      "id": "GUARDS-1",
+      "phase": "GUARDS",
+      "title": "Add Zod as dependency and create schema directory",
+      "status": "pending",
+      "priority": "high",
+      "effort": "small",
+      "dependencies": ["TS-7"],
+      "acceptanceCriteria": [
+        "Zod added to package.json",
+        "frontend/types/zod/ directory created",
+        "Generate Zod schemas from TypeScript types"
+      ],
+      "files": ["frontend/package.json", "frontend/types/zod/entities.ts"]
+    },
+    {
+      "id": "GUARDS-2",
+      "phase": "GUARDS",
+      "title": "Create parseOrReport utility for runtime validation",
+      "status": "pending",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": ["GUARDS-1"],
+      "acceptanceCriteria": [
+        "parseOrReport<T>(schema, data): Result<T, ParseError>",
+        "Detailed error reporting",
+        "Integration with Result<T,E> type",
+        "Unit tests for happy/sad paths"
+      ],
+      "files": ["frontend/src/utils/validation.ts"]
+    },
+    {
+      "id": "GUARDS-3",
+      "phase": "GUARDS",
+      "title": "Wrap WebSocket handlers with schema validation",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["GUARDS-2"],
+      "acceptanceCriteria": [
+        "All message handlers validate with Zod before processing",
+        "Invalid messages logged and discarded",
+        "Idempotency check for duplicate messages",
+        "Message ID tracking for deduplication"
+      ],
+      "files": ["frontend/src/handlers/realtimeHandlers.ts", "frontend/src/hooks/useWebSocket.ts"]
+    },
+    {
+      "id": "GUARDS-4",
+      "phase": "GUARDS",
+      "title": "Create error catalog with stable error codes",
+      "status": "pending",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "ErrorCatalog with categorized errors",
+        "Stable error codes (ERR_001, etc.)",
+        "Error severity levels",
+        "User-facing error messages",
+        "Developer debug context"
+      ],
+      "files": ["frontend/src/errors/errorCatalog.ts"]
+    },
+    {
+      "id": "GUARDS-5",
+      "phase": "GUARDS",
+      "title": "Enhance ErrorBoundary with retry/backoff",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": ["GUARDS-4"],
+      "acceptanceCriteria": [
+        "ErrorBoundary catches React errors",
+        "Retry mechanism with exponential backoff",
+        "Error reporting to console",
+        "User-friendly error UI",
+        "Reset functionality"
+      ],
+      "files": ["frontend/src/components/UI/ErrorBoundary.tsx"]
+    },
+    {
+      "id": "CACHE-1",
+      "phase": "CACHE",
+      "title": "Create canonical queryKeys.ts builders",
+      "status": "pending",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": ["TS-7"],
+      "acceptanceCriteria": [
+        "Centralized query key factory",
+        "Typed key builders for all entities",
+        "Stable key structure",
+        "Documentation of key patterns"
+      ],
+      "files": ["frontend/src/queryKeys.ts"]
+    },
+    {
+      "id": "CACHE-2",
+      "phase": "CACHE",
+      "title": "Create invalidateMap for WS message → query invalidation",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["CACHE-1"],
+      "acceptanceCriteria": [
+        "Map of message type to affected query keys",
+        "Automatic cache invalidation on WS messages",
+        "Documentation of invalidation rules",
+        "Unit tests for invalidation logic"
+      ],
+      "files": ["frontend/src/invalidateMap.ts"]
+    },
+    {
+      "id": "CACHE-3",
+      "phase": "CACHE",
+      "title": "Update React Query options with stable keys and proper config",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["CACHE-1", "CACHE-2"],
+      "acceptanceCriteria": [
+        "All queries use queryKeys.ts builders",
+        "Appropriate staleTime and gcTime",
+        "select narrowers where needed",
+        "Consistent error handling"
+      ],
+      "files": ["frontend/src/hooks/*.ts"]
+    },
+    {
+      "id": "CACHE-4",
+      "phase": "CACHE",
+      "title": "Add tests for cache invalidation logic",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": ["CACHE-2"],
+      "acceptanceCriteria": [
+        "Test query key generation",
+        "Test invalidation map correctness",
+        "Test WS message → invalidation flow",
+        "Test optimistic updates"
+      ],
+      "files": ["frontend/src/__tests__/cache.test.ts"]
+    },
+    {
+      "id": "TESTS-1",
+      "phase": "TESTS",
+      "title": "Configure Vitest and @testing-library/react",
+      "status": "pending",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "vitest.config.ts with proper paths",
+        "setupTests.ts with testing-library setup",
+        "Package.json test scripts",
+        "Basic smoke test passing"
+      ],
+      "files": ["frontend/vitest.config.ts", "frontend/src/setupTests.ts", "frontend/package.json"]
+    },
+    {
+      "id": "TESTS-2",
+      "phase": "TESTS",
+      "title": "Add unit tests for brand type utilities",
+      "status": "pending",
+      "priority": "high",
+      "effort": "small",
+      "dependencies": ["TESTS-1"],
+      "acceptanceCriteria": [
+        "Test toEntityId with valid/invalid inputs",
+        "Test toPathString validation",
+        "Test toConfidenceScore range checks",
+        "Test Result<T,E> helpers"
+      ],
+      "files": ["frontend/src/types/__tests__/brand.test.ts"]
+    },
+    {
+      "id": "TESTS-3",
+      "phase": "TESTS",
+      "title": "Add contract snapshot tests",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": ["TESTS-1"],
+      "acceptanceCriteria": [
+        "Snapshot TypeScript type definitions",
+        "Snapshot Zod schemas",
+        "Assert TS and Zod stay in sync",
+        "Fail on schema drift"
+      ],
+      "files": ["frontend/src/types/__tests__/contracts.snapshot.test.ts"]
+    },
+    {
+      "id": "TESTS-4",
+      "phase": "TESTS",
+      "title": "Add WebSocket handler tests with fixtures",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["TESTS-1", "GUARDS-3"],
+      "acceptanceCriteria": [
+        "Test each message type handler",
+        "Test idempotency (duplicate messages ignored)",
+        "Test cache invalidation triggered",
+        "Test error handling"
+      ],
+      "files": ["frontend/src/handlers/__tests__/realtimeHandlers.test.ts"]
+    },
+    {
+      "id": "CHECKS-1",
+      "phase": "CHECKS",
+      "title": "Generate perf_smells.md with code pointers",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "large",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Scan for expensive renders (large components, no memo)",
+        "Find unstable dependency arrays",
+        "Find missing React.memo/useMemo/useCallback",
+        "Find heavy closures in render",
+        "Provide file:line pointers and suggested fixes"
+      ],
+      "files": ["checks/perf_smells.md"]
+    },
+    {
+      "id": "CHECKS-2",
+      "phase": "CHECKS",
+      "title": "Generate a11y_findings.md with accessibility issues",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "large",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Check for ARIA roles",
+        "Check for label/htmlFor associations",
+        "Check for focus traps and keyboard nav",
+        "Check for semantic HTML usage",
+        "Provide file:line pointers and suggested fixes"
+      ],
+      "files": ["checks/a11y_findings.md"]
+    },
+    {
+      "id": "CHECKS-3",
+      "phase": "CHECKS",
+      "title": "Generate security_findings.md with security issues",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Scan for unsafe URL construction",
+        "Find dangerouslySetInnerHTML usage",
+        "Check for XSS injection risks",
+        "Create safeUrl.ts helpers",
+        "Provide file:line pointers and suggested fixes"
+      ],
+      "files": ["checks/security_findings.md", "frontend/src/utils/safeUrl.ts"]
+    },
+    {
+      "id": "DESIGN-1",
+      "phase": "DESIGN",
+      "title": "Generate design-tokens.json from codebase",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Extract colors from Tailwind config and components",
+        "Extract spacing, typography, shadows",
+        "Create JSON schema for tokens",
+        "Document token naming convention"
+      ],
+      "files": ["frontend/design-tokens.json"]
+    },
+    {
+      "id": "DESIGN-2",
+      "phase": "DESIGN",
+      "title": "Create Tailwind preset from design tokens",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "small",
+      "dependencies": ["DESIGN-1"],
+      "acceptanceCriteria": [
+        "Tailwind preset loads tokens",
+        "Colors, spacing, etc. available via Tailwind",
+        "Documentation on using preset"
+      ],
+      "files": ["frontend/tailwind.preset.js"]
+    },
+    {
+      "id": "DESIGN-3",
+      "phase": "DESIGN",
+      "title": "Add ESLint rule to forbid raw hex colors",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": ["DESIGN-1"],
+      "acceptanceCriteria": [
+        "ESLint rule detects raw hex in className",
+        "ESLint rule detects raw hex in style props",
+        "Auto-fix suggests token replacement",
+        "Documentation on rule"
+      ],
+      "files": ["frontend/.eslintrc.json", "frontend/eslint-rules/no-raw-colors.js"]
+    },
+    {
+      "id": "DESIGN-4",
+      "phase": "DESIGN",
+      "title": "Emit patches/ for top 50 raw color offenders",
+      "status": "pending",
+      "priority": "low",
+      "effort": "medium",
+      "dependencies": ["DESIGN-3"],
+      "acceptanceCriteria": [
+        "Scan codebase for raw colors",
+        "Generate unified diff patches",
+        "Rank by impact/frequency",
+        "Include in patches/ directory"
+      ],
+      "files": ["patches/001-replace-raw-colors.patch"]
+    },
+    {
+      "id": "CODEMODS-1",
+      "phase": "CODEMODS",
+      "title": "Implement brandIds.ts codemod with ts-morph",
+      "status": "pending",
+      "priority": "high",
+      "effort": "large",
+      "dependencies": ["TS-7"],
+      "acceptanceCriteria": [
+        "Use ts-morph to parse source",
+        "Find entity ID assignments",
+        "Wrap with toEntityId()",
+        "Update imports",
+        "Handle JSX attributes",
+        "Generate dry-run output"
+      ],
+      "files": ["codemods/brandIds.ts"]
+    },
+    {
+      "id": "CODEMODS-2",
+      "phase": "CODEMODS",
+      "title": "Implement renameProp.ts codemod",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Safe property rename across files",
+        "Update TypeScript interfaces",
+        "Update JSX attributes",
+        "Update import/export statements",
+        "Dry-run on test files"
+      ],
+      "files": ["codemods/renameProp.ts"]
+    },
+    {
+      "id": "CODEMODS-3",
+      "phase": "CODEMODS",
+      "title": "Implement liftState.ts codemod",
+      "status": "pending",
+      "priority": "low",
+      "effort": "large",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Guided extraction of useState to parent",
+        "Generate typed callback props",
+        "Update child component signature",
+        "Update parent component JSX",
+        "Interactive prompts for extraction"
+      ],
+      "files": ["codemods/liftState.ts"]
+    },
+    {
+      "id": "GRAPHS-1",
+      "phase": "GRAPHS",
+      "title": "Generate module_graph.md from AST traversal",
+      "status": "pending",
+      "priority": "low",
+      "effort": "large",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Parse all TypeScript files",
+        "Extract import/export relationships",
+        "Generate Mermaid or DOT graph",
+        "Identify entry points and leaf modules"
+      ],
+      "files": ["module_graph.md", "scripts/generateModuleGraph.ts"]
+    },
+    {
+      "id": "GRAPHS-2",
+      "phase": "GRAPHS",
+      "title": "Generate circular_deps_report.md",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "medium",
+      "dependencies": ["GRAPHS-1"],
+      "acceptanceCriteria": [
+        "Detect circular import chains",
+        "List all circular dependencies",
+        "Suggest refactoring strategies",
+        "Prioritize by impact"
+      ],
+      "files": ["circular_deps_report.md"]
+    },
+    {
+      "id": "GRAPHS-3",
+      "phase": "GRAPHS",
+      "title": "Generate event_flow.md for WS → reducer → invalidation",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "large",
+      "dependencies": ["CACHE-2"],
+      "acceptanceCriteria": [
+        "Map each WS message type to handler",
+        "Map handler to state updates",
+        "Map handler to query invalidations",
+        "Generate flow diagram"
+      ],
+      "files": ["event_flow.md", "scripts/generateEventFlow.ts"]
+    },
+    {
+      "id": "CI-1",
+      "phase": "CI",
+      "title": "Create GitHub Actions CI workflow",
+      "status": "pending",
+      "priority": "high",
+      "effort": "medium",
+      "dependencies": ["TESTS-1"],
+      "acceptanceCriteria": [
+        "Run typecheck on push/PR",
+        "Run lint on push/PR",
+        "Run tests with coverage",
+        "No external service calls",
+        "Matrix build for Node versions"
+      ],
+      "files": [".github/workflows/frontend-ci.yml"]
+    },
+    {
+      "id": "CI-2",
+      "phase": "CI",
+      "title": "Create pre-commit config examples",
+      "status": "pending",
+      "priority": "medium",
+      "effort": "small",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        ".pre-commit-config.yaml example",
+        "husky setup example",
+        "lint-staged config example",
+        "Do not install, only provide configs"
+      ],
+      "files": [".pre-commit-config.example.yaml", ".husky/pre-commit.example", "lint-staged.config.example.js"]
+    },
+    {
+      "id": "FLAGS-1",
+      "phase": "FLAGS",
+      "title": "Add featureFlags.ts with typed gates",
+      "status": "pending",
+      "priority": "low",
+      "effort": "medium",
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Typed feature flag definitions",
+        "Compile-time pruning with __FEATURE_X__ pattern",
+        "Runtime flag evaluation",
+        "Usage examples in documentation"
+      ],
+      "files": ["frontend/src/config/featureFlags.ts", "frontend/src/config/featureFlagsRuntime.ts"]
+    }
+  ],
+  "summary": {
+    "totalTasks": 45,
+    "completed": 4,
+    "pending": 41,
+    "phases": {
+      "TS": { "total": 7, "completed": 4, "pending": 3 },
+      "GUARDS": { "total": 5, "completed": 0, "pending": 5 },
+      "CACHE": { "total": 4, "completed": 0, "pending": 4 },
+      "TESTS": { "total": 4, "completed": 0, "pending": 4 },
+      "CHECKS": { "total": 3, "completed": 0, "pending": 3 },
+      "DESIGN": { "total": 4, "completed": 0, "pending": 4 },
+      "CODEMODS": { "total": 3, "completed": 0, "pending": 3 },
+      "GRAPHS": { "total": 3, "completed": 0, "pending": 3 },
+      "CI": { "total": 2, "completed": 0, "pending": 2 },
+      "FLAGS": { "total": 1, "completed": 0, "pending": 1 }
+    }
+  }
+}

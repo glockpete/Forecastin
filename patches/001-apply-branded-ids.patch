@@ -1,0 +1,168 @@
+Subject: Apply branded EntityId types throughout codebase
+Description: Replace raw string IDs with branded EntityId<T> types for compile-time type safety
+
+This patch demonstrates the pattern for applying branded types. A full codemod will automate
+this transformation across all files.
+
+Example transformations:
+1. Function parameters: string -> EntityId<T>
+2. API responses: wrap raw IDs with toEntityId()
+3. Component props: update type signatures
+4. State management: update store interfaces
+
+---
+diff --git a/frontend/src/hooks/useHierarchy.ts b/frontend/src/hooks/useHierarchy.ts
+index old..new 100644
+--- a/frontend/src/hooks/useHierarchy.ts
++++ b/frontend/src/hooks/useHierarchy.ts
+@@ -6,6 +6,7 @@
+
+ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { useUIStore } from '../store/uiStore';
++import { EntityId, EntityType, toEntityId } from '../types/brand';
+ import {
+   Entity,
+   HierarchyNode,
+@@ -24,7 +25,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:9000/api';
+ export const hierarchyKeys = {
+   all: ['hierarchy'] as const,
+   root: () => [...hierarchyKeys.all, 'root'] as const,
+-  node: (path: string) => [...hierarchyKeys.all, 'node', path] as const,
++  node: (path: PathString) => [...hierarchyKeys.all, 'node', path] as const,
+   children: (parentPath: string, depth: number) =>
+     [...hierarchyKeys.all, 'children', parentPath, depth] as const,
+   breadcrumbs: (path: string) => [...hierarchyKeys.all, 'breadcrumbs', path] as const,
+@@ -97,7 +98,7 @@ export const useRootHierarchy = () => {
+ };
+
+ // Fetch individual entity details
+-export const useEntity = (id: string) => {
++export const useEntity = <T extends EntityType>(id: EntityId<T>) => {
+   return useQuery({
+     queryKey: hierarchyKeys.entity(id),
+-    queryFn: async (): Promise<Entity> => {
++    queryFn: async (): Promise<Entity<T>> => {
+-      const response = await fetch(`${API_BASE}/entities/${id}`);
++      const response = await fetch(`${API_BASE}/entities/${fromEntityId(id)}`);
+       if (!response.ok) {
+         throw new Error(`Failed to fetch entity: ${response.statusText}`);
+       }
+-      return response.json();
++      const data = await response.json();
++      // Validate and brand the ID from API response
++      return {
++        ...data,
++        id: toEntityId(data.id, data.type as T),
++        parentId: data.parentId ? toEntityId(data.parentId, data.type as T) : undefined,
++      };
+     },
+     enabled: !!id,
+     staleTime: 5 * 60 * 1000,
+@@ -217,7 +229,7 @@ export const useCreateEntity = () => {
+ // Update entity
+ export const useUpdateEntity = () => {
+   const queryClient = useQueryClient();
+
+   return useMutation({
+-    mutationFn: async ({ id, ...entityData }: Partial<Entity> & { id: string }) => {
++    mutationFn: async <T extends EntityType>({ id, ...entityData }: Partial<Entity<T>> & { id: EntityId<T> }) => {
+-      const response = await fetch(`${API_BASE}/entities/${id}`, {
++      const response = await fetch(`${API_BASE}/entities/${fromEntityId(id)}`, {
+         method: 'PUT',
+         headers: {
+           'Content-Type': 'application/json',
+@@ -244,7 +256,7 @@ export const useUpdateEntity = () => {
+ // Delete entity
+ export const useDeleteEntity = () => {
+   const queryClient = useQueryClient();
+
+   return useMutation({
+-    mutationFn: async (id: string) => {
++    mutationFn: async <T extends EntityType>(id: EntityId<T>) => {
+-      const response = await fetch(`${API_BASE}/entities/${id}`, {
++      const response = await fetch(`${API_BASE}/entities/${fromEntityId(id)}`, {
+         method: 'DELETE',
+       });
+
+---
+diff --git a/frontend/src/store/uiStore.ts b/frontend/src/store/uiStore.ts
+index old..new 100644
+--- a/frontend/src/store/uiStore.ts
++++ b/frontend/src/store/uiStore.ts
+@@ -7,6 +7,7 @@
+ import React from 'react';
+ import { create } from 'zustand';
+ import { persist } from 'zustand/middleware';
+-import { Entity } from '../types';
++import { Entity, EntityType, PathString, toPathString } from '../types';
++import { BreadcrumbItem } from '../types';
+
+-export interface BreadcrumbItem {
+-  label: string;
+-  path: string;
+-  entityId?: string;
+-}
++// Remove duplicate BreadcrumbItem definition, use canonical from types/index.ts
+
+ interface UIState {
+   // Theme and appearance
+   theme: 'light' | 'dark';
+   isLoading: boolean;
+
+   // Navigation state
+   isNavigationOpen: boolean;
+-  activeEntity: Entity | null;
+-  breadcrumb: BreadcrumbItem[];
++  activeEntity: Entity | null;
++  breadcrumb: readonly BreadcrumbItem[];
+
+   // Mobile responsiveness
+   isMobile: boolean;
+   mobileView: 'list' | 'columns';
+
+   // UI panels
+   searchPanelOpen: boolean;
+   entityPanelOpen: boolean;
+
+   // Hierarchy navigation state
+   selectedColumnIndex: number;
+-  columnPaths: string[]; // Track current path for each column
++  columnPaths: readonly PathString[]; // Track current path for each column
+
+   // Search state
+   searchQuery: string;
+
+   // Actions
+   setTheme: (theme: 'light' | 'dark') => void;
+   setLoading: (loading: boolean) => void;
+   toggleNavigation: () => void;
+   closeNavigation: () => void;
+   setActiveEntity: (entity: Entity | null) => void;
+-  setBreadcrumb: (breadcrumb: BreadcrumbItem[]) => void;
++  setBreadcrumb: (breadcrumb: readonly BreadcrumbItem[]) => void;
+   setMobile: (isMobile: boolean) => void;
+   setMobileView: (view: 'list' | 'columns') => void;
+   toggleSearchPanel: () => void;
+   toggleEntityPanel: () => void;
+   setSelectedColumnIndex: (index: number) => void;
+-  setColumnPaths: (paths: string[]) => void;
++  setColumnPaths: (paths: readonly PathString[]) => void;
+   navigateBack: () => void;
+   navigateToEntity: (entity: Entity, columnIndex: number) => void;
+   resetNavigation: () => void;
+   setSearchQuery: (query: string) => void;
+-  getCurrentColumnPath: () => string;
++  getCurrentColumnPath: () => PathString;
+ }
+
+---
+Notes:
+- This patch shows the pattern for branded ID migration
+- A ts-morph codemod will automate these transformations
+- Key changes:
+  1. Import branded types from types/brand and types/index
+  2. Update function signatures to use EntityId<T>
+  3. Use fromEntityId() when passing to APIs (URLs, fetch)
+  4. Use toEntityId() when receiving from APIs
+  5. Make arrays readonly
+  6. Remove duplicate type definitions
