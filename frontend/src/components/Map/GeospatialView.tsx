@@ -140,8 +140,9 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
   /**
    * Handle WebSocket layer messages
    * Uses safe serialization patterns from AGENTS.md
+   * Wrapped in useCallback to prevent infinite reconnection loop
    */
-  function handleWebSocketMessage(message: any) {
+  const handleWebSocketMessage = useCallback((message: any) => {
     try {
       // Validate message structure
       if (!message || typeof message !== 'object') {
@@ -155,7 +156,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
     } catch (error) {
       console.error('[GeospatialView] Error handling WebSocket message:', error);
     }
-  }
+  }, []);
 
   /**
    * Handle layer-specific WebSocket messages
