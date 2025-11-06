@@ -1,0 +1,80 @@
+--- a/frontend/src/hooks/useWebSocket.ts
++++ b/frontend/src/hooks/useWebSocket.ts
+@@ -1,6 +1,7 @@
+ import { useEffect, useRef, useState } from 'react';
+ import { UseWebSocketOptions, WebSocketMessage } from '../types';
+ import { getClientId } from '../utils/clientId';
++import { parseWebSocketData } from '../types/ws_messages';
+
+ export const useWebSocket = (options: UseWebSocketOptions) => {
+   const {
+@@ -50,9 +51,16 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
+         return;
+       }
+
+-      const data = JSON.parse(event.data) as WebSocketMessage;
+-      setLastMessage(data);
+-      onMessage?.(data);
++      try {
++        // Validate message with zod schema before processing
++        const data = parseWebSocketData(event.data);
++        setLastMessage(data);
++        onMessage?.(data);
++      } catch (error) {
++        console.error('Invalid WebSocket message:', error);
++        // Continue processing - don't crash on bad message
++        // TODO: Send to error monitoring service
++      }
+     };
+
+     ws.onerror = (event) => {
+
+--- /dev/null
++++ b/frontend/src/hooks/__tests__/useWebSocket.validation.test.ts
+@@ -0,0 +1,45 @@
++/**
++ * Test that useWebSocket validates messages with zod
++ */
++import { describe, it, expect, vi } from 'vitest';
++import { renderHook } from '@testing-library/react';
++import { useWebSocket } from '../useWebSocket';
++
++describe('useWebSocket message validation', () => {
++  it('should reject invalid message and continue processing', () => {
++    const onMessage = vi.fn();
++    const onError = vi.fn();
++
++    const { result } = renderHook(() =>
++      useWebSocket({
++        url: 'ws://localhost:9000',
++        onMessage,
++        onError,
++      })
++    );
++
++    // Simulate invalid message (missing required fields)
++    const invalidMessage = JSON.stringify({
++      type: 'layer_data_update',
++      // Missing payload and meta
++    });
++
++    // Get WebSocket instance from hook
++    const ws = result.current.socket;
++
++    // Simulate message event
++    const messageEvent = new MessageEvent('message', {
++      data: invalidMessage,
++    });
++
++    ws?.dispatchEvent(messageEvent);
++
++    // onMessage should NOT be called with invalid message
++    expect(onMessage).not.toHaveBeenCalled();
++
++    // Error should be logged (check console.error was called)
++    expect(console.error).toHaveBeenCalledWith(
++      expect.stringContaining('Invalid WebSocket message'),
++      expect.any(Error)
++    );
++  });
++});
