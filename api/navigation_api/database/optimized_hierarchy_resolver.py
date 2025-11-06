@@ -55,11 +55,14 @@ class HierarchyNode:
     ancestors: List[str]
     descendants: int
     confidence_score: float
-    # RSS entity integration fields
+    # RSS entity integration fields (merged from both implementations)
+    entity_type: str = "geographic"  # geographic, rss_location, rss_organization, rss_person
     is_rss_entity: bool = False
+    rss_entity_id: Optional[str] = None  # Reference to RSS entity if applicable
     rss_article_id: Optional[str] = None
     rss_feed_id: Optional[str] = None
-    entity_type: Optional[str] = None  # e.g., "location", "organization", "person"
+    location_lat: Optional[float] = None  # Geospatial coordinates for RSS entities
+    location_lon: Optional[float] = None
     extraction_metadata: Optional[Dict[str, Any]] = None
 
 
@@ -740,14 +743,14 @@ class OptimizedHierarchyResolver:
     def clear_cache(self, tier: Optional[str] = None) -> None:
         """
         Clear cache for specified tier or all tiers.
-
+        
         Args:
             tier: Cache tier to clear ('l1', 'l2', 'l3', 'l4') or None for all
         """
         if tier is None or tier.lower() == 'l1':
             self.l1_cache.clear()
             self.logger.info("L1 cache cleared")
-
+        
         if tier is None or tier.lower() == 'l2':
             if self.redis_client:
                 try:
@@ -758,104 +761,196 @@ class OptimizedHierarchyResolver:
                     self.logger.info(f"L2 cache cleared: {len(keys)} keys removed")
                 except Exception as e:
                     self.logger.error(f"Failed to clear L2 cache: {e}")
-
+        
         if tier is None or tier.lower() in ['l3', 'l4']:
             # Database cache clearing is handled by connection pool management
             self.logger.info(f"{tier.upper() if tier else 'L3/L4'} cache cleared (DB cache managed by connection pool)")
-
-    # ============================================================================
-    # RSS Entity Integration Methods
-    # ============================================================================
-
-    def link_rss_entity_to_hierarchy(
+    
+    async def link_rss_entity_async(
         self,
-        entity_name: str,
+        rss_entity_id: str,
         entity_type: str,
-        article_id: str,
-        feed_id: str,
-        location_hint: Optional[str] = None,
-        confidence_threshold: float = 0.7
-    ) -> Optional[RSSEntityLink]:
+        location_name: str,
+        confidence_score: float,
+        lat: Optional[float] = None,
+        lon: Optional[float] = None
+    ) -> Optional[HierarchyNode]:
         """
-        Link an RSS-extracted entity to the geographic hierarchy.
+        Link RSS entity to geographic hierarchy using location and confidence (async version).
 
-        This method uses entity extraction metadata to find the best matching
-        location in the hierarchy and create an LTREE-based link.
+        This method integrates RSS-derived entities (people, organizations, locations)
+        into the existing geographic hierarchy by finding the best matching geographic
+        location and generating an appropriate LTREE path.
+
+        Note: This is the async version that works with coordinates and returns HierarchyNode.
+        For the sync version that works with entity names, see link_rss_entity_to_hierarchy.
 
         Args:
-            entity_name: Name of the extracted entity (e.g., "Kyiv", "Ukraine")
-            entity_type: Type of entity (location, organization, person)
-            article_id: RSS article identifier
-            feed_id: RSS feed identifier
-            location_hint: Optional location context from article
-            confidence_threshold: Minimum confidence score for linking (default: 0.7)
+            rss_entity_id: Unique ID of the RSS entity
+            entity_type: Type of RSS entity (rss_location, rss_organization, rss_person)
+            location_name: Location name for geocoding/matching
+            confidence_score: Confidence score from entity extraction (0.0-1.0)
+            lat: Optional latitude coordinate
+            lon: Optional longitude coordinate
 
         Returns:
-            RSSEntityLink if successful match found, None otherwise
+            HierarchyNode with RSS entity linked to geographic hierarchy
         """
         if not self.db_pool:
             self.logger.error("Database pool not available for RSS entity linking")
             return None
 
         try:
+            # Try to find matching geographic entity
+            parent_node = await self._find_matching_geographic_entity(
+                location_name, lat, lon
+            )
+
+            if not parent_node:
+                self.logger.warning(
+                    f"No matching geographic entity found for RSS entity {rss_entity_id} at {location_name}"
+                )
+                return None
+
+            # Generate LTREE path for RSS entity under parent
+            rss_path = await self._generate_rss_entity_path(
+                parent_node, rss_entity_id, entity_type
+            )
+
+            # Create hierarchy node for RSS entity
+            rss_node = HierarchyNode(
+                entity_id=rss_entity_id,
+                path=rss_path,
+                path_depth=parent_node.path_depth + 1,
+                path_hash=hashlib.md5(rss_path.encode()).hexdigest(),
+                ancestors=parent_node.ancestors + [parent_node.entity_id],
+                descendants=0,
+                confidence_score=confidence_score,
+                entity_type=entity_type,
+                rss_entity_id=rss_entity_id,
+                location_lat=lat,
+                location_lon=lon
+            )
+
+            # Cache the RSS entity hierarchy
+            cache_key = f"rss:entity_hierarchy:{rss_entity_id}"
+            with self.l1_cache._lock:
+                self.l1_cache.put(cache_key, rss_node)
+
+            # Store in Redis L2 cache
+            if self.redis_client:
+                try:
+                    redis_key = f"rss_hierarchy:{rss_entity_id}"
+                    self.redis_client.setex(
+                        redis_key,
+                        self.L2_DEFAULT_TTL,
+                        self._serialize_hierarchy(rss_node)
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Failed to cache RSS entity in L2: {e}")
+
+            self.logger.info(
+                f"Linked RSS entity {rss_entity_id} ({entity_type}) to hierarchy "
+                f"under {parent_node.entity_id} with confidence {confidence_score:.3f}"
+            )
+
+            return rss_node
+
+        except Exception as e:
+            self.logger.error(f"Failed to link RSS entity {rss_entity_id}: {e}")
+            return None
+
+    async def _find_matching_geographic_entity(
+        self,
+        location_name: str,
+        lat: Optional[float] = None,
+        lon: Optional[float] = None
+    ) -> Optional[HierarchyNode]:
+        """
+        Find matching geographic entity using location name and/or coordinates.
+
+        Uses a two-step approach:
+        1. If coordinates provided, use PostGIS spatial query
+        2. Otherwise, use fuzzy text matching on location names
+
+        Args:
+            location_name: Location name to match
+            lat: Optional latitude
+            lon: Optional longitude
+
+        Returns:
+            Matching HierarchyNode or None
+        """
+        if not self.db_pool:
+            return None
+
+        try:
             conn = self.db_pool.getconn()
             try:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    # Query for matching geographic entities using fuzzy matching
-                    query = """
+                    # Strategy 1: If coordinates available, use spatial query
+                    if lat is not None and lon is not None:
+                        cur.execute("""
+                            SELECT
+                                e.entity_id,
+                                e.path,
+                                e.path_depth,
+                                e.path_hash,
+                                e.confidence_score,
+                                COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
+                                COALESCE(mv.descendant_count, 0) as descendants,
+                                ST_Distance(
+                                    e.geom::geography,
+                                    ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
+                                ) as distance
+                            FROM entities e
+                            LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                            WHERE e.geom IS NOT NULL
+                            ORDER BY distance ASC
+                            LIMIT 1
+                        """, (lon, lat))
+
+                        row = cur.fetchone()
+                        if row and row['distance'] < 50000:  # Within 50km
+                            return HierarchyNode(
+                                entity_id=row['entity_id'],
+                                path=row['path'],
+                                path_depth=row['path_depth'],
+                                path_hash=row['path_hash'],
+                                ancestors=row['ancestors'] or [],
+                                descendants=row['descendants'],
+                                confidence_score=row['confidence_score']
+                            )
+
+                    # Strategy 2: Fuzzy text matching on location name
+                    cur.execute("""
                         SELECT
                             e.entity_id,
                             e.path,
                             e.path_depth,
+                            e.path_hash,
                             e.confidence_score,
+                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mv.descendant_count, 0) as descendants,
                             similarity(e.name, %s) as name_similarity
                         FROM entities e
-                        WHERE
-                            similarity(e.name, %s) > %s
-                            AND e.entity_type = 'location'
-                        ORDER BY name_similarity DESC, e.path_depth ASC
-                        LIMIT 5
-                    """
+                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                        WHERE similarity(e.name, %s) > 0.3
+                        ORDER BY name_similarity DESC
+                        LIMIT 1
+                    """, (location_name, location_name))
 
-                    cur.execute(query, (entity_name, entity_name, confidence_threshold))
-                    matches = cur.fetchall()
-
-                    if not matches:
-                        self.logger.debug(f"No hierarchy match found for RSS entity: {entity_name}")
-                        return None
-
-                    # Select best match based on confidence and context
-                    best_match = self._select_best_entity_match(matches, location_hint)
-
-                    if best_match:
-                        # Calculate final confidence score
-                        final_confidence = self.calculate_entity_confidence_score(
-                            entity_name=entity_name,
-                            matched_name=best_match.get('name', entity_name),
-                            name_similarity=best_match['name_similarity'],
-                            path_depth=best_match['path_depth'],
-                            base_confidence=best_match['confidence_score']
+                    row = cur.fetchone()
+                    if row:
+                        return HierarchyNode(
+                            entity_id=row['entity_id'],
+                            path=row['path'],
+                            path_depth=row['path_depth'],
+                            path_hash=row['path_hash'],
+                            ancestors=row['ancestors'] or [],
+                            descendants=row['descendants'],
+                            confidence_score=row['confidence_score']
                         )
-
-                        # Create RSS entity link
-                        entity_link = RSSEntityLink(
-                            entity_id=best_match['entity_id'],
-                            article_id=article_id,
-                            feed_id=feed_id,
-                            location_path=best_match['path'],
-                            entity_name=entity_name,
-                            entity_type=entity_type,
-                            confidence_score=final_confidence,
-                            extraction_method="5W_framework",
-                            context=location_hint
-                        )
-
-                        self.logger.info(
-                            f"Linked RSS entity '{entity_name}' to hierarchy path: {best_match['path']} "
-                            f"(confidence: {final_confidence:.2f})"
-                        )
-
-                        return entity_link
 
                     return None
 
@@ -863,286 +958,195 @@ class OptimizedHierarchyResolver:
                 self.db_pool.putconn(conn)
 
         except Exception as e:
-            self.logger.error(f"Error linking RSS entity to hierarchy: {e}")
+            self.logger.error(f"Failed to find matching geographic entity: {e}")
             return None
 
-    def _select_best_entity_match(
+    async def _generate_rss_entity_path(
         self,
-        matches: List[Dict],
-        location_hint: Optional[str] = None
-    ) -> Optional[Dict]:
-        """
-        Select the best matching entity from multiple candidates.
-
-        Uses heuristics including:
-        - Name similarity score
-        - Path depth (prefer more specific locations)
-        - Location hint context matching
-
-        Args:
-            matches: List of potential entity matches
-            location_hint: Optional location context
-
-        Returns:
-            Best matching entity dictionary or None
-        """
-        if not matches:
-            return None
-
-        # If location hint provided, boost matches that contain it in their path
-        if location_hint:
-            for match in matches:
-                if location_hint.lower() in match['path'].lower():
-                    match['context_boost'] = 0.1
-                else:
-                    match['context_boost'] = 0.0
-        else:
-            for match in matches:
-                match['context_boost'] = 0.0
-
-        # Calculate weighted score: similarity (70%) + depth penalty (20%) + context (10%)
-        for match in matches:
-            depth_penalty = min(match['path_depth'] * 0.05, 0.2)  # Max 20% penalty
-            match['weighted_score'] = (
-                match['name_similarity'] * 0.7 +
-                (1.0 - depth_penalty) * 0.2 +
-                match['context_boost']
-            )
-
-        # Return match with highest weighted score
-        best_match = max(matches, key=lambda m: m['weighted_score'])
-        return best_match
-
-    def generate_rss_entity_ltree_path(
-        self,
-        entity_link: RSSEntityLink,
-        path_prefix: str = "rss"
+        parent_node: HierarchyNode,
+        rss_entity_id: str,
+        entity_type: str
     ) -> str:
         """
-        Generate an LTREE path for an RSS-derived entity.
+        Generate LTREE path for RSS entity under parent geographic entity.
 
-        The path format is: <geographic_path>.rss.<feed_id>.<article_id>.<entity_id>
-
-        Example: "world.europe.ukraine.kyiv.rss.bbc_world.art_123.ent_456"
+        Path format: parent.path.rss_{type}_{entity_id_hash}
 
         Args:
-            entity_link: RSS entity link with location information
-            path_prefix: Prefix for RSS entity paths (default: "rss")
+            parent_node: Parent geographic hierarchy node
+            rss_entity_id: RSS entity ID
+            entity_type: RSS entity type
 
         Returns:
-            LTREE path string for the RSS entity
+            LTREE path string
         """
-        # Clean identifiers for LTREE compatibility (alphanumeric and underscores only)
-        clean_feed = entity_link.feed_id.replace('-', '_').replace('.', '_')
-        clean_article = entity_link.article_id.replace('-', '_').replace('.', '_')
-        clean_entity = entity_link.entity_id.replace('-', '_').replace('.', '_')
+        # Create hash of entity ID for path component (LTREE has length limits)
+        entity_hash = hashlib.md5(rss_entity_id.encode()).hexdigest()[:8]
 
-        # Construct LTREE path
-        rss_path = f"{entity_link.location_path}.{path_prefix}.{clean_feed}.{clean_article}.{clean_entity}"
+        # Normalize entity type for LTREE (lowercase, no special chars)
+        normalized_type = entity_type.replace("rss_", "").replace("_", "")
 
-        self.logger.debug(f"Generated LTREE path for RSS entity: {rss_path}")
+        # Generate path: parent.path.rss{type}{hash}
+        rss_path_component = f"rss{normalized_type}{entity_hash}"
+        rss_path = f"{parent_node.path}.{rss_path_component}"
+
         return rss_path
 
-    def calculate_entity_confidence_score(
+    async def get_rss_entities_in_hierarchy(
         self,
-        entity_name: str,
-        matched_name: str,
-        name_similarity: float,
-        path_depth: int,
-        base_confidence: float
-    ) -> float:
+        parent_entity_id: Optional[str] = None,
+        entity_types: Optional[List[str]] = None,
+        min_confidence: float = 0.5,
+        limit: int = 100
+    ) -> List[HierarchyNode]:
         """
-        Calculate confidence score for RSS entity-to-hierarchy linking.
-
-        Confidence score is based on:
-        - Name similarity (40%)
-        - Path depth appropriateness (30%)
-        - Base hierarchy confidence (30%)
+        Get RSS entities within a hierarchical scope.
 
         Args:
-            entity_name: Original extracted entity name
-            matched_name: Matched hierarchy entity name
-            name_similarity: Fuzzy string similarity score (0.0-1.0)
-            path_depth: Depth in hierarchy tree
-            base_confidence: Base confidence from hierarchy node
+            parent_entity_id: Optional parent entity to filter by (uses LTREE descendant query)
+            entity_types: Optional list of RSS entity types to filter
+            min_confidence: Minimum confidence score threshold
+            limit: Maximum number of results
 
         Returns:
-            Final confidence score (0.0-1.0)
-        """
-        # Name similarity component (40%)
-        name_component = name_similarity * 0.4
-
-        # Path depth component (30%) - prefer depths 2-4, penalize very shallow or deep
-        optimal_depth_range = (2, 4)
-        if optimal_depth_range[0] <= path_depth <= optimal_depth_range[1]:
-            depth_component = 0.3
-        else:
-            depth_deviation = min(
-                abs(path_depth - optimal_depth_range[0]),
-                abs(path_depth - optimal_depth_range[1])
-            )
-            depth_penalty = min(depth_deviation * 0.05, 0.3)
-            depth_component = max(0.0, 0.3 - depth_penalty)
-
-        # Base confidence component (30%)
-        confidence_component = base_confidence * 0.3
-
-        # Calculate final score
-        final_score = name_component + depth_component + confidence_component
-
-        # Ensure score is in valid range
-        final_score = max(0.0, min(1.0, final_score))
-
-        self.logger.debug(
-            f"Confidence score for '{entity_name}' → '{matched_name}': {final_score:.2f} "
-            f"(similarity: {name_similarity:.2f}, depth: {path_depth}, base: {base_confidence:.2f})"
-        )
-
-        return final_score
-
-    def get_rss_entities_by_location(
-        self,
-        location_path: str,
-        include_descendants: bool = True,
-        min_confidence: float = 0.5
-    ) -> List[RSSEntityLink]:
-        """
-        Get all RSS entities linked to a specific geographic location.
-
-        Args:
-            location_path: LTREE path of the location
-            include_descendants: Include entities from descendant locations
-            min_confidence: Minimum confidence score filter
-
-        Returns:
-            List of RSS entity links for the location
+            List of RSS entity hierarchy nodes
         """
         if not self.db_pool:
-            self.logger.error("Database pool not available")
             return []
 
         try:
             conn = self.db_pool.getconn()
             try:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    if include_descendants:
-                        # Query using LTREE descendant operator (@>)
-                        query = """
-                            SELECT
-                                rel.entity_id,
-                                rel.article_id,
-                                rel.feed_id,
-                                rel.location_path,
-                                rel.entity_name,
-                                rel.entity_type,
-                                rel.confidence_score,
-                                rel.extraction_method,
-                                rel.context
-                            FROM rss_entity_links rel
-                            WHERE
-                                %s @> rel.location_path::ltree
-                                AND rel.confidence_score >= %s
-                            ORDER BY rel.confidence_score DESC
-                        """
-                        cur.execute(query, (location_path, min_confidence))
-                    else:
-                        # Exact location match
-                        query = """
-                            SELECT
-                                rel.entity_id,
-                                rel.article_id,
-                                rel.feed_id,
-                                rel.location_path,
-                                rel.entity_name,
-                                rel.entity_type,
-                                rel.confidence_score,
-                                rel.extraction_method,
-                                rel.context
-                            FROM rss_entity_links rel
-                            WHERE
-                                rel.location_path = %s
-                                AND rel.confidence_score >= %s
-                            ORDER BY rel.confidence_score DESC
-                        """
-                        cur.execute(query, (location_path, min_confidence))
+                    # Build query based on filters
+                    query = """
+                        SELECT
+                            e.entity_id,
+                            e.path,
+                            e.path_depth,
+                            e.path_hash,
+                            e.confidence_score,
+                            e.entity_type,
+                            e.rss_entity_id,
+                            e.location_lat,
+                            e.location_lon,
+                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mv.descendant_count, 0) as descendants
+                        FROM entities e
+                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                        WHERE e.entity_type LIKE 'rss_%'
+                        AND e.confidence_score >= %s
+                    """
 
+                    params = [min_confidence]
+
+                    # Add parent filter if specified
+                    if parent_entity_id:
+                        # Get parent path
+                        parent_node = self.get_hierarchy(parent_entity_id)
+                        if parent_node:
+                            query += " AND e.path <@ %s::ltree"
+                            params.append(parent_node.path)
+
+                    # Add entity type filter if specified
+                    if entity_types:
+                        placeholders = ','.join(['%s'] * len(entity_types))
+                        query += f" AND e.entity_type IN ({placeholders})"
+                        params.extend(entity_types)
+
+                    query += " ORDER BY e.confidence_score DESC, e.path_depth ASC LIMIT %s"
+                    params.append(limit)
+
+                    cur.execute(query, tuple(params))
                     rows = cur.fetchall()
 
-                    # Convert to RSSEntityLink objects
-                    entity_links = []
+                    results = []
                     for row in rows:
-                        entity_link = RSSEntityLink(
+                        node = HierarchyNode(
                             entity_id=row['entity_id'],
-                            article_id=row['article_id'],
-                            feed_id=row['feed_id'],
-                            location_path=row['location_path'],
-                            entity_name=row['entity_name'],
-                            entity_type=row['entity_type'],
+                            path=row['path'],
+                            path_depth=row['path_depth'],
+                            path_hash=row['path_hash'],
+                            ancestors=row['ancestors'] or [],
+                            descendants=row['descendants'],
                             confidence_score=row['confidence_score'],
-                            extraction_method=row['extraction_method'],
-                            context=row.get('context')
+                            entity_type=row.get('entity_type', 'rss_entity'),
+                            rss_entity_id=row.get('rss_entity_id'),
+                            location_lat=row.get('location_lat'),
+                            location_lon=row.get('location_lon')
                         )
-                        entity_links.append(entity_link)
+                        results.append(node)
 
-                    self.logger.info(
-                        f"Found {len(entity_links)} RSS entities for location: {location_path}"
-                    )
-
-                    return entity_links
+                    return results
 
             finally:
                 self.db_pool.putconn(conn)
 
         except Exception as e:
-            self.logger.error(f"Error getting RSS entities by location: {e}")
+            self.logger.error(f"Failed to get RSS entities in hierarchy: {e}")
             return []
 
-    def batch_link_rss_entities(
+    async def update_rss_entity_confidence(
         self,
-        entities: List[Tuple[str, str, str, str]],  # (name, type, article_id, feed_id)
-        confidence_threshold: float = 0.7
-    ) -> List[RSSEntityLink]:
+        rss_entity_id: str,
+        new_confidence: float
+    ) -> bool:
         """
-        Batch link multiple RSS entities to the hierarchy for performance.
+        Update confidence score for RSS entity.
+
+        This is useful when entity extraction confidence changes based on
+        additional information or validation.
 
         Args:
-            entities: List of tuples (entity_name, entity_type, article_id, feed_id)
-            confidence_threshold: Minimum confidence for linking
+            rss_entity_id: RSS entity ID
+            new_confidence: New confidence score (0.0-1.0)
 
         Returns:
-            List of successfully linked RSS entities
+            True if update successful, False otherwise
         """
-        linked_entities = []
+        if not self.db_pool:
+            return False
 
-        self.logger.info(f"Batch linking {len(entities)} RSS entities to hierarchy")
+        if not 0.0 <= new_confidence <= 1.0:
+            self.logger.error(f"Invalid confidence score: {new_confidence}")
+            return False
 
-        for entity_name, entity_type, article_id, feed_id in entities:
+        try:
+            conn = self.db_pool.getconn()
             try:
-                link = self.link_rss_entity_to_hierarchy(
-                    entity_name=entity_name,
-                    entity_type=entity_type,
-                    article_id=article_id,
-                    feed_id=feed_id,
-                    confidence_threshold=confidence_threshold
-                )
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE entities
+                        SET confidence_score = %s
+                        WHERE rss_entity_id = %s
+                    """, (new_confidence, rss_entity_id))
 
-                if link:
-                    linked_entities.append(link)
+                    conn.commit()
 
-            except Exception as e:
-                self.logger.warning(
-                    f"Failed to link RSS entity '{entity_name}' from article {article_id}: {e}"
-                )
-                continue
+                    # Invalidate caches
+                    cache_key = f"rss:entity_hierarchy:{rss_entity_id}"
+                    with self.l1_cache._lock:
+                        self.l1_cache._cache.pop(cache_key, None)
 
-        success_rate = len(linked_entities) / len(entities) * 100 if entities else 0
-        self.logger.info(
-            f"Batch linking completed: {len(linked_entities)}/{len(entities)} entities linked "
-            f"({success_rate:.1f}% success rate)"
-        )
+                    if self.redis_client:
+                        try:
+                            self.redis_client.delete(f"rss_hierarchy:{rss_entity_id}")
+                        except Exception:
+                            pass
 
-        return linked_entities
-    
+                    self.logger.info(
+                        f"Updated RSS entity {rss_entity_id} confidence to {new_confidence:.3f}"
+                    )
+
+                    return True
+
+            finally:
+                self.db_pool.putconn(conn)
+
+        except Exception as e:
+            self.logger.error(f"Failed to update RSS entity confidence: {e}")
+            return False
+
     def __del__(self):
         """Cleanup resources when object is destroyed."""
         try:
