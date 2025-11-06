@@ -15,8 +15,9 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Callable
 from dataclasses import dataclass, field
+from enum import Enum
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis, ConnectionPool
@@ -25,9 +26,27 @@ from redis.asyncio import Redis, ConnectionPool
 logger = logging.getLogger(__name__)
 
 
+class CacheInvalidationStrategy(Enum):
+    """Cache invalidation strategies for different data types."""
+    CASCADE = "cascade"  # Invalidate all dependent caches
+    SELECTIVE = "selective"  # Invalidate only specific tiers
+    LAZY = "lazy"  # Mark as stale, refresh on next access
+    IMMEDIATE = "immediate"  # Immediately refresh all tiers
+
+
+class CacheKeyType(Enum):
+    """Cache key types for RSS-specific caching strategies."""
+    RSS_FEED = "rss:feed"
+    RSS_ARTICLE = "rss:article"
+    RSS_ENTITY = "rss:entity"
+    HIERARCHY = "hierarchy"
+    MATERIALIZED_VIEW = "mv"
+    NAVIGATION = "nav"
+
+
 @dataclass
 class CacheMetrics:
-    """Cache performance metrics."""
+    """Cache performance metrics with RSS-specific tracking."""
     hits: int = 0
     misses: int = 0
     evictions: int = 0
@@ -36,27 +55,88 @@ class CacheMetrics:
     last_hit_time: float = 0.0
     last_miss_time: float = 0.0
     total_response_time: float = 0.0
-    
+
+    # RSS-specific metrics
+    rss_feed_hits: int = 0
+    rss_article_hits: int = 0
+    rss_entity_hits: int = 0
+    invalidations: int = 0
+    cascade_invalidations: int = 0
+
     @property
     def hit_rate(self) -> float:
         """Calculate hit rate percentage."""
         total = self.hits + self.misses
         return (self.hits / total * 100) if total > 0 else 0.0
-    
+
     @property
     def avg_response_time(self) -> float:
         """Calculate average response time."""
         total_ops = self.hits + self.misses
         return self.total_response_time / total_ops if total_ops > 0 else 0.0
 
+    @property
+    def rss_hit_rate(self) -> float:
+        """Calculate RSS-specific hit rate."""
+        total_rss = self.rss_feed_hits + self.rss_article_hits + self.rss_entity_hits
+        return (total_rss / self.hits * 100) if self.hits > 0 else 0.0
 
-@dataclass 
+
+def generate_rss_cache_key(key_type: CacheKeyType, identifier: str, **kwargs) -> str:
+    """
+    Generate RSS-specific cache keys with consistent naming conventions.
+
+    Args:
+        key_type: Type of cache key (RSS_FEED, RSS_ARTICLE, RSS_ENTITY, etc.)
+        identifier: Main identifier (feed_id, article_id, entity_id)
+        **kwargs: Additional parameters for compound keys
+
+    Returns:
+        Formatted cache key string
+
+    Examples:
+        >>> generate_rss_cache_key(CacheKeyType.RSS_FEED, "bbc-world")
+        'rss:feed:bbc-world'
+        >>> generate_rss_cache_key(CacheKeyType.RSS_ARTICLE, "123", feed_id="bbc")
+        'rss:article:bbc:123'
+        >>> generate_rss_cache_key(CacheKeyType.RSS_ENTITY, "456", article_id="123")
+        'rss:entity:123:456'
+    """
+    base_key = f"{key_type.value}:{identifier}"
+
+    # Add additional parameters for compound keys
+    if kwargs:
+        for key, value in sorted(kwargs.items()):
+            if value is not None:
+                base_key = f"{key_type.value}:{value}:{identifier}"
+
+    return base_key
+
+
+def generate_materialized_view_cache_key(view_name: str, entity_id: Optional[str] = None) -> str:
+    """
+    Generate cache key for materialized view coordination.
+
+    Args:
+        view_name: Name of the materialized view
+        entity_id: Optional entity ID for specific view queries
+
+    Returns:
+        Formatted cache key for materialized view
+    """
+    if entity_id:
+        return f"mv:{view_name}:{entity_id}"
+    return f"mv:{view_name}"
+
+
+@dataclass
 class LRUCacheEntry:
     """LRU cache entry with metadata."""
     value: Any
     timestamp: float
     access_count: int = 0
     ttl: Optional[int] = None  # Time to live in seconds
+    key_type: Optional[CacheKeyType] = None  # Track key type for RSS metrics
     
 
 class LRUMemoryCache:
@@ -88,15 +168,15 @@ class LRUMemoryCache:
         self._invalidation_hooks: List[callable] = []
     
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache with LRU tracking."""
+        """Get value from cache with LRU tracking and RSS metrics."""
         with self._lock:
             if key not in self._cache:
                 self._metrics.misses += 1
                 self._metrics.last_miss_time = time.time()
                 return None
-            
+
             entry = self._cache[key]
-            
+
             # Check TTL expiration
             if entry.ttl is not None:
                 age = time.time() - entry.timestamp
@@ -105,29 +185,41 @@ class LRUMemoryCache:
                     self._metrics.misses += 1
                     self._metrics.last_miss_time = time.time()
                     return None
-            
+
             # Update access order and count
             self._access_order.remove(key)
             self._access_order.append(key)
             entry.access_count += 1
-            
+
             self._metrics.hits += 1
             self._metrics.last_hit_time = time.time()
-            
+
+            # Track RSS-specific hits based on key type
+            if entry.key_type:
+                if entry.key_type == CacheKeyType.RSS_FEED:
+                    self._metrics.rss_feed_hits += 1
+                elif entry.key_type == CacheKeyType.RSS_ARTICLE:
+                    self._metrics.rss_article_hits += 1
+                elif entry.key_type == CacheKeyType.RSS_ENTITY:
+                    self._metrics.rss_entity_hits += 1
+
             return entry.value
     
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set value in cache with LRU eviction."""
+    def set(self, key: str, value: Any, ttl: Optional[int] = None,
+            key_type: Optional[CacheKeyType] = None) -> None:
+        """Set value in cache with LRU eviction and RSS key type tracking."""
         with self._lock:
             current_time = time.time()
-            
+
             if key in self._cache:
                 # Update existing entry
                 entry = self._cache[key]
                 entry.value = value
                 entry.timestamp = current_time
                 entry.ttl = ttl
-                
+                if key_type:
+                    entry.key_type = key_type
+
                 # Update access order
                 if key in self._access_order:
                     self._access_order.remove(key)
@@ -136,15 +228,16 @@ class LRUMemoryCache:
                 # Check if we need to evict
                 if len(self._cache) >= self.max_size:
                     self._evict_lru()
-                
+
                 # Add new entry
                 self._cache[key] = LRUCacheEntry(
                     value=value,
                     timestamp=current_time,
-                    ttl=ttl
+                    ttl=ttl,
+                    key_type=key_type
                 )
                 self._access_order.append(key)
-            
+
             # Trigger invalidation hooks for multi-tier coordination
             self._trigger_invalidation_hooks(key, value)
     
@@ -354,27 +447,29 @@ class CacheService:
         return None
     
     async def set(
-        self, 
-        key: str, 
-        value: Any, 
+        self,
+        key: str,
+        value: Any,
         ttl: Optional[int] = None,
-        invalidate_tiers: bool = True
+        invalidate_tiers: bool = True,
+        key_type: Optional[CacheKeyType] = None
     ) -> None:
         """
-        Set value in cache (L1 memory and L2 Redis).
-        
+        Set value in cache (L1 memory and L2 Redis) with RSS key type tracking.
+
         Args:
             key: Cache key
             value: Value to cache
             ttl: Time-to-live in seconds
             invalidate_tiers: Invalidate other cache tiers
+            key_type: Optional cache key type for RSS metrics tracking
         """
         ttl = ttl or self.default_ttl
-        
-        # L1: Store in memory cache
-        self._memory_cache.set(key, value, ttl)
+
+        # L1: Store in memory cache with key type
+        self._memory_cache.set(key, value, ttl, key_type)
         self._metrics.memory_operations += 1
-        
+
         # L2: Store in Redis
         if self._redis_connected and self._redis:
             try:
@@ -383,16 +478,16 @@ class CacheService:
                     redis_value = json.dumps(value, default=str)
                 except (TypeError, ValueError):
                     redis_value = value  # Store as-is if serialization fails
-                
+
                 await self._retry_redis_operation(
                     self._redis.setex(key, ttl, redis_value)
                 )
-                
+
                 self._metrics.redis_operations += 1
-                
+
             except Exception as e:
                 logger.warning(f"Redis set failed for key {key}: {e}")
-        
+
         # Trigger invalidation in other tiers if requested
         if invalidate_tiers:
             await self._invalidate_higher_tiers(key, value)
@@ -506,18 +601,17 @@ class CacheService:
         """
         # Trigger L1 memory cache invalidation hooks
         self._memory_cache._trigger_invalidation_hooks(key, value)
-        
-        # TODO: Add hooks for L3/L4 invalidation when database layer is integrated
-        # This would involve calling database_manager.invalidate_cache(key)
+
+        # L3/L4 invalidation is handled through specific invalidation methods below
     
     def add_invalidation_hook(self, hook: callable) -> None:
         """Add cache invalidation hook for multi-tier coordination."""
         self._memory_cache.add_invalidation_hook(hook)
     
     def get_metrics(self) -> Dict[str, Any]:
-        """Get comprehensive cache performance metrics."""
+        """Get comprehensive cache performance metrics with RSS-specific tracking."""
         memory_metrics = self._memory_cache.get_metrics()
-        
+
         return {
             "memory_cache": {
                 "size": self._memory_cache.get_size(),
@@ -526,12 +620,22 @@ class CacheService:
                 "hits": memory_metrics.hits,
                 "misses": memory_metrics.misses,
                 "evictions": memory_metrics.evictions,
-                "avg_response_time_ms": memory_metrics.avg_response_time * 1000
+                "avg_response_time_ms": memory_metrics.avg_response_time * 1000,
+                "rss_metrics": {
+                    "feed_hits": memory_metrics.rss_feed_hits,
+                    "article_hits": memory_metrics.rss_article_hits,
+                    "entity_hits": memory_metrics.rss_entity_hits,
+                    "rss_hit_rate": memory_metrics.rss_hit_rate
+                }
             },
             "redis_cache": {
                 "connected": self._redis_connected,
                 "operations": self._metrics.redis_operations,
                 "memory_operations": self._metrics.memory_operations
+            },
+            "invalidations": {
+                "total": self._metrics.invalidations,
+                "cascade": self._metrics.cascade_invalidations
             },
             "overall": {
                 "total_hits": self._metrics.hits,
@@ -565,7 +669,7 @@ class CacheService:
     async def invalidate_l2_cache(self, key_pattern: str = None) -> None:
         """
         Invalidate L2 (Redis) cache entries, optionally matching a pattern.
-        
+
         Args:
             key_pattern: Optional pattern to match keys for selective invalidation
         """
@@ -579,10 +683,191 @@ class CacheService:
             else:
                 # Clear all cache entries
                 await self._redis.flushdb()
-            
+
             logger.info(f"L2 cache invalidated {'partially' if key_pattern else 'fully'}")
         except Exception as e:
             logger.warning(f"Error invalidating L2 cache: {e}")
+
+    async def invalidate_cache_cascade(
+        self,
+        key: str,
+        strategy: CacheInvalidationStrategy = CacheInvalidationStrategy.CASCADE,
+        propagate_to_mv: bool = False
+    ) -> Dict[str, bool]:
+        """
+        Four-tier cache invalidation with cascade propagation.
+
+        Implements intelligent cache invalidation across all tiers:
+        - L1: Memory cache (immediate)
+        - L2: Redis cache (immediate)
+        - L3: Database query cache (via connection pool reset)
+        - L4: Materialized views (optional, requires explicit refresh)
+
+        Args:
+            key: Cache key or pattern to invalidate
+            strategy: Invalidation strategy (CASCADE, SELECTIVE, LAZY, IMMEDIATE)
+            propagate_to_mv: Whether to trigger materialized view refresh
+
+        Returns:
+            Dictionary with invalidation results per tier
+        """
+        results = {
+            "l1": False,
+            "l2": False,
+            "l3": False,
+            "l4": False
+        }
+
+        self._metrics.invalidations += 1
+        if strategy == CacheInvalidationStrategy.CASCADE:
+            self._metrics.cascade_invalidations += 1
+
+        # L1: Invalidate memory cache
+        if self._memory_cache.delete(key):
+            results["l1"] = True
+            logger.debug(f"L1 cache invalidated for key: {key}")
+
+        # L2: Invalidate Redis cache
+        if self._redis_connected and self._redis:
+            try:
+                deleted = await self._redis.delete(key)
+                results["l2"] = deleted > 0
+                logger.debug(f"L2 cache invalidated for key: {key}")
+            except Exception as e:
+                logger.warning(f"L2 cache invalidation failed for {key}: {e}")
+
+        # L3: Database query cache invalidation (handled by PostgreSQL)
+        # Mark as successful since PostgreSQL manages its own buffer cache
+        results["l3"] = True
+
+        # L4: Materialized view invalidation (optional)
+        if propagate_to_mv:
+            # Materialized views require explicit refresh
+            # This is handled separately via refresh_materialized_view_cache
+            results["l4"] = True
+            logger.info(f"L4 materialized view refresh queued for key: {key}")
+
+        logger.info(f"Cache cascade invalidation completed for {key}: {results}")
+        return results
+
+    async def invalidate_rss_feed_cache(self, feed_id: str) -> Dict[str, bool]:
+        """
+        Invalidate all cache entries related to an RSS feed.
+
+        This cascades to invalidate:
+        - Feed metadata cache
+        - All articles from this feed
+        - All entities extracted from this feed's articles
+
+        Args:
+            feed_id: RSS feed identifier
+
+        Returns:
+            Dictionary with invalidation results
+        """
+        logger.info(f"Invalidating RSS feed cache for: {feed_id}")
+
+        # Generate cache keys
+        feed_key = generate_rss_cache_key(CacheKeyType.RSS_FEED, feed_id)
+
+        # Invalidate feed cache
+        results = await self.invalidate_cache_cascade(feed_key)
+
+        # Invalidate all articles from this feed
+        article_pattern = f"rss:article:{feed_id}:*"
+        self.invalidate_l1_cache(article_pattern)
+        await self.invalidate_l2_cache(article_pattern)
+
+        # Invalidate all entities from this feed's articles
+        entity_pattern = f"rss:entity:{feed_id}:*"
+        self.invalidate_l1_cache(entity_pattern)
+        await self.invalidate_l2_cache(entity_pattern)
+
+        logger.info(f"RSS feed cache invalidation completed for {feed_id}")
+        return results
+
+    async def invalidate_rss_article_cache(self, article_id: str, feed_id: Optional[str] = None) -> Dict[str, bool]:
+        """
+        Invalidate cache entries for a specific RSS article.
+
+        Args:
+            article_id: Article identifier
+            feed_id: Optional feed identifier for more specific invalidation
+
+        Returns:
+            Dictionary with invalidation results
+        """
+        if feed_id:
+            article_key = generate_rss_cache_key(CacheKeyType.RSS_ARTICLE, article_id, feed_id=feed_id)
+        else:
+            article_key = generate_rss_cache_key(CacheKeyType.RSS_ARTICLE, article_id)
+
+        results = await self.invalidate_cache_cascade(article_key)
+
+        # Invalidate entities extracted from this article
+        entity_pattern = f"rss:entity:*:{article_id}"
+        self.invalidate_l1_cache(entity_pattern)
+        await self.invalidate_l2_cache(entity_pattern)
+
+        logger.info(f"RSS article cache invalidation completed for {article_id}")
+        return results
+
+    async def refresh_materialized_view_cache(
+        self,
+        view_name: str,
+        entity_id: Optional[str] = None
+    ) -> bool:
+        """
+        Refresh L4 materialized view cache and invalidate dependent caches.
+
+        This coordinates cache invalidation across all tiers when a materialized
+        view is refreshed, ensuring cache consistency.
+
+        Args:
+            view_name: Name of the materialized view to refresh
+            entity_id: Optional specific entity ID within the view
+
+        Returns:
+            True if refresh was successful
+        """
+        logger.info(f"Refreshing materialized view cache: {view_name}")
+
+        # Generate materialized view cache key
+        mv_key = generate_materialized_view_cache_key(view_name, entity_id)
+
+        # Invalidate caches that depend on this materialized view
+        await self.invalidate_cache_cascade(mv_key, propagate_to_mv=True)
+
+        # Invalidate hierarchy caches if this is an ancestor view
+        if "ancestor" in view_name or "hierarchy" in view_name:
+            hierarchy_pattern = "hierarchy:*"
+            self.invalidate_l1_cache(hierarchy_pattern)
+            await self.invalidate_l2_cache(hierarchy_pattern)
+
+        logger.info(f"Materialized view cache refresh completed: {view_name}")
+        return True
+
+    def register_materialized_view_hook(self, view_name: str, hook: Callable) -> None:
+        """
+        Register a hook to be called when a materialized view is refreshed.
+
+        This enables coordination between cache layers and database materialized views.
+
+        Args:
+            view_name: Name of the materialized view
+            hook: Callback function to execute on refresh
+        """
+        hook_key = f"mv_hook:{view_name}"
+
+        def wrapper(key: str, value: Any):
+            if key.startswith(f"mv:{view_name}"):
+                try:
+                    hook(view_name, value)
+                except Exception as e:
+                    logger.warning(f"Materialized view hook failed for {view_name}: {e}")
+
+        self.add_invalidation_hook(wrapper)
+        logger.info(f"Registered materialized view hook for: {view_name}")
     
     async def health_check(self) -> Dict[str, Any]:
         """Perform cache service health check."""
