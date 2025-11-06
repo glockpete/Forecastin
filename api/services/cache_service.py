@@ -591,7 +591,7 @@ class CacheService:
             "memory_cache": {"healthy": True},
             "redis_cache": {"healthy": False, "error": None}
         }
-        
+
         # Check Redis connection
         if self._redis_connected and self._redis:
             try:
@@ -600,5 +600,454 @@ class CacheService:
             except Exception as e:
                 health_status["redis_cache"]["error"] = str(e)
                 health_status["status"] = "degraded"
-        
+
         return health_status
+
+
+class RSSCacheKeyStrategy:
+    """
+    RSS-specific cache key strategies for efficient namespace management.
+
+    Implements specialized cache key patterns for:
+    - RSS feeds
+    - RSS articles
+    - RSS entities
+    - RSS entity hierarchies
+    """
+
+    @staticmethod
+    def feed_key(feed_url: str, ttl_bucket: Optional[str] = None) -> str:
+        """
+        Generate cache key for RSS feed.
+
+        Args:
+            feed_url: URL of the RSS feed
+            ttl_bucket: Optional TTL bucket for key rotation (e.g., hourly, daily)
+
+        Returns:
+            Cache key string
+        """
+        import hashlib
+        url_hash = hashlib.md5(feed_url.encode()).hexdigest()[:12]
+        bucket_suffix = f":{ttl_bucket}" if ttl_bucket else ""
+        return f"rss:feed:{url_hash}{bucket_suffix}"
+
+    @staticmethod
+    def article_key(article_id: str) -> str:
+        """Generate cache key for RSS article."""
+        return f"rss:article:{article_id}"
+
+    @staticmethod
+    def article_entities_key(article_id: str) -> str:
+        """Generate cache key for RSS article entities."""
+        return f"rss:article_entities:{article_id}"
+
+    @staticmethod
+    def entity_key(entity_id: str) -> str:
+        """Generate cache key for RSS entity."""
+        return f"rss:entity:{entity_id}"
+
+    @staticmethod
+    def entity_hierarchy_key(entity_id: str) -> str:
+        """Generate cache key for RSS entity hierarchy."""
+        return f"rss:entity_hierarchy:{entity_id}"
+
+    @staticmethod
+    def entity_location_key(entity_id: str) -> str:
+        """Generate cache key for RSS entity geospatial location."""
+        return f"rss:entity_location:{entity_id}"
+
+    @staticmethod
+    def entity_confidence_key(entity_id: str) -> str:
+        """Generate cache key for RSS entity confidence score."""
+        return f"rss:entity_confidence:{entity_id}"
+
+    @staticmethod
+    def get_namespace_pattern(namespace: str) -> str:
+        """
+        Get Redis pattern for cache invalidation by namespace.
+
+        Args:
+            namespace: Cache namespace (feed, article, entity, etc.)
+
+        Returns:
+            Redis key pattern
+        """
+        return f"rss:{namespace}:*"
+
+
+@dataclass
+class CacheInvalidationMetrics:
+    """Metrics for cache invalidation operations."""
+    l1_invalidations: int = 0
+    l2_invalidations: int = 0
+    l3_invalidations: int = 0
+    l4_invalidations: int = 0
+    cascade_invalidations: int = 0
+    selective_invalidations: int = 0
+    total_keys_invalidated: int = 0
+    last_invalidation_time: float = 0.0
+    materialized_view_refreshes: int = 0
+
+
+class CacheInvalidationCoordinator:
+    """
+    Coordinates cache invalidation across four tiers with RSS-specific strategies.
+
+    Implements:
+    - Four-tier invalidation propagation (L1→L2→L3→L4)
+    - RSS-specific cache key strategies
+    - Cascade, selective, and lazy invalidation
+    - Materialized view coordination
+    - Performance monitoring
+    """
+
+    def __init__(
+        self,
+        cache_service: CacheService,
+        database_manager: Optional[Any] = None
+    ):
+        """
+        Initialize cache invalidation coordinator.
+
+        Args:
+            cache_service: Cache service instance
+            database_manager: Optional database manager for L4 coordination
+        """
+        self.cache_service = cache_service
+        self.database_manager = database_manager
+        self.key_strategy = RSSCacheKeyStrategy()
+        self.metrics = CacheInvalidationMetrics()
+
+        # Invalidation hooks for custom logic
+        self._pre_invalidation_hooks: List[callable] = []
+        self._post_invalidation_hooks: List[callable] = []
+
+    async def invalidate_cascade(
+        self,
+        entity_id: str,
+        entity_type: str = "entity",
+        refresh_materialized_views: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Cascade invalidation across all four tiers.
+
+        This is the most aggressive invalidation strategy, ensuring complete
+        consistency across all cache layers and database materialized views.
+
+        Args:
+            entity_id: Entity ID to invalidate
+            entity_type: Type of entity (feed, article, entity)
+            refresh_materialized_views: Whether to refresh materialized views (L4)
+
+        Returns:
+            Invalidation results with metrics
+        """
+        start_time = time.time()
+        keys_invalidated = 0
+
+        try:
+            # Run pre-invalidation hooks
+            await self._run_hooks(self._pre_invalidation_hooks, entity_id, entity_type)
+
+            # L1: Invalidate memory cache
+            l1_keys = await self._invalidate_l1(entity_id, entity_type)
+            keys_invalidated += l1_keys
+            self.metrics.l1_invalidations += 1
+
+            # L2: Invalidate Redis cache
+            l2_keys = await self._invalidate_l2(entity_id, entity_type)
+            keys_invalidated += l2_keys
+            self.metrics.l2_invalidations += 1
+
+            # L3: Invalidate database query cache (connection pool reset)
+            await self._invalidate_l3(entity_id, entity_type)
+            self.metrics.l3_invalidations += 1
+
+            # L4: Refresh materialized views
+            if refresh_materialized_views and self.database_manager:
+                await self._invalidate_l4()
+                self.metrics.l4_invalidations += 1
+                self.metrics.materialized_view_refreshes += 1
+
+            # Update metrics
+            self.metrics.cascade_invalidations += 1
+            self.metrics.total_keys_invalidated += keys_invalidated
+            self.metrics.last_invalidation_time = time.time()
+
+            # Run post-invalidation hooks
+            await self._run_hooks(self._post_invalidation_hooks, entity_id, entity_type)
+
+            invalidation_time = time.time() - start_time
+
+            logger.info(
+                f"Cascade invalidation completed for {entity_type}:{entity_id} - "
+                f"{keys_invalidated} keys invalidated in {invalidation_time:.3f}s"
+            )
+
+            return {
+                "success": True,
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "keys_invalidated": keys_invalidated,
+                "tiers_invalidated": ["L1", "L2", "L3", "L4"] if refresh_materialized_views else ["L1", "L2", "L3"],
+                "invalidation_time_ms": invalidation_time * 1000
+            }
+
+        except Exception as e:
+            logger.error(f"Cascade invalidation failed for {entity_type}:{entity_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "entity_id": entity_id,
+                "entity_type": entity_type
+            }
+
+    async def invalidate_selective(
+        self,
+        keys: List[str],
+        tiers: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Selective invalidation of specific cache keys and tiers.
+
+        More efficient than cascade for targeted invalidation.
+
+        Args:
+            keys: List of cache keys to invalidate
+            tiers: List of tiers to invalidate (L1, L2, L3, L4), default all
+
+        Returns:
+            Invalidation results
+        """
+        start_time = time.time()
+        tiers = tiers or ["L1", "L2"]
+        keys_invalidated = 0
+
+        try:
+            if "L1" in tiers:
+                for key in keys:
+                    self.cache_service._memory_cache.delete(key)
+                    keys_invalidated += 1
+                self.metrics.l1_invalidations += 1
+
+            if "L2" in tiers and self.cache_service._redis:
+                deleted = await self.cache_service._redis.delete(*keys)
+                keys_invalidated += deleted
+                self.metrics.l2_invalidations += 1
+
+            if "L3" in tiers:
+                await self._invalidate_l3(None, None)
+                self.metrics.l3_invalidations += 1
+
+            if "L4" in tiers and self.database_manager:
+                await self._invalidate_l4()
+                self.metrics.l4_invalidations += 1
+
+            self.metrics.selective_invalidations += 1
+            self.metrics.total_keys_invalidated += keys_invalidated
+            self.metrics.last_invalidation_time = time.time()
+
+            invalidation_time = time.time() - start_time
+
+            logger.info(
+                f"Selective invalidation completed - "
+                f"{keys_invalidated} keys across {len(tiers)} tiers in {invalidation_time:.3f}s"
+            )
+
+            return {
+                "success": True,
+                "keys_invalidated": keys_invalidated,
+                "tiers_invalidated": tiers,
+                "invalidation_time_ms": invalidation_time * 1000
+            }
+
+        except Exception as e:
+            logger.error(f"Selective invalidation failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def invalidate_rss_namespace(
+        self,
+        namespace: str,
+        refresh_materialized_views: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Invalidate entire RSS namespace (feed, article, entity).
+
+        Args:
+            namespace: RSS namespace (feed, article, entity, etc.)
+            refresh_materialized_views: Whether to refresh materialized views
+
+        Returns:
+            Invalidation results
+        """
+        start_time = time.time()
+        keys_invalidated = 0
+
+        try:
+            # Get namespace pattern
+            pattern = self.key_strategy.get_namespace_pattern(namespace)
+
+            # L1: Clear matching memory cache keys
+            l1_keys = [
+                k for k in self.cache_service._memory_cache.get_keys()
+                if k.startswith(f"rss:{namespace}:")
+            ]
+            for key in l1_keys:
+                self.cache_service._memory_cache.delete(key)
+            keys_invalidated += len(l1_keys)
+            self.metrics.l1_invalidations += 1
+
+            # L2: Clear matching Redis keys
+            if self.cache_service._redis:
+                redis_keys = await self.cache_service._redis.keys(pattern)
+                if redis_keys:
+                    deleted = await self.cache_service._redis.delete(*redis_keys)
+                    keys_invalidated += deleted
+                self.metrics.l2_invalidations += 1
+
+            # L4: Refresh materialized views if requested
+            if refresh_materialized_views and self.database_manager:
+                await self._invalidate_l4()
+                self.metrics.l4_invalidations += 1
+
+            self.metrics.total_keys_invalidated += keys_invalidated
+            self.metrics.last_invalidation_time = time.time()
+
+            invalidation_time = time.time() - start_time
+
+            logger.info(
+                f"Namespace invalidation completed for rss:{namespace} - "
+                f"{keys_invalidated} keys in {invalidation_time:.3f}s"
+            )
+
+            return {
+                "success": True,
+                "namespace": namespace,
+                "keys_invalidated": keys_invalidated,
+                "invalidation_time_ms": invalidation_time * 1000
+            }
+
+        except Exception as e:
+            logger.error(f"Namespace invalidation failed for {namespace}: {e}")
+            return {"success": False, "error": str(e), "namespace": namespace}
+
+    async def _invalidate_l1(self, entity_id: str, entity_type: str) -> int:
+        """Invalidate L1 memory cache for entity."""
+        keys_deleted = 0
+
+        # Generate all possible cache keys for this entity
+        if entity_type == "feed":
+            keys_to_delete = [self.key_strategy.feed_key(entity_id)]
+        elif entity_type == "article":
+            keys_to_delete = [
+                self.key_strategy.article_key(entity_id),
+                self.key_strategy.article_entities_key(entity_id)
+            ]
+        elif entity_type == "entity":
+            keys_to_delete = [
+                self.key_strategy.entity_key(entity_id),
+                self.key_strategy.entity_hierarchy_key(entity_id),
+                self.key_strategy.entity_location_key(entity_id),
+                self.key_strategy.entity_confidence_key(entity_id)
+            ]
+        else:
+            keys_to_delete = []
+
+        # Delete from L1 cache
+        for key in keys_to_delete:
+            if self.cache_service._memory_cache.delete(key):
+                keys_deleted += 1
+
+        return keys_deleted
+
+    async def _invalidate_l2(self, entity_id: str, entity_type: str) -> int:
+        """Invalidate L2 Redis cache for entity."""
+        if not self.cache_service._redis:
+            return 0
+
+        keys_deleted = 0
+
+        # Generate all possible cache keys for this entity
+        if entity_type == "feed":
+            keys_to_delete = [self.key_strategy.feed_key(entity_id)]
+        elif entity_type == "article":
+            keys_to_delete = [
+                self.key_strategy.article_key(entity_id),
+                self.key_strategy.article_entities_key(entity_id)
+            ]
+        elif entity_type == "entity":
+            keys_to_delete = [
+                self.key_strategy.entity_key(entity_id),
+                self.key_strategy.entity_hierarchy_key(entity_id),
+                self.key_strategy.entity_location_key(entity_id),
+                self.key_strategy.entity_confidence_key(entity_id)
+            ]
+        else:
+            keys_to_delete = []
+
+        # Delete from Redis
+        if keys_to_delete:
+            keys_deleted = await self.cache_service._redis.delete(*keys_to_delete)
+
+        return keys_deleted
+
+    async def _invalidate_l3(self, entity_id: Optional[str], entity_type: Optional[str]) -> None:
+        """
+        Invalidate L3 database query cache.
+
+        Note: PostgreSQL query cache is managed by the database itself.
+        This is a placeholder for future integration with database cache control.
+        """
+        # L3 invalidation would involve clearing PostgreSQL buffer cache
+        # This is typically handled by the database and doesn't require explicit action
+        # However, we can log it for monitoring purposes
+        logger.debug(f"L3 cache invalidation triggered for {entity_type}:{entity_id}")
+
+    async def _invalidate_l4(self) -> None:
+        """Invalidate L4 materialized views by refreshing them."""
+        if not self.database_manager:
+            logger.warning("Database manager not available for L4 invalidation")
+            return
+
+        try:
+            # Refresh hierarchy materialized views
+            await self.database_manager.refresh_hierarchy_views()
+            logger.info("L4 materialized views refreshed successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to refresh L4 materialized views: {e}")
+            raise
+
+    async def _run_hooks(self, hooks: List[callable], *args, **kwargs) -> None:
+        """Run invalidation hooks."""
+        for hook in hooks:
+            try:
+                if asyncio.iscoroutinefunction(hook):
+                    await hook(*args, **kwargs)
+                else:
+                    hook(*args, **kwargs)
+            except Exception as e:
+                logger.warning(f"Invalidation hook failed: {e}")
+
+    def add_pre_invalidation_hook(self, hook: callable) -> None:
+        """Add hook to run before invalidation."""
+        self._pre_invalidation_hooks.append(hook)
+
+    def add_post_invalidation_hook(self, hook: callable) -> None:
+        """Add hook to run after invalidation."""
+        self._post_invalidation_hooks.append(hook)
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get cache invalidation metrics."""
+        return {
+            "l1_invalidations": self.metrics.l1_invalidations,
+            "l2_invalidations": self.metrics.l2_invalidations,
+            "l3_invalidations": self.metrics.l3_invalidations,
+            "l4_invalidations": self.metrics.l4_invalidations,
+            "cascade_invalidations": self.metrics.cascade_invalidations,
+            "selective_invalidations": self.metrics.selective_invalidations,
+            "total_keys_invalidated": self.metrics.total_keys_invalidated,
+            "last_invalidation_time": self.metrics.last_invalidation_time,
+            "materialized_view_refreshes": self.metrics.materialized_view_refreshes
+        }
