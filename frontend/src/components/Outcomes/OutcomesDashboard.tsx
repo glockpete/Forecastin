@@ -5,7 +5,7 @@
  * Implements Four Horizons: Immediate | Short | Medium | Long
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { LensFilters, Opportunity, TimeHorizon, LensFilterOption } from '../../types/outcomes';
@@ -40,6 +40,19 @@ const OutcomesDashboard: React.FC = () => {
   const { data: stakeholdersData } = useStakeholders(selectedOpportunity?.id);
   const { data: evidenceData, isLoading: evidenceLoading } = useEvidence(selectedOpportunity?.id);
 
+  // Stable WebSocket callbacks to prevent infinite reconnection loop
+  const handleWebSocketConnect = useCallback(() => {
+    console.log('[WebSocket] Connected successfully in OutcomesDashboard');
+  }, []);
+
+  const handleWebSocketDisconnect = useCallback(() => {
+    console.log('[WebSocket] Disconnected in OutcomesDashboard');
+  }, []);
+
+  const handleWebSocketError = useCallback((error: Event) => {
+    console.error('[WebSocket] Error in OutcomesDashboard:', error);
+  }, []);
+
   // Initialize WebSocket connection for testing
   const {
     isConnected,
@@ -48,9 +61,9 @@ const OutcomesDashboard: React.FC = () => {
     error: wsError,
     wsUrl
   } = useWebSocket({
-    onConnect: () => console.log('[WebSocket] Connected successfully in OutcomesDashboard'),
-    onDisconnect: () => console.log('[WebSocket] Disconnected in OutcomesDashboard'),
-    onError: (error) => console.error('[WebSocket] Error in OutcomesDashboard:', error),
+    onConnect: handleWebSocketConnect,
+    onDisconnect: handleWebSocketDisconnect,
+    onError: handleWebSocketError,
   });
 
   // Extract data from responses
