@@ -268,13 +268,9 @@ class DatabaseManager:
                 # Test pool health by trying to acquire and test a connection
                 # This will trigger pool_pre_ping and detect dead connections
                 try:
-                    # Create a new event loop for the thread
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        loop.run_until_complete(self._test_pool_connection())
-                    finally:
-                        loop.close()
+                    # Use asyncio.run() for proper event loop management in thread
+                    # This creates a new event loop, runs the coroutine, and cleans up
+                    asyncio.run(self._test_pool_connection())
                 except Exception as e:
                     logger.warning(f"Pool health check failed: {e}")
                     
