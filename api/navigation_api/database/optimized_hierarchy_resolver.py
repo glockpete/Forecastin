@@ -55,10 +55,29 @@ class HierarchyNode:
     ancestors: List[str]
     descendants: int
     confidence_score: float
+    # RSS entity integration fields (merged from both implementations)
     entity_type: str = "geographic"  # geographic, rss_location, rss_organization, rss_person
+    is_rss_entity: bool = False
     rss_entity_id: Optional[str] = None  # Reference to RSS entity if applicable
+    rss_article_id: Optional[str] = None
+    rss_feed_id: Optional[str] = None
     location_lat: Optional[float] = None  # Geospatial coordinates for RSS entities
     location_lon: Optional[float] = None
+    extraction_metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class RSSEntityLink:
+    """Represents a link between an RSS entity and a geographic location."""
+    entity_id: str
+    article_id: str
+    feed_id: str
+    location_path: str  # LTREE path to geographic location
+    entity_name: str
+    entity_type: str
+    confidence_score: float
+    extraction_method: str  # e.g., "5W", "NER", "geoparsing"
+    context: Optional[str] = None  # Surrounding text context
 
 
 @dataclass
@@ -747,7 +766,7 @@ class OptimizedHierarchyResolver:
             # Database cache clearing is handled by connection pool management
             self.logger.info(f"{tier.upper() if tier else 'L3/L4'} cache cleared (DB cache managed by connection pool)")
     
-    async def link_rss_entity_to_hierarchy(
+    async def link_rss_entity_async(
         self,
         rss_entity_id: str,
         entity_type: str,
@@ -757,11 +776,14 @@ class OptimizedHierarchyResolver:
         lon: Optional[float] = None
     ) -> Optional[HierarchyNode]:
         """
-        Link RSS entity to geographic hierarchy using location and confidence.
+        Link RSS entity to geographic hierarchy using location and confidence (async version).
 
         This method integrates RSS-derived entities (people, organizations, locations)
         into the existing geographic hierarchy by finding the best matching geographic
         location and generating an appropriate LTREE path.
+
+        Note: This is the async version that works with coordinates and returns HierarchyNode.
+        For the sync version that works with entity names, see link_rss_entity_to_hierarchy.
 
         Args:
             rss_entity_id: Unique ID of the RSS entity
