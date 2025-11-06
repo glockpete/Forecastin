@@ -1,0 +1,7 @@
+{
+  "type": "heartbeat",
+  "meta": {
+    "timestamp": 1699566010.000,
+    "clientId": "client-001"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "rss-item-ukraine-001",
+  "title": "Ukraine reports new drone strikes on infrastructure",
+  "link": "https://example.com/news/ukraine-strikes-2024",
+  "description": "Ukrainian officials report multiple drone strikes targeting energy infrastructure in eastern regions overnight",
+  "pubDate": "2024-11-06T08:30:00.000Z",
+  "fiveW": {
+    "who": "Russian military forces",
+    "what": "Drone strikes targeting energy infrastructure",
+    "when": "2024-11-06T02:00:00.000Z",
+    "where": {
+      "name": "Eastern Ukraine",
+      "coordinates": [37.5, 49.0],
+      "bbox": {
+        "minLat": 48.0,
+        "maxLat": 50.0,
+        "minLng": 36.0,
+        "maxLng": 39.0
+      }
+    },
+    "why": "Strategic infrastructure targeting as part of ongoing conflict",
+    "confidence": 0.87
+  },
+  "extracted": {
+    "entities": ["Ukraine", "Russia", "Energy Infrastructure"],
+    "locations": ["Eastern Ukraine", "Donetsk Oblast"],
+    "sentiment": -0.72
+  }
+}

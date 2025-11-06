@@ -1,0 +1,46 @@
+{
+  "type": "layer_data_update",
+  "payload": {
+    "layer_id": "tokyo-infrastructure",
+    "layer_type": "polygon",
+    "layer_data": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [139.0, 35.0],
+                [140.0, 35.0],
+                [140.0, 36.0],
+                [139.0, 36.0],
+                [139.0, 35.0]
+              ]
+            ]
+          },
+          "properties": {
+            "name": "Tokyo Metro Area",
+            "type": "infrastructure",
+            "population": 13960000,
+            "confidence": 0.95
+          }
+        }
+      ]
+    },
+    "bbox": {
+      "minLat": 35.0,
+      "maxLat": 36.0,
+      "minLng": 139.0,
+      "maxLng": 140.0
+    },
+    "changed_at": 1699564800.123
+  },
+  "meta": {
+    "timestamp": 1699564800.123,
+    "sequence": 1,
+    "clientId": "client-001",
+    "sessionId": "session-abc"
+  }
+}

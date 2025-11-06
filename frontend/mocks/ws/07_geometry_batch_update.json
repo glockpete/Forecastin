@@ -1,0 +1,67 @@
+{
+  "type": "geometry_batch_update",
+  "payload": {
+    "batch_id": "batch-daily-update-001",
+    "items": [
+      {
+        "entityId": "entity-beijing",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [116.4074, 39.9042]
+        },
+        "properties": {
+          "name": "Beijing",
+          "population": 21540000,
+          "confidence": 0.99
+        },
+        "action": "update"
+      },
+      {
+        "entityId": "entity-shanghai",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [121.4737, 31.2304]
+        },
+        "properties": {
+          "name": "Shanghai",
+          "population": 24280000,
+          "confidence": 0.98
+        },
+        "action": "update"
+      },
+      {
+        "entityId": "entity-new-zone",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [115.0, 39.0],
+              [117.0, 39.0],
+              [117.0, 40.0],
+              [115.0, 40.0],
+              [115.0, 39.0]
+            ]
+          ]
+        },
+        "properties": {
+          "name": "New Economic Zone",
+          "type": "zone",
+          "confidence": 0.75
+        },
+        "action": "create"
+      }
+    ],
+    "bbox": {
+      "minLat": 31.0,
+      "maxLat": 40.0,
+      "minLng": 115.0,
+      "maxLng": 122.0
+    },
+    "timestamp": "2024-11-06T13:00:00.000Z"
+  },
+  "meta": {
+    "timestamp": 1699566000.123,
+    "sequence": 25,
+    "clientId": "client-batch-processor"
+  }
+}

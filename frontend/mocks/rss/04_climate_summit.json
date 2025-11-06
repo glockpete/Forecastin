@@ -1,0 +1,23 @@
+{
+  "id": "rss-item-climate-004",
+  "title": "Global climate summit reaches new emissions reduction agreement",
+  "link": "https://example.com/news/climate-summit-2024",
+  "description": "World leaders commit to accelerated carbon reduction targets at international climate conference",
+  "pubDate": "2024-11-06T13:00:00.000Z",
+  "fiveW": {
+    "who": "Global leaders, UN representatives",
+    "what": "New international emissions reduction agreement",
+    "when": "2024-11-05T18:00:00.000Z",
+    "where": {
+      "name": "Geneva, Switzerland",
+      "coordinates": [6.1432, 46.2044]
+    },
+    "why": "Addressing accelerating climate change impacts",
+    "confidence": 0.96
+  },
+  "extracted": {
+    "entities": ["United Nations", "Climate Agreement", "Carbon Reduction"],
+    "locations": ["Geneva", "Switzerland"],
+    "sentiment": 0.82
+  }
+}
