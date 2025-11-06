@@ -248,9 +248,12 @@ class OptimizedHierarchyResolver:
     
     def _init_redis_cache(self) -> None:
         """Initialize Redis connection pool with exponential backoff."""
+        # CRITICAL: Initialize redis_client attribute first to prevent AttributeError
+        self.redis_client = None
+        self.redis_pool = None
+        
         if not redis:
             self.logger.warning("Redis not available, L2 cache disabled")
-            self.redis_pool = None
             return
         
         try:
@@ -283,9 +286,11 @@ class OptimizedHierarchyResolver:
     
     def _init_database_pool(self) -> None:
         """Initialize PostgreSQL connection pool with health checks."""
+        # CRITICAL: Initialize db_pool attribute first to prevent AttributeError
+        self.db_pool = None
+        
         if not psycopg2_pool:
             self.logger.warning("psycopg2 not available, L3 cache disabled")
-            self.db_pool = None
             return
         
         try:
@@ -996,6 +1001,74 @@ class OptimizedHierarchyResolver:
         rss_path = f"{parent_node.path}.{rss_path_component}"
 
         return rss_path
+
+    async def get_all_entities(
+        self,
+        limit: int = 1000
+    ) -> List[HierarchyNode]:
+        """
+        Get all entities in the hierarchy with optional limit.
+        
+        Args:
+            limit: Maximum number of entities to return
+            
+        Returns:
+            List of all hierarchy nodes
+        """
+        if not self.db_pool:
+            return []
+        
+        try:
+            conn = self.db_pool.getconn()
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Query all entities with their hierarchy information
+                    cur.execute("""
+                        SELECT
+                            e.entity_id,
+                            e.path,
+                            e.path_depth,
+                            e.path_hash,
+                            e.confidence_score,
+                            e.entity_type,
+                            e.rss_entity_id,
+                            e.location_lat,
+                            e.location_lon,
+                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mv.descendant_count, 0) as descendants
+                        FROM entities e
+                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                        ORDER BY e.path_depth ASC, e.entity_id
+                        LIMIT %s
+                    """, (limit,))
+                    
+                    rows = cur.fetchall()
+                    
+                    results = []
+                    for row in rows:
+                        node = HierarchyNode(
+                            entity_id=row['entity_id'],
+                            path=row['path'],
+                            path_depth=row['path_depth'],
+                            path_hash=row['path_hash'],
+                            ancestors=row['ancestors'] or [],
+                            descendants=row['descendants'],
+                            confidence_score=row['confidence_score'],
+                            entity_type=row.get('entity_type', 'geographic'),
+                            rss_entity_id=row.get('rss_entity_id'),
+                            location_lat=row.get('location_lat'),
+                            location_lon=row.get('location_lon')
+                        )
+                        results.append(node)
+                    
+                    return results
+            
+            finally:
+                self.db_pool.putconn(conn)
+        
+        except Exception as e:
+            self.logger.error(f"Failed to get all entities: {e}")
+            return []
 
     async def get_rss_entities_in_hierarchy(
         self,
