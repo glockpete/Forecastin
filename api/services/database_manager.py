@@ -68,15 +68,9 @@ class DatabaseManager:
         self._retry_attempts = 3
         self._retry_delays = [0.5, 1.0, 2.0]  # Exponential backoff
         
-        # TCP keepalive settings to prevent firewall drops
-        self._keepalive_settings = {
-            "keepalives_idle": "30",
-            "keepalives_interval": "10", 
-            "keepalives_count": "5"
-        }
-        
-        # Merge server settings with keepalive settings
-        self._server_settings = {**self._keepalive_settings, **self.server_settings}
+        # Note: TCP keepalives for asyncpg are handled differently than psycopg
+        # For production, configure at OS level or use asyncpg.connect() tcp_keepalive parameters
+        self._server_settings = self.server_settings
         
         # Health monitoring
         self._pool_utilization_warning_threshold = 0.8  # 80% utilization warning
@@ -84,49 +78,45 @@ class DatabaseManager:
     
     async def initialize(self) -> None:
         """Initialize the database connection pool."""
-        async with self._lock:
-            if self._pool is not None:
-                return
-                
-            try:
-                # Validate database URL
-                parsed_url = urlparse(self.database_url)
-                if not parsed_url.scheme or not parsed_url.hostname:
-                    raise ValueError(f"Invalid database URL: {self.database_url}")
-                
-                self._pool = await asyncpg.create_pool(
-                    self.database_url,
-                    min_size=self.min_connections,
-                    max_size=self.max_connections,
-                    command_timeout=self.command_timeout,
-                    server_settings=self._server_settings,
-                    pool_pre_ping=True,  # Test connection health before use
-                )
-                
-                logger.info(
-                    f"Database pool initialized with {self.min_connections}-{self.max_connections} connections"
-                )
-                
-                # Start health monitoring
-                self._start_health_monitoring()
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize database pool: {e}")
-                raise
+        if self._pool is not None:
+            return
+            
+        try:
+            # Validate database URL
+            parsed_url = urlparse(self.database_url)
+            if not parsed_url.scheme or not parsed_url.hostname:
+                raise ValueError(f"Invalid database URL: {self.database_url}")
+            
+            self._pool = await asyncpg.create_pool(
+                self.database_url,
+                min_size=self.min_connections,
+                max_size=self.max_connections,
+                command_timeout=self.command_timeout,
+            )
+            
+            logger.info(
+                f"Database pool initialized with {self.min_connections}-{self.max_connections} connections"
+            )
+            
+            # Start health monitoring
+            self._start_health_monitoring()
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize database pool: {e}")
+            raise
     
     async def close(self) -> None:
         """Close the database connection pool and stop health monitoring."""
-        async with self._lock:
-            # Stop health monitoring
-            self._health_monitor_running = False
-            if self._health_monitor_thread and self._health_monitor_thread.is_alive():
-                self._health_monitor_thread.join(timeout=5)
-            
-            # Close pool
-            if self._pool:
-                await self._pool.close()
-                self._pool = None
-                logger.info("Database pool closed")
+        # Stop health monitoring
+        self._health_monitor_running = False
+        if self._health_monitor_thread and self._health_monitor_thread.is_alive():
+            self._health_monitor_thread.join(timeout=5)
+        
+        # Close pool
+        if self._pool:
+            await self._pool.close()
+            self._pool = None
+            logger.info("Database pool closed")
     
     @asynccontextmanager
     async def get_connection(self) -> Connection:
@@ -269,13 +259,16 @@ class DatabaseManager:
                         f"({pool_size}/{max_size} connections)"
                     )
                 
-                # Test pool health by trying to acquire a connection
+                # Test pool health by trying to acquire and test a connection
                 # This will trigger pool_pre_ping and detect dead connections
                 try:
-                    asyncio.run_coroutine_threadsafe(
-                        self._pool.health_check(), 
-                        asyncio.get_event_loop()
-                    )
+                    # Create a new event loop for the thread
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(self._test_pool_connection())
+                    finally:
+                        loop.close()
                 except Exception as e:
                     logger.warning(f"Pool health check failed: {e}")
                     
@@ -283,6 +276,20 @@ class DatabaseManager:
                 logger.error(f"Health monitoring error: {e}")
         
         logger.info("Database pool health monitoring stopped")
+    
+    async def _test_pool_connection(self) -> None:
+        """Test a single connection from the pool to check health."""
+        if not self._pool:
+            return
+            
+        try:
+            async with self._pool.acquire() as conn:
+                # Simple query to test connection
+                await conn.execute("SELECT 1")
+                logger.debug("Pool connection test successful")
+        except Exception as e:
+            logger.warning(f"Pool connection test failed: {e}")
+            raise
     
     async def __aenter__(self) -> "DatabaseManager":
         """Async context manager entry."""
@@ -298,7 +305,7 @@ class DatabaseManager:
         """Get the current connection pool."""
         return self._pool
     
-    @property 
+    @property
     def pool_size(self) -> int:
         """Get current pool size."""
         if not self._pool:

@@ -5,7 +5,7 @@
  * Following forecastin patterns for WebSocket resilience
  */
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
 import { hierarchyKeys } from '../hooks/useHierarchy';
 import { Entity, WebSocketMessage } from '../types';
@@ -13,15 +13,15 @@ import { CacheCoordinator, ErrorRecovery, PerformanceMonitor } from '../utils/st
 
 // Message processor for different WebSocket message types
 export class RealtimeMessageProcessor {
-  private queryClient: useQueryClient;
-  private uiStore: ReturnType<typeof useUIStore>;
+  private queryClient: QueryClient;
+  private uiStore: typeof useUIStore;
   private cacheCoordinator: CacheCoordinator;
   private errorRecovery: ErrorRecovery;
   private performanceMonitor: PerformanceMonitor;
 
   constructor(
-    queryClient: useQueryClient,
-    uiStore: ReturnType<typeof useUIStore>,
+    queryClient: QueryClient,
+    uiStore: typeof useUIStore,
     cacheCoordinator: CacheCoordinator
   ) {
     this.queryClient = queryClient;
@@ -32,7 +32,7 @@ export class RealtimeMessageProcessor {
   }
 
   // Process entity update messages
-  async processEntityUpdate(message: WebSocketMessage & { data?: Entity }): Promise<void> {
+  async processEntityUpdate(message: WebSocketMessage & { data?: Entity; entityId?: string }): Promise<void> {
     const startTime = performance.now();
     
     try {
@@ -51,7 +51,7 @@ export class RealtimeMessageProcessor {
 
       // Optimistic update in React Query cache
       const updateResult = this.cacheCoordinator.optimisticUpdate(
-        hierarchyKeys.entity(targetEntity.id),
+        [...hierarchyKeys.entity(targetEntity.id)],
         (current: Entity | undefined) => current ? { ...current, ...targetEntity } : targetEntity
       );
 
@@ -65,7 +65,7 @@ export class RealtimeMessageProcessor {
         const depth = parentPath.split('/').length;
         
         this.cacheCoordinator.optimisticUpdate(
-          hierarchyKeys.children(parentPath, depth),
+          [...hierarchyKeys.children(parentPath, depth)].map(String),
           (current: any) => {
             if (!current?.entities) return current;
             
@@ -96,7 +96,7 @@ export class RealtimeMessageProcessor {
       console.error('Error processing entity update:', error);
       
       // Record failure for circuit breaker
-      this.errorRecovery.recordFailure(`entity_update_${entityId}`);
+      this.errorRecovery.recordFailure(`entity_update_${message.entityId || message.data?.id || 'unknown'}`);
       
       // Send structured error instead of crashing
       throw new Error(`Failed to process entity update: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -152,7 +152,7 @@ export class RealtimeMessageProcessor {
         const batch = updates.slice(i, i + batchSize);
         
         await Promise.all(
-          batch.map(async (update) => {
+          batch.map(async (update: WebSocketMessage) => {
             try {
               if (update.type === 'entity_update') {
                 await this.processEntityUpdate(update);
@@ -194,7 +194,7 @@ export class RealtimeMessageProcessor {
           queryKey: hierarchyKeys.all
         });
       } else if (queryKeys.length > 0) {
-        queryKeys.forEach(key => {
+        queryKeys.forEach((key: any) => {
           this.queryClient.invalidateQueries({ queryKey: key });
         });
       }
@@ -233,6 +233,125 @@ export class RealtimeMessageProcessor {
     } catch (error) {
       console.error('Error processing search update:', error);
       this.errorRecovery.recordFailure('search_update');
+    }
+  }
+
+  // Process layer data update messages
+  async processLayerDataUpdate(message: WebSocketMessage & {
+    data?: {
+      layer_id: string;
+      layer_type: string;
+      layer_data: any;
+      bbox?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+    }
+  }): Promise<void> {
+    const startTime = performance.now();
+    
+    try {
+      const { layer_id, layer_type, layer_data, bbox } = message.data || {};
+      
+      if (!layer_id || !layer_type || !layer_data) {
+        console.warn('Layer data update message missing required fields');
+        return;
+      }
+
+      // Update layer data in React Query cache
+      this.queryClient.setQueryData(
+        ['layer', layer_id],
+        (oldData: any) => ({
+          ...oldData,
+          ...layer_data,
+          layerType: layer_type,
+          bbox,
+          lastUpdated: message.timestamp || new Date().toISOString(),
+        })
+      );
+
+      // Invalidate related queries to trigger re-render
+      this.queryClient.invalidateQueries({ queryKey: ['layer', layer_id] });
+      this.queryClient.invalidateQueries({ queryKey: ['layers', layer_type] });
+
+      // Dispatch custom event for layer registry
+      window.dispatchEvent(new CustomEvent('layer-data-update', {
+        detail: {
+          layerId: layer_id,
+          layerType: layer_type,
+          data: layer_data,
+          bbox,
+          timestamp: message.timestamp,
+        }
+      }));
+
+      const duration = performance.now() - startTime;
+      this.performanceMonitor.recordMetric('layer_data_update_processing', duration);
+      
+      console.log(`Layer data update processed in ${duration.toFixed(2)}ms:`, layer_id);
+      
+    } catch (error) {
+      console.error('Error processing layer data update:', error);
+      this.errorRecovery.recordFailure(`layer_data_update_${message.data?.layer_id}`);
+      throw error;
+    }
+  }
+
+  // Process GPU filter sync messages
+  async processGPUFilterSync(message: WebSocketMessage & {
+    data?: {
+      filter_id: string;
+      filter_type: string;
+      filter_params: Record<string, any>;
+      affected_layers: string[];
+      status: 'applied' | 'pending' | 'error' | 'cleared';
+    }
+  }): Promise<void> {
+    const startTime = performance.now();
+    
+    try {
+      const { filter_id, filter_type, filter_params, affected_layers, status } = message.data || {};
+      
+      if (!filter_id || !filter_type || !affected_layers) {
+        console.warn('GPU filter sync message missing required fields');
+        return;
+      }
+
+      // Update GPU filter state in React Query
+      this.queryClient.setQueryData(
+        ['gpu-filter', filter_id],
+        {
+          filterType: filter_type,
+          params: filter_params,
+          affectedLayers: affected_layers,
+          status,
+          timestamp: message.timestamp || new Date().toISOString(),
+        }
+      );
+
+      // Invalidate affected layer queries
+      affected_layers.forEach((layerId: string) => {
+        this.queryClient.invalidateQueries({ queryKey: ['layer', layerId] });
+      });
+
+      // Dispatch custom event for GPU filter coordination
+      window.dispatchEvent(new CustomEvent('gpu-filter-sync', {
+        detail: {
+          filterId: filter_id,
+          filterType: filter_type,
+          filterParams: filter_params,
+          affectedLayers: affected_layers,
+          status,
+          timestamp: message.timestamp,
+        }
+      }));
+
+      const duration = performance.now() - startTime;
+      this.performanceMonitor.recordMetric('gpu_filter_sync_processing', duration);
+      
+      console.log(`GPU filter sync processed in ${duration.toFixed(2)}ms:`, filter_id, `(status: ${status})`);
+      
+    } catch (error) {
+      console.error('Error processing GPU filter sync:', error);
+      this.errorRecovery.recordFailure(`gpu_filter_sync_${message.data?.filter_id}`);
+      throw error;
     }
   }
 
@@ -278,7 +397,6 @@ export class RealtimeMessageProcessor {
 // Hook for using the message processor
 export const useRealtimeMessageProcessor = () => {
   const queryClient = useQueryClient();
-  const uiStore = useUIStore();
   
   // Get or create cache coordinator instance
   const getCacheCoordinator = () => {
@@ -289,10 +407,10 @@ export const useRealtimeMessageProcessor = () => {
   const processor = React.useMemo(() => {
     return new RealtimeMessageProcessor(
       queryClient,
-      uiStore,
+      useUIStore,
       getCacheCoordinator()
     );
-  }, [queryClient, uiStore]);
+  }, [queryClient]);
 
   return processor;
 };
@@ -320,6 +438,12 @@ export const routeRealtimeMessage = (
         
       case 'search_update':
         return processor.processSearchUpdate(message);
+        
+      case 'layer_data_update':
+        return processor.processLayerDataUpdate(message);
+        
+      case 'gpu_filter_sync':
+        return processor.processGPUFilterSync(message);
         
       default:
         console.warn('Unknown message type:', message.type);

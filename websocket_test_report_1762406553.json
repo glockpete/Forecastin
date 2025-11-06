@@ -1,0 +1,188 @@
+{
+  "timestamp": "2025-11-06T14:22:33.994186",
+  "summary": {
+    "total_tests": 15,
+    "successful_tests": 12,
+    "failed_tests": 3,
+    "success_rate_percent": 80.0,
+    "critical_issues": {
+      "403_errors": 3,
+      "message_exchange_success": false
+    }
+  },
+  "connection_stats": {
+    "total_attempts": 15,
+    "successful_connections": 12,
+    "failed_connections": 0,
+    "403_errors": 3,
+    "messages_sent": 12,
+    "messages_received": 0
+  },
+  "detailed_results": [
+    {
+      "test_name": "Standard Connection",
+      "client_id": "standard_1762406503048_fd813c4ea",
+      "ws_url": "ws://localhost:9000/ws/standard_1762406503048_fd813c4ea",
+      "timestamp": "2025-11-06T14:21:43.048519",
+      "success": true,
+      "error": null,
+      "response_time_ms": 197.88599014282227,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Short Client ID",
+      "client_id": "short_1762406503048_4e8a8a0d4",
+      "ws_url": "ws://localhost:9000/ws/short_1762406503048_4e8a8a0d4",
+      "timestamp": "2025-11-06T14:21:49.778697",
+      "success": true,
+      "error": null,
+      "response_time_ms": 4.941463470458984,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Long Client ID",
+      "client_id": "very_long_test_client_name_1762406503048_fa82cc4cf",
+      "ws_url": "ws://localhost:9000/ws/very_long_test_client_name_1762406503048_fa82cc4cf",
+      "timestamp": "2025-11-06T14:21:56.320717",
+      "success": true,
+      "error": null,
+      "response_time_ms": 4.229068756103516,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Numeric Client ID",
+      "client_id": "client123_1762406503048_3826ac80d",
+      "ws_url": "ws://localhost:9000/ws/client123_1762406503048_3826ac80d",
+      "timestamp": "2025-11-06T14:22:02.851531",
+      "success": true,
+      "error": null,
+      "response_time_ms": 3.861665725708008,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Mixed Case Client ID",
+      "client_id": "MixedCase_1762406503048_3b0d022ba",
+      "ws_url": "ws://localhost:9000/ws/MixedCase_1762406503048_3b0d022ba",
+      "timestamp": "2025-11-06T14:22:09.381921",
+      "success": true,
+      "error": null,
+      "response_time_ms": 4.325628280639648,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Invalid: Empty Client ID",
+      "client_id": "",
+      "ws_url": "ws://localhost:9000/ws/",
+      "timestamp": "2025-11-06T14:22:15.912038",
+      "success": false,
+      "error": "403 Forbidden: server rejected WebSocket connection: HTTP 403",
+      "response_time_ms": 0,
+      "messages_sent": 0,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Invalid: Too Short",
+      "client_id": "ab",
+      "ws_url": "ws://localhost:9000/ws/ab",
+      "timestamp": "2025-11-06T14:22:15.916291",
+      "success": true,
+      "error": null,
+      "response_time_ms": 3.236532211303711,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Invalid: Too Long",
+      "client_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "ws_url": "ws://localhost:9000/ws/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "timestamp": "2025-11-06T14:22:21.941494",
+      "success": true,
+      "error": null,
+      "response_time_ms": 3.9663314819335938,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Invalid: Invalid Characters",
+      "client_id": "client/with/slashes",
+      "ws_url": "ws://localhost:9000/ws/client/with/slashes",
+      "timestamp": "2025-11-06T14:22:27.969051",
+      "success": false,
+      "error": "403 Forbidden: server rejected WebSocket connection: HTTP 403",
+      "response_time_ms": 0,
+      "messages_sent": 0,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Invalid: Dangerous Characters",
+      "client_id": "client\"with\"quotes",
+      "ws_url": "ws://localhost:9000/ws/client\"with\"quotes",
+      "timestamp": "2025-11-06T14:22:27.973380",
+      "success": false,
+      "error": "403 Forbidden: server rejected WebSocket connection: HTTP 403",
+      "response_time_ms": 0,
+      "messages_sent": 0,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Rapid Connection 1",
+      "client_id": "rapid_0_1762406547977_ea0f48a4b",
+      "ws_url": "ws://localhost:9000/ws/rapid_0_1762406547977_ea0f48a4b",
+      "timestamp": "2025-11-06T14:22:27.977350",
+      "success": true,
+      "error": null,
+      "response_time_ms": 5.033969879150391,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Rapid Connection 2",
+      "client_id": "rapid_1_1762406547977_f6b592560",
+      "ws_url": "ws://localhost:9000/ws/rapid_1_1762406547977_f6b592560",
+      "timestamp": "2025-11-06T14:22:27.978091",
+      "success": true,
+      "error": null,
+      "response_time_ms": 5.091428756713867,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Rapid Connection 4",
+      "client_id": "rapid_3_1762406547977_cde4feff8",
+      "ws_url": "ws://localhost:9000/ws/rapid_3_1762406547977_cde4feff8",
+      "timestamp": "2025-11-06T14:22:27.978709",
+      "success": true,
+      "error": null,
+      "response_time_ms": 5.487203598022461,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Rapid Connection 3",
+      "client_id": "rapid_2_1762406547977_b130f6ac4",
+      "ws_url": "ws://localhost:9000/ws/rapid_2_1762406547977_b130f6ac4",
+      "timestamp": "2025-11-06T14:22:27.978523",
+      "success": true,
+      "error": null,
+      "response_time_ms": 5.232572555541992,
+      "messages_sent": 1,
+      "messages_received": 0
+    },
+    {
+      "test_name": "Rapid Connection 5",
+      "client_id": "rapid_4_1762406547977_34607cc3b",
+      "ws_url": "ws://localhost:9000/ws/rapid_4_1762406547977_34607cc3b",
+      "timestamp": "2025-11-06T14:22:27.979060",
+      "success": true,
+      "error": null,
+      "response_time_ms": 5.505561828613281,
+      "messages_sent": 1,
+      "messages_received": 0
+    }
+  ]
+}

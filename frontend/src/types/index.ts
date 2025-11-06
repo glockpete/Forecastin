@@ -19,6 +19,11 @@ export interface Entity {
   childrenCount?: number;
 }
 
+// Additional type aliases for layer compatibility
+export type EntityData = Entity;
+export type EntityId = string;
+export type ConfidenceScore = number;
+
 export interface BreadcrumbItem {
   id: string;
   name: string;
@@ -54,6 +59,7 @@ export interface WebSocketMessage {
   data?: any;
   error?: string;
   channels?: string[];
+  timestamp?: string;
 }
 
 export interface UseWebSocketOptions {

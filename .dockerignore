@@ -1,0 +1,117 @@
+# Node.js dependencies - huge, installed via package managers in build
+frontend/node_modules/
+api/node_modules/
+
+# Git history - not needed in containers  
+.git/
+.gitignore
+.github/
+
+# Build artifacts and cache directories
+frontend/build/
+frontend/dist/
+frontend/.cache/
+frontend/coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation and development files
+*.md
+docs/
+frontend/docs/
+README.md
+AGENTS.md
+prd.txt
+Original\ Roadmap.md
+advanced\ update
+*.json
+!package.json
+!requirements.txt
+!docker-compose.yml
+
+# Test files
+**/*.test.*
+**/*.spec.*
+**/tests/
+api/tests/
+
+# Source maps and dev artifacts  
+**/*.map
+*.tsbuildinfo
+
+# Python cache and environments
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/env/
+**/venv/
+**/ENV/
+
+# Docker files (avoid recursive copying)
+**/Dockerfile*
+**/docker-compose*.yml
+**/.dockerignore
+
+# Nginx configuration (required for frontend container)
+!frontend/nginx.conf
+!frontend/frontend-nginx.conf
+
+# Scripts and utilities (not needed in containers)
+scripts/
+*.py
+*.sh
+
+# Temporary and backup files
+**/*.tmp
+**/*.bak
+**/*.backup
+
+# Frontend TypeScript errors and build output
+frontend/ts_errors*.txt
+frontend/tsc_output.txt
+
+# Test reports and metrics
+*_test_report.json
+*slo_test_report.json
+typescript_verification_report.md
+websocket_diagnostic_analysis.md
+WEBSOCKET_FIX_SUMMARY.md
+
+# Optimization and verification scripts
+simple_pipeline_check.json
+verify_feature_flag_implementation.py
+websocket_connectivity_test.py
+
+# Migration files (run separately if needed)
+migrations/
+
+# Roo configuration and rules
+.roo/
+.pre-commit-config.yaml

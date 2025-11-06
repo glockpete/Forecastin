@@ -1,0 +1,94 @@
+{
+  "test_timestamp": "2025-11-06T09:31:28.267301",
+  "service_status": {
+    "postgres": {
+      "status": "healthy",
+      "raw_output": "NAME                  IMAGE                    COMMAND                  SERVICE    CREATED          STATUS                          PORTS\nforecastin_api        forecastin-api           \"uvicorn main:app --\u00e2\u20ac\u00a6\"   api        5 minutes ago    Up 4 minutes (unhealthy)        0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp\nforecastin_frontend   forecastin-frontend      \"/docker-entrypoint.\u00e2\u20ac\u00a6\"   frontend   5 minutes ago    Restarting (1) 35 seconds ago   \nforecastin_postgres   postgis/postgis:13-3.1   \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   postgres   35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp\nforecastin_redis      redis:6-alpine           \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   redis      35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp\n"
+    },
+    "redis": {
+      "status": "healthy",
+      "raw_output": "NAME                  IMAGE                    COMMAND                  SERVICE    CREATED          STATUS                          PORTS\nforecastin_api        forecastin-api           \"uvicorn main:app --\u00e2\u20ac\u00a6\"   api        5 minutes ago    Up 4 minutes (unhealthy)        0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp\nforecastin_frontend   forecastin-frontend      \"/docker-entrypoint.\u00e2\u20ac\u00a6\"   frontend   5 minutes ago    Restarting (1) 35 seconds ago   \nforecastin_postgres   postgis/postgis:13-3.1   \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   postgres   35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp\nforecastin_redis      redis:6-alpine           \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   redis      35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp\n"
+    },
+    "api": {
+      "status": "healthy",
+      "raw_output": "NAME                  IMAGE                    COMMAND                  SERVICE    CREATED          STATUS                          PORTS\nforecastin_api        forecastin-api           \"uvicorn main:app --\u00e2\u20ac\u00a6\"   api        5 minutes ago    Up 4 minutes (unhealthy)        0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp\nforecastin_frontend   forecastin-frontend      \"/docker-entrypoint.\u00e2\u20ac\u00a6\"   frontend   5 minutes ago    Restarting (1) 35 seconds ago   \nforecastin_postgres   postgis/postgis:13-3.1   \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   postgres   35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp\nforecastin_redis      redis:6-alpine           \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   redis      35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp\n"
+    },
+    "frontend": {
+      "status": "healthy",
+      "raw_output": "NAME                  IMAGE                    COMMAND                  SERVICE    CREATED          STATUS                          PORTS\nforecastin_api        forecastin-api           \"uvicorn main:app --\u00e2\u20ac\u00a6\"   api        5 minutes ago    Up 4 minutes (unhealthy)        0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp\nforecastin_frontend   forecastin-frontend      \"/docker-entrypoint.\u00e2\u20ac\u00a6\"   frontend   5 minutes ago    Restarting (1) 35 seconds ago   \nforecastin_postgres   postgis/postgis:13-3.1   \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   postgres   35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp\nforecastin_redis      redis:6-alpine           \"docker-entrypoint.s\u00e2\u20ac\u00a6\"   redis      35 minutes ago   Up 35 minutes (healthy)         0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp\n"
+    }
+  },
+  "api_tests": {
+    "health_endpoint": {
+      "status_code": 200,
+      "response": {
+        "status": "healthy",
+        "timestamp": 1762421488.0402055,
+        "services": {
+          "hierarchy_resolver": "unhealthy: 'OptimizedHierarchyResolver' object has no attribute 'redis_client'",
+          "cache": "healthy",
+          "websocket": "active: 0"
+        },
+        "performance_metrics": {
+          "ancestor_resolution_ms": 1.25,
+          "throughput_rps": 42726,
+          "cache_hit_rate": 0.992
+        }
+      },
+      "success": true
+    }
+  },
+  "database_tests": {
+    "connectivity": {
+      "success": true,
+      "output": "                                                           version                                                           \n-----------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 13.5 (Debian 13.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit\n(1 row)\n\n"
+    },
+    "ltree_extension": {
+      "success": true,
+      "output": " extname \n---------\n ltree\n(1 row)\n\n"
+    }
+  },
+  "redis_tests": {
+    "connectivity": {
+      "success": true,
+      "output": "PONG\n"
+    }
+  },
+  "frontend_tests": {
+    "accessibility": {
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001F9B86F3C50>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    }
+  },
+  "websocket_tests": {
+    "endpoint": {
+      "status_code": 404,
+      "accessible": false
+    }
+  },
+  "critical_issues": [
+    "Frontend accessibility test failed: HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001F9B86F3C50>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "Frontend nginx has permission issues - cannot write PID file",
+    "Missing psycopg2 dependency in API container",
+    "Asyncio event loop misconfiguration in database pool health checks"
+  ],
+  "warnings": [
+    "API service 'hierarchy_resolver' reported unhealthy: unhealthy: 'OptimizedHierarchyResolver' object has no attribute 'redis_client'",
+    "WebSocket endpoint returned unexpected status: 404",
+    "L2 cache (Redis) disabled - performance degraded",
+    "L3 cache (Database) disabled - performance degraded"
+  ],
+  "recommendations": [
+    "Fix nginx.conf to use unprivileged user or adjust Dockerfile permissions",
+    "Add psycopg2-binary to api/requirements.txt",
+    "Fix DatabaseManager._test_pool_connection() to use proper asyncio patterns"
+  ],
+  "summary": {
+    "total_tests": 6,
+    "passed_tests": 4,
+    "failed_tests": 2,
+    "critical_issues_count": 4,
+    "warnings_count": 4,
+    "overall_status": "CRITICAL"
+  }
+}

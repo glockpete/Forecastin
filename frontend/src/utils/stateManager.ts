@@ -86,10 +86,11 @@ export class CacheCoordinator {
 
   // Smart cache invalidation based on entity changes
   invalidateEntityCache(entity: Entity, relatedEntities: Entity[] = []) {
-    const invalidationKeys: string[][] = [];
+    const invalidationKeys: readonly string[][] = [];
     
     // Primary entity cache
-    invalidationKeys.push(hierarchyKeys.entity(entity.id));
+    const keys: string[][] = [...invalidationKeys];
+    keys.push([...hierarchyKeys.entity(entity.id)]);
     
     // Parent hierarchy cache
     if (entity.path) {
@@ -97,23 +98,23 @@ export class CacheCoordinator {
       const parentPath = pathParts.slice(0, -1).join('/');
       const depth = pathParts.length - 1;
       
-      invalidationKeys.push(hierarchyKeys.children(parentPath, depth));
-      invalidationKeys.push(hierarchyKeys.breadcrumbs(entity.path));
+      keys.push([...hierarchyKeys.children(parentPath, depth)] as string[]);
+      keys.push([...hierarchyKeys.breadcrumbs(entity.path)] as string[]);
       
       // Ancestor caches
       for (let i = 0; i < pathParts.length - 1; i++) {
         const ancestorPath = pathParts.slice(0, i + 1).join('/');
-        invalidationKeys.push(hierarchyKeys.children(ancestorPath, i));
+        keys.push([...hierarchyKeys.children(ancestorPath, i)] as string[]);
       }
     }
     
     // Related entities cache
     relatedEntities.forEach(related => {
-      invalidationKeys.push(hierarchyKeys.entity(related.id));
+      keys.push([...hierarchyKeys.entity(related.id)]);
     });
 
     // Batch invalidation for performance
-    this.batchInvalidate(invalidationKeys);
+    this.batchInvalidate(keys);
   }
 
   // Batch cache invalidation with debouncing
@@ -171,7 +172,7 @@ export class CacheCoordinator {
     
     // Preload children if entity has children
     if (entity.hasChildren) {
-      preloadKeys.push(hierarchyKeys.children(entity.path, entity.pathDepth));
+      preloadKeys.push([...hierarchyKeys.children(entity.path, entity.pathDepth)] as string[]);
     }
     
     preloadKeys.forEach(key => {
@@ -188,7 +189,7 @@ export class CacheCoordinator {
     entities.forEach(entity => {
       // Warm entity cache
       this.queryClient.prefetchQuery({
-        queryKey: hierarchyKeys.entity(entity.id),
+        queryKey: [...hierarchyKeys.entity(entity.id)],
         queryFn: () => Promise.resolve(entity),
         staleTime: 5 * 60 * 1000, // 5 minutes
       });
@@ -196,7 +197,7 @@ export class CacheCoordinator {
       // Warm breadcrumb cache
       if (entity.path) {
         this.queryClient.prefetchQuery({
-          queryKey: hierarchyKeys.breadcrumbs(entity.path),
+          queryKey: [...hierarchyKeys.breadcrumbs(entity.path)],
           queryFn: () => Promise.resolve([]), // Placeholder
           staleTime: 10 * 60 * 1000, // 10 minutes
         });
@@ -527,15 +528,15 @@ export const stateUtils = {
   deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
     const result = { ...target };
     
-    Object.keys(source).forEach(key => {
-      const sourceValue = source[key];
-      const targetValue = target[key];
+    Object.keys(source).forEach((key: string) => {
+      const sourceValue = source[key as keyof T];
+      const targetValue = target[key as keyof T];
       
       if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue) &&
           targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)) {
-        result[key] = stateUtils.deepMerge(targetValue, sourceValue);
+        (result as any)[key] = stateUtils.deepMerge(targetValue as Record<string, any>, sourceValue as Partial<Record<string, any>>);
       } else {
-        result[key] = sourceValue;
+        (result as any)[key] = sourceValue;
       }
     });
     
@@ -565,3 +566,10 @@ export const stateUtils = {
     }) as T;
   }
 };
+
+// Realtime performance monitoring (alias for backward compatibility)
+export class RealtimePerformanceMonitor extends PerformanceMonitor {
+  constructor() {
+    super();
+  }
+}

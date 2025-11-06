@@ -28,7 +28,7 @@ export interface StateSyncMessage {
 // Cache coordination strategies
 export interface CacheCoordinationOptions {
   invalidateAll: boolean;
-  selectiveKeys: string[];
+  selectiveKeys: readonly unknown[][];
   updateExisting: boolean;
   mergeStrategy: 'replace' | 'merge' | 'append';
 }
@@ -166,7 +166,7 @@ export const useHybridState = (
       const result = await globalErrorRecovery.executeWithRecovery(
         operationKey,
         async () => {
-          const { queryKeys = [], invalidateAll = false, updateExisting = true, mergeStrategy = 'replace' } = options;
+          const { selectiveKeys: queryKeys = [], invalidateAll = false, updateExisting = true, mergeStrategy = 'replace' } = options;
           
           if (invalidateAll) {
             // Invalidate all hierarchy queries
@@ -354,10 +354,10 @@ export const useHybridState = (
       // Process based on message type
       if (syncMessage.type === 'entity_update') {
         const queryKeys = [
-          hierarchyKeys.entity(syncMessage.entityId || ''),
+          [...hierarchyKeys.entity(syncMessage.entityId || '')],
           ...(syncMessage.entityPath ? [
-            hierarchyKeys.children(syncMessage.entityPath.split('/').slice(0, -1).join('/'), 
-                                  syncMessage.entityPath.split('/').length - 1)
+            [...hierarchyKeys.children(syncMessage.entityPath.split('/').slice(0, -1).join('/'),
+                                  syncMessage.entityPath.split('/').length - 1)]
           ] : [])
         ];
         
@@ -412,7 +412,7 @@ export const useHybridState = (
     
     coordinateCacheUpdate(message, {
       invalidateAll: false,
-      selectiveKeys: [hierarchyKeys.entity(entity.id)],
+      selectiveKeys: [[...hierarchyKeys.entity(entity.id)]],
       updateExisting: true,
       mergeStrategy: 'replace'
     });
@@ -428,7 +428,7 @@ export const useHybridState = (
     
     coordinateCacheUpdate(message, {
       invalidateAll: true,
-      selectiveKeys: paths ? paths.map(path => hierarchyKeys.node(path)) : [],
+      selectiveKeys: paths ? paths.map(path => [...hierarchyKeys.node(path)]) : [],
       updateExisting: false,
       mergeStrategy: 'replace'
     });
@@ -444,7 +444,7 @@ export const useHybridState = (
     
     coordinateCacheUpdate(message, {
       invalidateAll: false,
-      selectiveKeys: [hierarchyKeys.entity(entityId)],
+      selectiveKeys: [[...hierarchyKeys.entity(entityId)]],
       updateExisting: false,
       mergeStrategy: 'replace'
     });
@@ -462,7 +462,13 @@ export const useHybridState = (
   }, [queryClient]);
 
   const sendSyncMessage = useCallback((message: StateSyncMessage) => {
-    sendMessage(message);
+    // Convert StateSyncMessage to WebSocketMessage format
+    // StateSyncMessage uses number timestamp, WebSocketMessage uses string timestamp
+    const wsMessage = {
+      ...message,
+      timestamp: new Date(message.timestamp).toISOString()
+    };
+    sendMessage(wsMessage);
   }, [sendMessage]);
 
   const subscribe = useCallback((channels: string[]) => {
@@ -552,7 +558,7 @@ export const useHybridState = (
       return {
         overall: 'unhealthy',
         checks: {},
-        error: error.message,
+        error: (error as Error).message,
         syncStatus: getSyncStatus()
       };
     }

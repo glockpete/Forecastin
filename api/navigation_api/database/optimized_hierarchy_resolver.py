@@ -283,14 +283,14 @@ class OptimizedHierarchyResolver:
             while True:
                 try:
                     # Check Redis pool health
-                    if self.redis_client:
+                    if hasattr(self, 'redis_client') and self.redis_client:
                         try:
                             self.redis_client.ping()
                         except Exception as e:
                             self.logger.warning(f"Redis health check failed: {e}")
                     
                     # Check database pool health
-                    if self.db_pool:
+                    if hasattr(self, 'db_pool') and self.db_pool:
                         try:
                             conn = self.db_pool.getconn()
                             with conn.cursor() as cur:

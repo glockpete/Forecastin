@@ -24,9 +24,9 @@ from uuid import UUID
 import asyncpg
 from fastapi import HTTPException
 
-from api.services.database_manager import DatabaseManager
-from api.services.cache_service import CacheService
-from api.services.realtime_service import RealtimeService
+from services.database_manager import DatabaseManager
+from services.cache_service import CacheService
+from services.realtime_service import RealtimeService
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,8 @@ class CreateFeatureFlagRequest:
     description: Optional[str] = None
     is_enabled: bool = False
     rollout_percentage: int = 0
+    flag_category: Optional[str] = None  # e.g., "geospatial", "ml", "ui"
+    dependencies: Optional[List[str]] = None  # Flags this flag depends on
 
 
 @dataclass
@@ -71,6 +73,60 @@ class UpdateFeatureFlagRequest:
     description: Optional[str] = None
     is_enabled: Optional[bool] = None
     rollout_percentage: Optional[int] = None
+    flag_category: Optional[str] = None
+    dependencies: Optional[List[str]] = None
+
+
+@dataclass
+class GeospatialFeatureFlags:
+    """Geospatial-specific feature flags configuration."""
+    # Core geospatial features
+    ff_geospatial_layers: bool = False  # Enable geospatial layer system
+    ff_point_layer: bool = False       # Point layer implementation
+    ff_polygon_layer: bool = False     # Polygon layer implementation
+    ff_linestring_layer: bool = False  # Linestring layer implementation
+    ff_heatmap_layer: bool = False     # Heatmap layer implementation
+    
+    # Advanced features
+    ff_clustering_enabled: bool = False    # Point clustering
+    ff_gpu_filtering: bool = False         # GPU-based spatial filtering
+    ff_realtime_updates: bool = False      # Real-time layer updates
+    ff_websocket_layers: bool = False      # WebSocket layer integration
+    
+    # Performance features
+    ff_layer_performance_monitoring: bool = True   # Performance tracking
+    ff_layer_audit_logging: bool = True            # Audit trail
+    
+    # Rollout percentages for gradual enablement
+    rollout_percentages: Dict[str, int] = field(default_factory=lambda: {
+        'core_layers': 0,           # BaseLayer, LayerRegistry
+        'point_layers': 0,          # PointLayer implementation
+        'websocket_integration': 0, # Real-time updates
+        'advanced_features': 0,     # GPU filtering, clustering
+        'performance_monitoring': 100  # Always enabled
+    })
+    
+    # Integration with ff.map_v1 (existing flag)
+    def is_map_v1_enabled(self) -> bool:
+        """Check if ff.map_v1 is enabled (would come from main feature flags)."""
+        # This would integrate with the main feature flag system
+        return True  # Placeholder - would check actual flag
+    
+    def get_enabled_features(self) -> Dict[str, bool]:
+        """Get all enabled geospatial features."""
+        return {
+            'geospatial_layers': self.ff_geospatial_layers and self.is_map_v1_enabled(),
+            'point_layer': self.ff_point_layer and self.ff_geospatial_layers,
+            'polygon_layer': self.ff_polygon_layer and self.ff_geospatial_layers,
+            'linestring_layer': self.ff_linestring_layer and self.ff_geospatial_layers,
+            'heatmap_layer': self.ff_heatmap_layer and self.ff_geospatial_layers,
+            'clustering': self.ff_clustering_enabled and self.ff_geospatial_layers,
+            'gpu_filtering': self.ff_gpu_filtering and self.ff_geospatial_layers,
+            'realtime_updates': self.ff_realtime_updates and self.ff_websocket_layers,
+            'websocket_layers': self.ff_websocket_layers and self.ff_geospatial_layers,
+            'performance_monitoring': self.ff_layer_performance_monitoring,
+            'audit_logging': self.ff_layer_audit_logging
+        }
 
 
 @dataclass
@@ -763,7 +819,7 @@ class FeatureFlagService:
                     'hits': self._metrics.cache_hits,
                     'misses': self._metrics.cache_misses,
                     'hit_rate': cache_hit_rate,
-                    'efficiency': 'EXCELLENT' if cache_hit_rate > 0.95 else 
+                    'efficiency': 'EXCELLENT' if cache_hit_rate > 0.95 else
                                  'GOOD' if cache_hit_rate > 0.90 else 'FAIR'
                 },
                 'database': {
@@ -777,3 +833,249 @@ class FeatureFlagService:
                     'meets_slo': self._metrics.avg_response_time_ms < 1.25
                 }
             }
+    
+    # Geospatial Feature Flag Management Methods
+    
+    async def get_geospatial_flag_status(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get comprehensive status of all geospatial feature flags.
+        
+        This method checks all geospatial-related flags and returns their status,
+        respecting dependencies (e.g., point_layer requires geospatial_layers).
+        
+        Args:
+            user_id: Optional user ID for rollout percentage targeting
+            
+        Returns:
+            Dictionary containing status of all geospatial features
+        """
+        # Check base dependency: ff.map_v1
+        map_v1_enabled = await self.get_flag_with_rollout('ff.map_v1', user_id)
+        
+        # Check core geospatial flag
+        geospatial_layers_enabled = await self.get_flag_with_rollout('ff.geospatial_layers', user_id)
+        geospatial_layers_enabled = geospatial_layers_enabled and map_v1_enabled
+        
+        # Check layer-specific flags
+        point_layer = await self.get_flag_with_rollout('ff.point_layer', user_id)
+        polygon_layer = await self.get_flag_with_rollout('ff.polygon_layer', user_id)
+        linestring_layer = await self.get_flag_with_rollout('ff.linestring_layer', user_id)
+        heatmap_layer = await self.get_flag_with_rollout('ff.heatmap_layer', user_id)
+        
+        # Check advanced features
+        clustering = await self.get_flag_with_rollout('ff.clustering_enabled', user_id)
+        gpu_filtering = await self.get_flag_with_rollout('ff.gpu_filtering', user_id)
+        
+        # Check real-time features
+        websocket_layers = await self.get_flag_with_rollout('ff.websocket_layers', user_id)
+        realtime_updates = await self.get_flag_with_rollout('ff.realtime_updates', user_id)
+        
+        # Build dependency-aware status
+        return {
+            'base': {
+                'map_v1': map_v1_enabled
+            },
+            'core': {
+                'geospatial_layers': geospatial_layers_enabled
+            },
+            'layers': {
+                'point': point_layer and geospatial_layers_enabled,
+                'polygon': polygon_layer and geospatial_layers_enabled,
+                'linestring': linestring_layer and geospatial_layers_enabled,
+                'heatmap': heatmap_layer and geospatial_layers_enabled
+            },
+            'advanced': {
+                'clustering': clustering and geospatial_layers_enabled,
+                'gpu_filtering': gpu_filtering and geospatial_layers_enabled
+            },
+            'realtime': {
+                'websocket_layers': websocket_layers and geospatial_layers_enabled,
+                'realtime_updates': realtime_updates and websocket_layers and geospatial_layers_enabled
+            },
+            'user_context': {
+                'user_id': user_id,
+                'is_targeted': user_id is not None
+            }
+        }
+    
+    async def create_geospatial_flags(self) -> List[FeatureFlag]:
+        """
+        Create all geospatial feature flags with default settings.
+        
+        This is a convenience method for initial setup of the geospatial layer system.
+        All flags are created disabled (0% rollout) by default.
+        
+        Returns:
+            List of created feature flags
+        """
+        geospatial_flags_config = [
+            ('ff.geospatial_layers', 'Enable geospatial layer system (base dependency)', False, 0),
+            ('ff.point_layer', 'Enable point layer implementation', False, 0),
+            ('ff.polygon_layer', 'Enable polygon layer implementation', False, 0),
+            ('ff.linestring_layer', 'Enable linestring layer implementation', False, 0),
+            ('ff.heatmap_layer', 'Enable heatmap layer implementation', False, 0),
+            ('ff.clustering_enabled', 'Enable point clustering feature', False, 0),
+            ('ff.gpu_filtering', 'Enable GPU-based spatial filtering', False, 0),
+            ('ff.websocket_layers', 'Enable WebSocket layer integration', False, 0),
+            ('ff.realtime_updates', 'Enable real-time layer updates', False, 0),
+            ('ff.layer_performance_monitoring', 'Enable layer performance tracking', True, 100),
+            ('ff.layer_audit_logging', 'Enable layer audit trail', True, 100)
+        ]
+        
+        created_flags = []
+        for flag_name, description, is_enabled, rollout in geospatial_flags_config:
+            try:
+                # Check if flag already exists
+                existing = await self.get_flag(flag_name)
+                if existing:
+                    self.logger.info(f"Geospatial flag {flag_name} already exists, skipping")
+                    created_flags.append(existing)
+                    continue
+                
+                # Create new flag
+                request = CreateFeatureFlagRequest(
+                    flag_name=flag_name,
+                    description=description,
+                    is_enabled=is_enabled,
+                    rollout_percentage=rollout,
+                    flag_category='geospatial'
+                )
+                flag = await self.create_flag(request)
+                created_flags.append(flag)
+                
+                self.logger.info(f"Created geospatial flag: {flag_name}")
+                
+            except Exception as e:
+                self.logger.error(f"Failed to create geospatial flag {flag_name}: {e}")
+                continue
+        
+        return created_flags
+    
+    async def update_geospatial_rollout(
+        self,
+        rollout_stage: str,
+        percentage: int
+    ) -> Dict[str, bool]:
+        """
+        Update rollout percentage for geospatial feature flags in stages.
+        
+        Implements gradual rollout pattern: 10% -> 25% -> 50% -> 100%
+        Updates all geospatial flags together to maintain consistency.
+        
+        Args:
+            rollout_stage: Stage identifier ('core_layers', 'point_layers',
+                          'websocket_integration', 'advanced_features')
+            percentage: Rollout percentage (0-100)
+            
+        Returns:
+            Dictionary indicating success/failure for each flag
+        """
+        if not 0 <= percentage <= 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Rollout percentage must be between 0 and 100"
+            )
+        
+        # Define flag groups by rollout stage
+        stage_flags = {
+            'core_layers': ['ff.geospatial_layers'],
+            'point_layers': ['ff.point_layer', 'ff.polygon_layer', 'ff.linestring_layer'],
+            'websocket_integration': ['ff.websocket_layers', 'ff.realtime_updates'],
+            'advanced_features': ['ff.clustering_enabled', 'ff.gpu_filtering', 'ff.heatmap_layer']
+        }
+        
+        if rollout_stage not in stage_flags:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid rollout stage. Must be one of: {', '.join(stage_flags.keys())}"
+            )
+        
+        results = {}
+        flags_to_update = stage_flags[rollout_stage]
+        
+        for flag_name in flags_to_update:
+            try:
+                # First enable the flag if not already enabled
+                current_flag = await self.get_flag(flag_name)
+                if not current_flag:
+                    self.logger.warning(f"Flag {flag_name} not found, skipping")
+                    results[flag_name] = False
+                    continue
+                
+                # Update flag
+                update_request = UpdateFeatureFlagRequest(
+                    is_enabled=True,
+                    rollout_percentage=percentage
+                )
+                await self.update_flag(flag_name, update_request)
+                results[flag_name] = True
+                
+                self.logger.info(
+                    f"Updated {flag_name} rollout to {percentage}% (stage: {rollout_stage})"
+                )
+                
+            except Exception as e:
+                self.logger.error(f"Failed to update {flag_name}: {e}")
+                results[flag_name] = False
+        
+        return results
+    
+    async def emergency_rollback_geospatial(self) -> Dict[str, bool]:
+        """
+        Emergency rollback - disable all geospatial feature flags immediately.
+        
+        This method supports the rollback checklist requirement:
+        "Disable flags first, then DB migration rollback scripts"
+        
+        Returns:
+            Dictionary indicating success/failure for each flag
+        """
+        geospatial_flag_names = [
+            'ff.geospatial_layers',
+            'ff.point_layer',
+            'ff.polygon_layer',
+            'ff.linestring_layer',
+            'ff.heatmap_layer',
+            'ff.clustering_enabled',
+            'ff.gpu_filtering',
+            'ff.websocket_layers',
+            'ff.realtime_updates'
+        ]
+        
+        results = {}
+        
+        for flag_name in geospatial_flag_names:
+            try:
+                update_request = UpdateFeatureFlagRequest(
+                    is_enabled=False,
+                    rollout_percentage=0
+                )
+                await self.update_flag(flag_name, update_request)
+                results[flag_name] = True
+                
+                self.logger.warning(f"EMERGENCY ROLLBACK: Disabled {flag_name}")
+                
+            except HTTPException as e:
+                if e.status_code == 404:
+                    # Flag doesn't exist, that's okay
+                    results[flag_name] = True
+                else:
+                    self.logger.error(f"Failed to rollback {flag_name}: {e}")
+                    results[flag_name] = False
+            except Exception as e:
+                self.logger.error(f"Failed to rollback {flag_name}: {e}")
+                results[flag_name] = False
+        
+        # Send WebSocket notification about emergency rollback
+        if self.realtime_service:
+            try:
+                await self.realtime_service.broadcast({
+                    'event': 'feature_flag_emergency_rollback',
+                    'category': 'geospatial',
+                    'timestamp': time.time(),
+                    'affected_flags': list(results.keys())
+                })
+            except Exception as e:
+                self.logger.error(f"Failed to send rollback notification: {e}")
+        
+        return results

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Browser Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        #log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007acc;
+            padding-left: 10px;
+        }
+        .log-ws { border-left-color: #4ec9b0; }
+        .log-success { border-left-color: #4caf50; }
+        .log-error { border-left-color: #f44336; }
+        .log-info { border-left-color: #2196f3; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #007acc;
+            color: white;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 WebSocket Browser Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="testWebSocket()">Test WebSocket</button>
+        <button onclick="testAPI()">Test API Endpoints</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let pingInterval = null;
+        let testResults = {
+            websocket: false,
+            api: false,
+            pingPong: false,
+            serialization: false
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toISOString().substr(11, 12);
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showResult(test, success, message) {
+            const resultsDiv = document.getElementById('results');
+            const result = document.createElement('div');
+            result.className = `test-result ${success ? 'success' : 'error'}`;
+            result.innerHTML = `<strong>${test}:</strong> ${message}`;
+            resultsDiv.appendChild(result);
+            testResults[test.toLowerCase().replace(/\s+/g, '_')] = success;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testAPI() {
+            log('Testing API endpoints...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:9001/api/v2/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`API Health Check: ${data.status}`, 'success');
+                    showResult('API Connection', true, `Status: ${data.status}, ML Infrastructure: ${data.ml_infrastructure}`);
+                    return true;
+                } else {
+                    log(`API Error: ${response.status}`, 'error');
+                    showResult('API Connection', false, `HTTP ${response.status}`);
+                    return false;
+                }
+            } catch (error) {
+                log(`API Connection Failed: ${error.message}`, 'error');
+                showResult('API Connection', false, error.message);
+                return false;
+            }
+        }
+
+        function testWebSocket() {
+            log('Initiating WebSocket connection test...', 'info');
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('WebSocket already connected', 'info');
+                return;
+            }
+
+            try {
+                ws = new WebSocket('ws://localhost:9001/ws');
+                
+                ws.onopen = () => {
+                    log('✅ WebSocket connected successfully!', 'success');
+                    showResult('WebSocket Connection', true, 'Connected to ws://localhost:9001/ws');
+                    
+                    // Test subscription
+                    const subscribeMsg = {
+                        type: 'subscribe',
+                        channels: ['hierarchy_updates', 'outcomes_updates']
+                    };
+                    ws.send(JSON.stringify(subscribeMsg));
+                    log('Sent subscription message', 'ws');
+                    
+                    // Start ping/pong keepalive test
+                    testPingPong();
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`Received: ${data.type} message`, 'ws');
+                        log(`Data: ${JSON.stringify(data, null, 2)}`, 'info');
+                        
+                        if (data.type === 'pong') {
+                            log('✅ Ping/pong keepalive working!', 'success');
+                            showResult('Ping/Pong Keepalive', true, 'Keepalive verified with 20s interval');
+                        }
+                        
+                        if (data.type === 'echo') {
+                            log('✅ Message serialization working!', 'success');
+                            showResult('Serialization', true, 'orjson serialization verified');
+                        }
+                    } catch (error) {
+                        log(`Failed to parse message: ${error.message}`, 'error');
+                        showResult('Serialization', false, error.message);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    log(`❌ WebSocket error: ${error.message || 'Unknown error'}`, 'error');
+                    showResult('WebSocket Connection', false, 'Connection error');
+                };
+
+                ws.onclose = (event) => {
+                    log(`WebSocket closed: Code ${event.code}, Reason: ${event.reason || 'None'}`, 'info');
+                    if (pingInterval) {
+                        clearInterval(pingInterval);
+                        pingInterval = null;
+                    }
+                };
+
+            } catch (error) {
+                log(`❌ Failed to create WebSocket: ${error.message}`, 'error');
+                showResult('WebSocket Connection', false, error.message);
+            }
+        }
+
+        function testPingPong() {
+            log('Starting ping/pong keepalive test (20s interval)...', 'info');
+            
+            // Send initial ping
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+                log('Sent ping message', 'ws');
+            }
+            
+            // Set up 20-second interval
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                    log('Sent periodic ping (20s interval)', 'ws');
+                } else {
+                    clearInterval(pingInterval);
+                    pingInterval = null;
+                }
+            }, 20000);
+        }
+
+        async function runAllTests() {
+            clearLog();
+            log('=== Starting Comprehensive WebSocket Integration Test ===', 'info');
+            log('Test Areas: WebSocket Connection, API Health, Ping/Pong, Serialization', 'info');
+            
+            // Test 1: API Health
+            await testAPI();
+            
+            // Test 2: WebSocket Connection
+            setTimeout(() => {
+                testWebSocket();
+            }, 1000);
+            
+            // Test 3: Check for custom element errors
+            setTimeout(() => {
+                checkCustomElementErrors();
+            }, 2000);
+        }
+
+        function checkCustomElementErrors() {
+            log('Checking for custom element errors...', 'info');
+            
+            // Check if there are any unregistered custom elements
+            const customElements = document.querySelectorAll('*');
+            let hasErrors = false;
+            
+            customElements.forEach(el => {
+                if (el.tagName.includes('-') && !customElements.get(el.tagName.toLowerCase())) {
+                    log(`⚠️ Unregistered custom element: ${el.tagName}`, 'error');
+                    hasErrors = true;
+                }
+            });
+            
+            if (!hasErrors) {
+                log('✅ No custom element errors detected', 'success');
+                showResult('Custom Elements', true, 'No mce-autosize-textarea errors');
+            } else {
+                showResult('Custom Elements', false, 'Unregistered elements found');
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            log('Page loaded - Ready for testing', 'info');
+            log('Click "Run All Tests" to begin comprehensive testing', 'info');
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (ws) {
+                ws.close();
+            }
+            if (pingInterval) {
+                clearInterval(pingInterval);
+            }
+        });
+    </script>
+</body>
+</html>

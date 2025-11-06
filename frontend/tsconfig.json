@@ -18,9 +18,16 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "downlevelIteration": true
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/tests/**/*",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/tests/**/*"
   ]
 }

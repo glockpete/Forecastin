@@ -1,0 +1,52 @@
+# Development Dockerfile for Forecastin Frontend
+# Optimized for development with hot reloading and debugging
+
+# ==============================================================================
+# BUILD STAGE - Install dependencies and setup build tools
+# ==============================================================================
+FROM node:18-alpine AS dependencies
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package.json package-lock.json ./
+
+# Install all dependencies (including devDependencies for development)
+RUN npm ci && npm cache clean --force
+
+# ==============================================================================
+# DEVELOPMENT STAGE - Hot reloading development server
+# ==============================================================================
+FROM node:18-alpine AS development
+
+# Install development tools
+RUN apk add --no-cache git curl bash
+
+# Set working directory
+WORKDIR /app
+
+# Copy installed dependencies from dependencies stage
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy source code and package files
+COPY . .
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Set ownership of the app directory
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Expose port 3000 for development server
+EXPOSE 3000
+
+# Health check for development container
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server with hot reloading
+# Use HOST=0.0.0.0 to allow external connections in Docker
+CMD ["npm", "start"]

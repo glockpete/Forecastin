@@ -24,6 +24,7 @@ import {
 import { useUIStore } from '../../store/uiStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useHybridState } from '../../hooks/useHybridState';
+import { useFeatureFlag } from '../../hooks/useFeatureFlag';
 import {
   useRootHierarchy,
   useChildren,
@@ -35,6 +36,7 @@ import { cn } from '../../utils/cn';
 import { RealtimePerformanceMonitor } from '../../utils/stateManager';
 import SearchInterface from '../Search/SearchInterface';
 import EntityDetail from '../Entity/EntityDetail';
+import GeospatialView from '../Map/GeospatialView';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { ErrorBoundary } from '../UI/ErrorBoundary';
 
@@ -384,6 +386,12 @@ export const MillerColumns: React.FC = () => {
     navigateBack,
   } = useUIStore();
 
+  // Feature flag for geospatial view
+  const { isEnabled: mapV1Enabled, isLoading: mapFlagLoading } = useFeatureFlag('ff.map_v1', {
+    checkRollout: true,
+    fallbackEnabled: false
+  });
+
   // Hybrid state management for React Query + Zustand + WebSocket coordination
   const hybridState = useHybridState({
     enabled: true,
@@ -502,6 +510,21 @@ export const MillerColumns: React.FC = () => {
               </div>
             )}
           </div>
+          
+          {/* Geospatial View - conditionally rendered based on ff.map_v1 feature flag */}
+          {mapV1Enabled && (
+            <div className="w-96 border-l border-gray-200 dark:border-gray-700">
+              <GeospatialView
+                className="h-full"
+                onLayerClick={(layerId, feature) => {
+                  console.log('[MillerColumns] Layer clicked:', layerId, feature);
+                }}
+                onViewStateChange={(viewState) => {
+                  console.log('[MillerColumns] View state changed:', viewState);
+                }}
+              />
+            </div>
+          )}
           
           {/* Entity Detail Panel */}
           {selectedEntity && (

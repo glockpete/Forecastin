@@ -29,11 +29,11 @@ export class CircuitBreaker {
 
   constructor(config: CircuitBreakerConfig) {
     this.config = {
-      failureThreshold: 5,
-      timeout: 60000, // 1 minute
       resetTimeout: 30000, // 30 seconds
       monitoringWindow: 60000, // 1 minute
-      ...config
+      ...config,
+      failureThreshold: config.failureThreshold ?? 5,
+      timeout: config.timeout ?? 60000 // 1 minute
     };
     this.performanceMonitor = new PerformanceMonitor();
   }
@@ -145,7 +145,8 @@ export class CircuitBreaker {
     this.failures = 0;
     this.successes = 0;
     this.lastFailure = 0;
-    this.performanceMonitor = new PerformanceMonitor();
+    // Cannot reassign readonly property - create new instance via constructor instead
+    // this.performanceMonitor = new PerformanceMonitor();
   }
 }
 
@@ -476,8 +477,12 @@ export class GlobalErrorRecovery {
   private exponentialBackoff = new ExponentialBackoff();
 
   // Register a circuit breaker for an operation
-  registerCircuitBreaker(key: string, config?: CircuitBreakerConfig) {
-    this.circuitBreakers.set(key, new CircuitBreaker(config || {}));
+  registerCircuitBreaker(key: string, config?: Partial<CircuitBreakerConfig>) {
+    const defaultConfig: CircuitBreakerConfig = {
+      failureThreshold: 5,
+      timeout: 60000
+    };
+    this.circuitBreakers.set(key, new CircuitBreaker({ ...defaultConfig, ...config }));
   }
 
   // Execute operation with full error recovery

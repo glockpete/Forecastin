@@ -18,10 +18,8 @@ import time
 from typing import Any, Dict, List, Optional, Set, Union
 from dataclasses import dataclass, field
 
-import aioredis
-import redis
-from redis import Redis
-from redis.connection import ConnectionPool
+import redis.asyncio as aioredis
+from redis.asyncio import Redis, ConnectionPool
 
 
 logger = logging.getLogger(__name__)

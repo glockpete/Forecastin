@@ -1,0 +1,89 @@
+{
+  "timestamp": 1762429554.295671,
+  "base_url": "http://localhost:9001",
+  "summary": {
+    "total_tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 100.0
+  },
+  "results": [
+    {
+      "endpoint": "/api/opportunities",
+      "url": "http://localhost:9001/api/opportunities",
+      "status": "[PASS] SUCCESS",
+      "response_time_ms": 2080.15,
+      "status_code": 200,
+      "error": null,
+      "data_preview": {
+        "keys": [
+          "opportunities",
+          "total"
+        ],
+        "total_items": 4
+      }
+    },
+    {
+      "endpoint": "/api/actions",
+      "url": "http://localhost:9001/api/actions",
+      "status": "[PASS] SUCCESS",
+      "response_time_ms": 2063.43,
+      "status_code": 200,
+      "error": null,
+      "data_preview": {
+        "keys": [
+          "actions",
+          "total"
+        ],
+        "total_items": 5
+      }
+    },
+    {
+      "endpoint": "/api/stakeholders",
+      "url": "http://localhost:9001/api/stakeholders",
+      "status": "[PASS] SUCCESS",
+      "response_time_ms": 2065.3,
+      "status_code": 200,
+      "error": null,
+      "data_preview": {
+        "keys": [
+          "stakeholders",
+          "total"
+        ],
+        "total_items": 5
+      }
+    },
+    {
+      "endpoint": "/api/evidence",
+      "url": "http://localhost:9001/api/evidence",
+      "status": "[PASS] SUCCESS",
+      "response_time_ms": 2069.74,
+      "status_code": 200,
+      "error": null,
+      "data_preview": {
+        "keys": [
+          "evidence",
+          "total"
+        ],
+        "total_items": 6
+      }
+    },
+    {
+      "endpoint": "/health",
+      "url": "http://localhost:9001/health",
+      "status": "[PASS] SUCCESS",
+      "response_time_ms": 2057.65,
+      "status_code": 200,
+      "error": null,
+      "data_preview": {
+        "keys": [
+          "status",
+          "timestamp",
+          "services",
+          "performance_metrics"
+        ],
+        "total_items": 4
+      }
+    }
+  ]
+}

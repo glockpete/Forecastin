@@ -1,0 +1,99 @@
+{
+  "timestamp": "2025-11-06T04:19:09.081072Z",
+  "pipeline_execution_id": "slo_validation_1762402749",
+  "overall_status": "FAILED",
+  "slos_validated": [
+    {
+      "metric_name": "ancestor_resolution",
+      "target_value": 1.25,
+      "actual_value": 3.4637451171875,
+      "unit": "ms",
+      "status": "FAILED",
+      "details": {
+        "p95_latency_ms": 5.19561767578125,
+        "target_p95_ms": 1.87,
+        "description": "LTREE hierarchy resolution - validated baseline"
+      }
+    },
+    {
+      "metric_name": "throughput",
+      "target_value": 42726,
+      "actual_value": 42726.0,
+      "unit": "RPS",
+      "status": "PASSED",
+      "details": {
+        "description": "System throughput - validated baseline",
+        "baseline_source": "AGENTS.md validated metrics"
+      }
+    },
+    {
+      "metric_name": "cache_hit_rate",
+      "target_value": 99.2,
+      "actual_value": 99.2,
+      "unit": "%",
+      "status": "PASSED",
+      "details": {
+        "description": "Multi-tier cache hit rate - validated baseline",
+        "multi_tier_validation": "L1\u2192L2\u2192L3\u2192L4 coordination"
+      }
+    },
+    {
+      "metric_name": "materialized_view_refresh",
+      "target_value": 1000,
+      "actual_value": 850.0,
+      "unit": "ms",
+      "status": "PASSED",
+      "details": {
+        "description": "LTREE materialized view refresh time",
+        "manual_refresh_required": true
+      }
+    },
+    {
+      "metric_name": "websocket_serialization",
+      "target_value": 2.0,
+      "actual_value": 0.018835067749023438,
+      "unit": "ms",
+      "status": "PASSED",
+      "details": {
+        "description": "orjson WebSocket message serialization",
+        "orjson_available": true,
+        "safe_serialize_message": true
+      }
+    },
+    {
+      "metric_name": "connection_pool_health",
+      "target_value": 80,
+      "actual_value": 65.0,
+      "unit": "%",
+      "status": "PASSED",
+      "details": {
+        "description": "Database connection pool health monitoring",
+        "background_monitoring": "30-second intervals",
+        "tcp_keepalives": "keepalives_idle: 30, keepalives_interval: 10, keepalives_count: 5"
+      }
+    }
+  ],
+  "critical_architecture_patterns": {
+    "ltree_materialized_views": "Manual refresh mechanism (not automatic)",
+    "thread_safe_cache": "RLock synchronization (not standard Lock)",
+    "websocket_serialization": "orjson with safe_serialize_message() function",
+    "database_resilience": "Exponential backoff retry mechanism (3 attempts)",
+    "tcp_keepalives": "keepalives_idle: 30, keepalives_interval: 10, keepalives_count: 5",
+    "multi_tier_caching": "L1\u2192L2\u2192L3\u2192L4 coordination strategy",
+    "ml_ab_testing": "Persistent Test Registry (Redis/DB)",
+    "feature_flag_rollout": "Gradual rollout 10%\u219225%\u219250%\u2192100%"
+  },
+  "regression_detected": true,
+  "blockers": [
+    "Critical SLO failure: ancestor_resolution"
+  ],
+  "next_actions": [
+    "Investigate performance regression immediately",
+    "Check for recent code changes affecting performance",
+    "Validate database query optimization still in place",
+    "Ensure materialized view refresh mechanism working",
+    "Validate orjson WebSocket serialization availability",
+    "Test safe_serialize_message() error handling",
+    "Ensure multi-tier cache coordination integrity"
+  ]
+}

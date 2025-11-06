@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        #log { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border: 1px solid #dee2e6; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status" class="status">Initializing...</div>
+    <button onclick="connectWebSocket()">Connect WebSocket</button>
+    <button onclick="disconnectWebSocket()">Disconnect</button>
+    <button onclick="sendPing()">Send Ping</button>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        let pingInterval = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toISOString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function connectWebSocket() {
+            const wsUrl = 'ws://localhost:9001/ws';
+            log(`Connecting to ${wsUrl}...`);
+            updateStatus('connecting', 'Connecting to WebSocket...');
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function(event) {
+                    log('WebSocket connected successfully!');
+                    updateStatus('connected', 'Connected to ws://localhost:9001/ws');
+                    
+                    // Subscribe to hierarchy updates channel
+                    const subscribeMessage = {
+                        type: 'subscribe',
+                        channels: ['hierarchy_updates']
+                    };
+                    ws.send(JSON.stringify(subscribeMessage));
+                    log('Sent subscription message');
+
+                    // Start ping interval
+                    startPingInterval();
+                };
+
+                ws.onmessage = function(event) {
+                    log(`Received: ${event.data}`);
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'ping') {
+                            log('Received ping, sending pong');
+                            ws.send(JSON.stringify({ type: 'pong' }));
+                        } else if (message.type === 'pong') {
+                            log('Received pong response');
+                        } else {
+                            log(`Message type: ${message.type}`);
+                        }
+                    } catch (e) {
+                        log(`Non-JSON message: ${event.data}`);
+                    }
+                };
+
+                ws.onclose = function(event) {
+                    log(`WebSocket closed: code=${event.code}, reason="${event.reason}", wasClean=${event.wasClean}`);
+                    updateStatus('disconnected', `Disconnected: ${event.code} - ${event.reason}`);
+                    stopPingInterval();
+                };
+
+                ws.onerror = function(error) {
+                    log(`WebSocket error: ${error}`);
+                    updateStatus('disconnected', 'Connection error');
+                };
+
+            } catch (error) {
+                log(`Failed to create WebSocket: ${error}`);
+                updateStatus('disconnected', 'Failed to create connection');
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close(1000, 'Manual disconnect');
+                log('Manually closed WebSocket connection');
+            }
+            stopPingInterval();
+        }
+
+        function startPingInterval() {
+            stopPingInterval();
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    log('Sending ping');
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                }
+            }, 20000); // 20 seconds
+        }
+
+        function stopPingInterval() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+                log('Stopped ping interval');
+            }
+        }
+
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Sending manual ping');
+                ws.send(JSON.stringify({ type: 'ping' }));
+            } else {
+                log('WebSocket not connected');
+            }
+        }
+
+        // Auto-connect on load
+        window.onload = function() {
+            log('Page loaded, WebSocket test ready');
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>
