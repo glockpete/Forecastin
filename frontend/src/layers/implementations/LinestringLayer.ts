@@ -614,11 +614,14 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
       }
       
       // Update entity data
+      const existingData = this.data[entityIndex];
+      if (!existingData) return;
+
       this.data[entityIndex] = {
-        ...this.data[entityIndex],
-        path,
-        confidence,
-        metadata
+        ...existingData,
+        ...(path !== undefined && { path }),
+        ...(confidence !== undefined && { confidence }),
+        ...(metadata !== undefined && { metadata })
       };
       
       // Invalidate caches
@@ -654,10 +657,13 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
       // Update route path
       const routeIndex = this.data.findIndex(e => e.id === routeId);
       if (routeIndex !== -1) {
-        this.data[routeIndex].path = newPath;
-        this.segmentCache.delete(routeId);
-        this.setupSegmentCache();
-        this.triggerLayerUpdate();
+        const route = this.data[routeIndex];
+        if (route) {
+          route.path = newPath;
+          this.segmentCache.delete(routeId);
+          this.setupSegmentCache();
+          this.triggerLayerUpdate();
+        }
       }
       
       // Log audit event
@@ -717,12 +723,14 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
    */
   private subdividePathIntoSegments(path: Position[], maxLength: number): Position[][] {
     const segments: Position[][] = [];
-    
+
     for (let i = 0; i < path.length - 1; i++) {
       const start = path[i];
       const end = path[i + 1];
+      if (!start || !end) continue;
+
       const length = this.calculateSegmentLength([start, end]);
-      
+
       if (length <= maxLength) {
         segments.push([start, end]);
       } else {
@@ -732,7 +740,7 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
         segments.push(...subsegments);
       }
     }
-    
+
     return segments;
   }
 
@@ -767,9 +775,13 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
    */
   private calculateSegmentLength(segment: Position[]): number {
     if (segment.length < 2) return 0;
-    
-    const [lng1, lat1] = segment[0];
-    const [lng2, lat2] = segment[1];
+
+    const start = segment[0];
+    const end = segment[1];
+    if (!start || !end) return 0;
+
+    const [lng1, lat1] = start;
+    const [lng2, lat2] = end;
     
     const R = 6371e3; // Earth radius in meters
     const φ1 = lat1 * Math.PI / 180;
@@ -837,17 +849,21 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
   private calculateArrowPositions(path: Position[], spacing: number): Position[] {
     const arrows: Position[] = [];
     let accumulatedDistance = 0;
-    
+
     for (let i = 0; i < path.length - 1; i++) {
-      const segmentLength = this.calculateSegmentLength([path[i], path[i + 1]]);
-      
+      const start = path[i];
+      const end = path[i + 1];
+      if (!start || !end) continue;
+
+      const segmentLength = this.calculateSegmentLength([start, end]);
+
       while (accumulatedDistance + segmentLength >= spacing) {
         const remainingDistance = spacing - accumulatedDistance;
         const t = remainingDistance / segmentLength;
-        
+
         const arrowPos: Position = [
-          path[i][0] + (path[i + 1][0] - path[i][0]) * t,
-          path[i][1] + (path[i + 1][1] - path[i][1]) * t
+          start[0] + (end[0] - start[0]) * t,
+          start[1] + (end[1] - start[1]) * t
         ];
         
         arrows.push(arrowPos);
@@ -863,7 +879,7 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
   /**
    * Trigger performance optimization when constraints violated
    */
-  protected triggerPerformanceOptimization(): void {
+  protected override triggerPerformanceOptimization(): void {
     console.warn(`[LinestringLayer] Triggering performance optimization for layer ${this.id}`);
     
     // Clear caches to force rebuild
@@ -901,7 +917,7 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
   /**
    * Cleanup layer resources
    */
-  public destroy(): void {
+  public override destroy(): void {
     // Clear caches
     this.segmentCache.clear();
     this.arrowCache.clear();
@@ -952,8 +968,11 @@ export class LinestringLayer extends BaseLayer<LinestringEntityDataPoint> {
 
     for (const entity of this.data) {
       if (!entity.path || entity.path.length === 0) continue;
-      
-      for (const [lng, lat] of entity.path) {
+
+      for (const position of entity.path) {
+        if (!position) continue;
+        const [lng, lat] = position;
+        if (lng === undefined || lat === undefined) continue;
         minX = Math.min(minX, lng);
         minY = Math.min(minY, lat);
         maxX = Math.max(maxX, lng);
