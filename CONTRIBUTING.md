@@ -104,7 +104,12 @@ def get_entities(path: str, limit: Optional[int] = None) -> List[dict]:
 ### TypeScript/React (Frontend)
 
 - **Style Guide**: Follow Airbnb TypeScript style guide
-- **Strict Mode**: All code must pass TypeScript strict mode
+- **Strict Mode**: All code must pass TypeScript strict mode with these enabled:
+  - `strict: true` - All strict type-checking options
+  - `noImplicitOverride: true` - Explicit `override` keyword required
+  - `exactOptionalPropertyTypes: true` - No `undefined` assignment to optional properties
+  - `noUncheckedIndexedAccess: true` - Array/object access returns `T | undefined`
+  - `noImplicitReturns: true` - All code paths must return
 - **Components**: Use functional components with hooks
 - **State Management**: React Query for server state, Zustand for UI state
 - **Naming**:
@@ -112,8 +117,28 @@ def get_entities(path: str, limit: Optional[int] = None) -> List[dict]:
   - Hooks: camelCase with 'use' prefix (`useEntityHierarchy.ts`)
   - Utilities: camelCase (`formatDate.ts`)
 
-**Example:**
+**TypeScript Strict Mode Patterns:**
+
 ```typescript
+// 1. Override keyword for inherited methods
+class MyLayer extends BaseLayer {
+  protected override triggerPerformanceOptimization(): void {
+    // Implementation
+  }
+}
+
+// 2. Conditional property spreading for optional properties
+const config = {
+  ...baseConfig,
+  ...(optionalValue !== undefined && { optionalKey: optionalValue })
+};
+
+// 3. Null checks for array/object access
+const element = array[index];
+if (!element) return;
+const value = element.property; // Safe to access
+
+// 4. Component example
 interface EntityHierarchyProps {
   path: string;
   onSelect: (entityId: string) => void;
@@ -126,6 +151,8 @@ export const EntityHierarchy: React.FC<EntityHierarchyProps> = ({
   // Implementation
 };
 ```
+
+See [TypeScript Error Fixes Documentation](./docs/TYPESCRIPT_ERROR_FIXES_2025-11-07.md) for detailed examples.
 
 ### SQL
 

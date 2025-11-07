@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Corrected documentation file references (removed non-existent migration 003)
+- **TypeScript Strict Type Checking**: Fixed all TypeScript errors in layer infrastructure (PR #22, #23)
+  - Fixed 103 type errors across 8 layer files
+  - Added `override` modifiers for proper inheritance
+  - Added null/undefined guards for `noUncheckedIndexedAccess`
+  - Fixed `exactOptionalPropertyTypes` issues with conditional property spreading
+  - All layer files now compile with strict TypeScript checking enabled
+  - Files fixed: BaseLayer, LinestringLayer, PointLayer, PolygonLayer, GeoJsonLayer, layer-types, layer-utils, performance-monitor
 
 ## [0.9.0] - 2025-11-07 (Current Development)
 

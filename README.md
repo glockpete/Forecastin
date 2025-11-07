@@ -365,12 +365,13 @@ Forecastin is currently in **Phase 9: Open Source Launch and Community Building*
 
 | Layer | Technologies |
 |-------|-------------|
-| **Frontend** | React, TypeScript, React Query, Zustand, deck.gl |
+| **Frontend** | React, TypeScript (Strict Mode), React Query, Zustand, deck.gl |
 | **Backend** | Python 3.9+, FastAPI, orjson, asyncio |
 | **Database** | PostgreSQL, LTREE, PostGIS, Materialized Views |
 | **Caching** | Redis, LRU Memory Cache |
 | **DevOps** | Docker, Docker Compose, GitHub Actions |
 | **Monitoring** | Custom SLO validation, Performance metrics |
+| **Code Quality** | TypeScript Strict Checking, ESLint, Type Safety Guards |
 
 ---
 

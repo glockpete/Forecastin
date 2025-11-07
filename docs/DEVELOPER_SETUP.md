@@ -279,6 +279,40 @@ npm run build
 
 # Check feature flag functionality
 npm run ff:check
+```
+
+### TypeScript Strict Mode
+
+The frontend uses **strict TypeScript configuration** to ensure type safety. All layer infrastructure files comply with:
+
+- `strict: true` - All strict type-checking options enabled
+- `noImplicitOverride: true` - Requires explicit `override` keyword
+- `exactOptionalPropertyTypes: true` - Prevents `undefined` assignment to optional properties
+- `noUncheckedIndexedAccess: true` - Array/object access returns `T | undefined`
+- `noImplicitReturns: true` - All code paths must return a value
+
+**Common Patterns:**
+
+```typescript
+// Override modifiers for inherited methods
+protected override methodName(): void { }
+
+// Conditional property spreading for optional properties
+{
+  ...config,
+  ...(optionalValue !== undefined && { optionalKey: optionalValue })
+}
+
+// Null checks for array access
+const element = array[index];
+if (!element) return;
+// safe to use element
+```
+
+For more details, see [TypeScript Error Fixes Documentation](./TYPESCRIPT_ERROR_FIXES_2025-11-07.md).
+
+```bash
+# Additional frontend commands
 
 # Verify contract drift
 npm run contracts:check
