@@ -95,6 +95,71 @@ export const ErrorMessageSchema = z.object({
 
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 
+// Additional message types for entity/hierarchy updates
+export const EntityUpdatePayloadSchema = z.object({
+  entityId: z.string(),
+  entity: z.any(), // Will be validated against Entity type in handler
+  preloadRelated: z.boolean().optional(),
+}).strict();
+
+export const EntityUpdateMessageSchema = z.object({
+  type: z.literal('entity_update'),
+  payload: EntityUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type EntityUpdateMessage = z.infer<typeof EntityUpdateMessageSchema>;
+
+export const HierarchyChangePayloadSchema = z.object({
+  preloadRoots: z.array(z.string()).optional(),
+}).strict();
+
+export const HierarchyChangeMessageSchema = z.object({
+  type: z.literal('hierarchy_change'),
+  payload: HierarchyChangePayloadSchema.optional(),
+  meta: MessageMetaSchema,
+}).strict();
+
+export type HierarchyChangeMessage = z.infer<typeof HierarchyChangeMessageSchema>;
+
+export const BulkUpdatePayloadSchema = z.object({
+  updates: z.array(z.any()), // Each update will be validated individually
+}).strict();
+
+export const BulkUpdateMessageSchema = z.object({
+  type: z.literal('bulk_update'),
+  payload: BulkUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type BulkUpdateMessage = z.infer<typeof BulkUpdateMessageSchema>;
+
+export const CacheInvalidatePayloadSchema = z.object({
+  queryKeys: z.array(z.any()).optional(),
+  invalidateAll: z.boolean().optional(),
+}).strict();
+
+export const CacheInvalidateMessageSchema = z.object({
+  type: z.literal('cache_invalidate'),
+  payload: CacheInvalidatePayloadSchema.optional(),
+  meta: MessageMetaSchema,
+}).strict();
+
+export type CacheInvalidateMessage = z.infer<typeof CacheInvalidateMessageSchema>;
+
+export const SearchUpdatePayloadSchema = z.object({
+  query: z.string(),
+  results: z.array(z.any()), // Will be validated against Entity[] in handler
+}).strict();
+
+export const SearchUpdateMessageSchema = z.object({
+  type: z.literal('search_update'),
+  payload: SearchUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type SearchUpdateMessage = z.infer<typeof SearchUpdateMessageSchema>;
+
 // ============================================================================
 // Discriminated Union
 // ============================================================================
@@ -105,6 +170,11 @@ export const RealtimeMessageSchema = z.discriminatedUnion('type', [
   PolygonUpdateMessageSchema,
   LinestringUpdateMessageSchema,
   GeometryBatchUpdateMessageSchema,
+  EntityUpdateMessageSchema,
+  HierarchyChangeMessageSchema,
+  BulkUpdateMessageSchema,
+  CacheInvalidateMessageSchema,
+  SearchUpdateMessageSchema,
   HeartbeatMessageSchema,
   ErrorMessageSchema,
 ]);
@@ -115,6 +185,11 @@ export type RealtimeMessage =
   | PolygonUpdateMessage
   | LinestringUpdateMessage
   | GeometryBatchUpdateMessage
+  | EntityUpdateMessage
+  | HierarchyChangeMessage
+  | BulkUpdateMessage
+  | CacheInvalidateMessage
+  | SearchUpdateMessage
   | HeartbeatMessage
   | ErrorMessage;
 
@@ -169,6 +244,41 @@ export function isHeartbeat(msg: RealtimeMessage): msg is HeartbeatMessage {
  */
 export function isError(msg: RealtimeMessage): msg is ErrorMessage {
   return msg.type === 'error';
+}
+
+/**
+ * Type guard for EntityUpdateMessage
+ */
+export function isEntityUpdate(msg: RealtimeMessage): msg is EntityUpdateMessage {
+  return msg.type === 'entity_update';
+}
+
+/**
+ * Type guard for HierarchyChangeMessage
+ */
+export function isHierarchyChange(msg: RealtimeMessage): msg is HierarchyChangeMessage {
+  return msg.type === 'hierarchy_change';
+}
+
+/**
+ * Type guard for BulkUpdateMessage
+ */
+export function isBulkUpdate(msg: RealtimeMessage): msg is BulkUpdateMessage {
+  return msg.type === 'bulk_update';
+}
+
+/**
+ * Type guard for CacheInvalidateMessage
+ */
+export function isCacheInvalidate(msg: RealtimeMessage): msg is CacheInvalidateMessage {
+  return msg.type === 'cache_invalidate';
+}
+
+/**
+ * Type guard for SearchUpdateMessage
+ */
+export function isSearchUpdate(msg: RealtimeMessage): msg is SearchUpdateMessage {
+  return msg.type === 'search_update';
 }
 
 // ============================================================================
@@ -239,6 +349,11 @@ export interface MessageHandlers {
   onPolygonUpdate?: (msg: PolygonUpdateMessage) => void | Promise<void>;
   onLinestringUpdate?: (msg: LinestringUpdateMessage) => void | Promise<void>;
   onGeometryBatchUpdate?: (msg: GeometryBatchUpdateMessage) => void | Promise<void>;
+  onEntityUpdate?: (msg: EntityUpdateMessage) => void | Promise<void>;
+  onHierarchyChange?: (msg: HierarchyChangeMessage) => void | Promise<void>;
+  onBulkUpdate?: (msg: BulkUpdateMessage) => void | Promise<void>;
+  onCacheInvalidate?: (msg: CacheInvalidateMessage) => void | Promise<void>;
+  onSearchUpdate?: (msg: SearchUpdateMessage) => void | Promise<void>;
   onHeartbeat?: (msg: HeartbeatMessage) => void | Promise<void>;
   onError?: (msg: ErrorMessage) => void | Promise<void>;
 }
@@ -260,6 +375,16 @@ export async function dispatchRealtimeMessage(
     await handlers.onLinestringUpdate(message);
   } else if (isGeometryBatchUpdate(message) && handlers.onGeometryBatchUpdate) {
     await handlers.onGeometryBatchUpdate(message);
+  } else if (isEntityUpdate(message) && handlers.onEntityUpdate) {
+    await handlers.onEntityUpdate(message);
+  } else if (isHierarchyChange(message) && handlers.onHierarchyChange) {
+    await handlers.onHierarchyChange(message);
+  } else if (isBulkUpdate(message) && handlers.onBulkUpdate) {
+    await handlers.onBulkUpdate(message);
+  } else if (isCacheInvalidate(message) && handlers.onCacheInvalidate) {
+    await handlers.onCacheInvalidate(message);
+  } else if (isSearchUpdate(message) && handlers.onSearchUpdate) {
+    await handlers.onSearchUpdate(message);
   } else if (isHeartbeat(message) && handlers.onHeartbeat) {
     await handlers.onHeartbeat(message);
   } else if (isError(message) && handlers.onError) {
@@ -367,6 +492,21 @@ export class MessageDeduplicator {
     }
     if (isGeometryBatchUpdate(message)) {
       return `batch:${message.payload.batch_id}:${message.payload.timestamp}`;
+    }
+    if (isEntityUpdate(message)) {
+      return `entity:${message.payload.entityId}:${message.meta.timestamp}`;
+    }
+    if (isHierarchyChange(message)) {
+      return `hierarchy:${message.meta.timestamp}`;
+    }
+    if (isBulkUpdate(message)) {
+      return `bulk:${message.payload.updates.length}:${message.meta.timestamp}`;
+    }
+    if (isCacheInvalidate(message)) {
+      return `cache_invalidate:${message.meta.timestamp}`;
+    }
+    if (isSearchUpdate(message)) {
+      return `search:${message.payload.query}:${message.meta.timestamp}`;
     }
 
     // Fallback for other message types

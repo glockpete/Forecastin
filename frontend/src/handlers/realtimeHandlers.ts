@@ -3,6 +3,9 @@
  * Handles WebSocket messages and coordinates with React Query and Zustand
  * Implements orjson-safe message processing and error resilience
  * Following forecastin patterns for WebSocket resilience
+ *
+ * SECURITY: All incoming WebSocket messages are validated against Zod schemas
+ * to prevent malformed data from corrupting application state.
  */
 
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
@@ -10,6 +13,21 @@ import { useUIStore } from '../store/uiStore';
 import { hierarchyKeys } from '../hooks/useHierarchy';
 import { Entity, WebSocketMessage } from '../types';
 import { CacheCoordinator, ErrorRecovery, PerformanceMonitor } from '../utils/stateManager';
+import {
+  parseRealtimeMessage,
+  validateRealtimeMessage,
+  type RealtimeMessage,
+  type EntityUpdateMessage,
+  type HierarchyChangeMessage,
+  type BulkUpdateMessage,
+  type CacheInvalidateMessage,
+  type SearchUpdateMessage,
+  isEntityUpdate,
+  isHierarchyChange,
+  isBulkUpdate,
+  isCacheInvalidate,
+  isSearchUpdate,
+} from '../types/ws_messages';
 
 // Message processor for different WebSocket message types
 export class RealtimeMessageProcessor {
@@ -32,18 +50,19 @@ export class RealtimeMessageProcessor {
   }
 
   // Process entity update messages
-  async processEntityUpdate(message: WebSocketMessage & { data?: Entity; entityId?: string }): Promise<void> {
+  async processEntityUpdate(message: EntityUpdateMessage): Promise<void> {
     const startTime = performance.now();
-    
+
     try {
-      const { data: entity, entityId } = message;
-      
+      // Extract validated payload
+      const { entityId, entity } = message.payload;
+
       if (!entity && !entityId) {
         console.warn('Entity update message missing entity data');
         return;
       }
 
-      const targetEntity = entity || await this.getEntityById(entityId!);
+      const targetEntity = entity || await this.getEntityById(entityId);
       if (!targetEntity) {
         console.warn('Target entity not found:', entityId);
         return;
@@ -104,9 +123,9 @@ export class RealtimeMessageProcessor {
   }
 
   // Process hierarchy change messages
-  async processHierarchyChange(message: WebSocketMessage): Promise<void> {
+  async processHierarchyChange(message: HierarchyChangeMessage): Promise<void> {
     const startTime = performance.now();
-    
+
     try {
       // Invalidate all hierarchy-related queries
       this.queryClient.invalidateQueries({
@@ -118,8 +137,8 @@ export class RealtimeMessageProcessor {
       this.uiStore.getState().resetNavigation();
 
       // Optionally preload critical hierarchy data
-      if (message.data?.preloadRoots) {
-        this.cacheCoordinator.warmCache(message.data.preloadRoots);
+      if (message.payload?.preloadRoots) {
+        this.cacheCoordinator.warmCache(message.payload.preloadRoots);
       }
 
       const duration = performance.now() - startTime;
@@ -135,12 +154,12 @@ export class RealtimeMessageProcessor {
   }
 
   // Process bulk update messages (batched updates)
-  async processBulkUpdate(message: WebSocketMessage & { data?: { updates: any[] } }): Promise<void> {
+  async processBulkUpdate(message: BulkUpdateMessage): Promise<void> {
     const startTime = performance.now();
-    
+
     try {
-      const { updates = [] } = message.data || {};
-      
+      const { updates = [] } = message.payload;
+
       if (updates.length === 0) {
         console.warn('Bulk update message contains no updates');
         return;
@@ -185,10 +204,10 @@ export class RealtimeMessageProcessor {
   }
 
   // Process cache invalidation messages
-  async processCacheInvalidate(message: WebSocketMessage): Promise<void> {
+  async processCacheInvalidate(message: CacheInvalidateMessage): Promise<void> {
     try {
-      const { queryKeys = [], invalidateAll = false } = message.data || {};
-      
+      const { queryKeys = [], invalidateAll = false } = message.payload || {};
+
       if (invalidateAll) {
         this.queryClient.invalidateQueries({
           queryKey: hierarchyKeys.all
@@ -200,7 +219,7 @@ export class RealtimeMessageProcessor {
       }
 
       console.log('Cache invalidation processed:', { invalidateAll, queryKeysCount: queryKeys.length });
-      
+
     } catch (error) {
       console.error('Error processing cache invalidation:', error);
       this.errorRecovery.recordFailure('cache_invalidate');
@@ -208,10 +227,10 @@ export class RealtimeMessageProcessor {
   }
 
   // Process search result updates
-  async processSearchUpdate(message: WebSocketMessage & { data?: { query: string; results: Entity[] } }): Promise<void> {
+  async processSearchUpdate(message: SearchUpdateMessage): Promise<void> {
     try {
-      const { query, results } = message.data || {};
-      
+      const { query, results } = message.payload;
+
       if (!query || !results) {
         console.warn('Search update message missing query or results');
         return;
@@ -229,7 +248,7 @@ export class RealtimeMessageProcessor {
       );
 
       console.log(`Search results updated for query "${query}": ${results.length} results`);
-      
+
     } catch (error) {
       console.error('Error processing search update:', error);
       this.errorRecovery.recordFailure('search_update');
@@ -415,39 +434,52 @@ export const useRealtimeMessageProcessor = () => {
   return processor;
 };
 
-// Message routing utility
+// Message routing utility with validation
 export const routeRealtimeMessage = (
   processor: RealtimeMessageProcessor,
-  message: WebSocketMessage
+  rawMessage: unknown
 ): Promise<void> => {
   const startTime = performance.now();
-  
+
   try {
-    switch (message.type) {
-      case 'entity_update':
-        return processor.processEntityUpdate(message);
-        
-      case 'hierarchy_change':
-        return processor.processHierarchyChange(message);
-        
-      case 'bulk_update':
-        return processor.processBulkUpdate(message);
-        
-      case 'cache_invalidate':
-        return processor.processCacheInvalidate(message);
-        
-      case 'search_update':
-        return processor.processSearchUpdate(message);
-        
-      case 'layer_data_update':
-        return processor.processLayerDataUpdate(message);
-        
-      case 'gpu_filter_sync':
-        return processor.processGPUFilterSync(message);
-        
-      default:
-        console.warn('Unknown message type:', message.type);
-        return Promise.resolve();
+    // SECURITY: Validate message against Zod schema before processing
+    const validationResult = validateRealtimeMessage(rawMessage);
+
+    if (!validationResult.valid) {
+      // Log validation errors but don't crash
+      console.error('WebSocket message validation failed:', {
+        errors: validationResult.errors,
+        rawMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Track validation failure for monitoring
+      if (typeof rawMessage === 'object' && rawMessage !== null) {
+        const type = (rawMessage as any).type || 'unknown';
+        console.error(`Invalid message type: ${type}`, validationResult.errors);
+      }
+
+      // Reject invalid messages gracefully
+      return Promise.resolve();
+    }
+
+    // Message is validated - safe to process
+    const message = validationResult.message;
+
+    // Route to appropriate handler using type guards
+    if (isEntityUpdate(message)) {
+      return processor.processEntityUpdate(message);
+    } else if (isHierarchyChange(message)) {
+      return processor.processHierarchyChange(message);
+    } else if (isBulkUpdate(message)) {
+      return processor.processBulkUpdate(message);
+    } else if (isCacheInvalidate(message)) {
+      return processor.processCacheInvalidate(message);
+    } else if (isSearchUpdate(message)) {
+      return processor.processSearchUpdate(message);
+    } else {
+      console.warn('Unknown message type:', message.type);
+      return Promise.resolve();
     }
   } catch (error) {
     const duration = performance.now() - startTime;
