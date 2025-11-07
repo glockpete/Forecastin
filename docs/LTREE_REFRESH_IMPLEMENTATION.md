@@ -63,9 +63,232 @@ This implementation provides a manual refresh mechanism for LTREE materialized v
     "l4_cache": {...},
     "overall": {...}
   },
+  "automated_refresh_status": {
+    "enabled": true,
+    "last_run": 1234567890.123,
+    "next_run": 1234567899.123,
+    "interval_seconds": 300,
+    "success_count": 42,
+    "failure_count": 0
+  },
   "message": "LTREE materialized view refresh service is operational"
 }
 ```
+
+---
+
+## Automated Refresh Endpoints
+
+### POST `/api/entities/refresh/automated/start`
+
+**Purpose**: Start the automated materialized view refresh service
+
+**Description**: Initializes a background service that periodically refreshes all LTREE materialized views at a configured interval. The service runs in a separate thread and can be stopped/restarted as needed.
+
+**Request Body**: None
+
+**Response Format**:
+```json
+{
+  "status": "success",
+  "message": "Automated refresh service started successfully",
+  "config": {
+    "interval_seconds": 300,
+    "concurrent_refresh": true,
+    "views": [
+      "mv_entity_ancestors",
+      "mv_descendant_counts",
+      "mv_entity_hierarchy_stats"
+    ]
+  }
+}
+```
+
+**Error Response**:
+```json
+{
+  "detail": "Automated refresh service is already running"
+}
+```
+
+**Usage Example**:
+```bash
+curl -X POST http://localhost:9000/api/entities/refresh/automated/start
+```
+
+**Behaviour**:
+- Starts background thread for periodic refresh
+- Default interval: 300 seconds (5 minutes)
+- Uses concurrent refresh when available
+- Stores metrics in `refresh_metrics` table
+- Continues running until explicitly stopped
+
+**Idempotency**: Calling this endpoint multiple times will not start duplicate services. Returns success if already running.
+
+---
+
+### POST `/api/entities/refresh/automated/stop`
+
+**Purpose**: Stop the automated materialized view refresh service
+
+**Description**: Gracefully stops the background refresh service. Completes any in-progress refresh operation before stopping.
+
+**Request Body**: None
+
+**Response Format**:
+```json
+{
+  "status": "success",
+  "message": "Automated refresh service stopped successfully",
+  "final_metrics": {
+    "total_refreshes": 142,
+    "successful_refreshes": 142,
+    "failed_refreshes": 0,
+    "average_duration_ms": 745.3,
+    "uptime_seconds": 42600
+  }
+}
+```
+
+**Error Response**:
+```json
+{
+  "detail": "Automated refresh service is not running"
+}
+```
+
+**Usage Example**:
+```bash
+curl -X POST http://localhost:9000/api/entities/refresh/automated/stop
+```
+
+**Behaviour**:
+- Waits for current refresh to complete
+- Stops background thread gracefully
+- Preserves metrics in database
+- Returns final statistics
+
+**Safety**: Safe to call during active refresh - will wait for completion before stopping.
+
+---
+
+### POST `/api/entities/refresh/automated/force`
+
+**Purpose**: Force an immediate refresh regardless of schedule
+
+**Description**: Triggers an immediate refresh of all materialized views, even if the automated service is running on its regular schedule. Does not interfere with the scheduled refresh cycle.
+
+**Request Body**: None
+
+**Response Format**:
+```json
+{
+  "status": "success",
+  "result": {
+    "duration_ms": 856.4,
+    "views_refreshed": 3,
+    "success": true,
+    "results": {
+      "mv_entity_ancestors": true,
+      "mv_descendant_counts": true,
+      "mv_entity_hierarchy_stats": true
+    }
+  },
+  "message": "Forced refresh completed successfully"
+}
+```
+
+**Error Response**:
+```json
+{
+  "detail": "Automated refresh service is not running"
+}
+```
+
+**Usage Example**:
+```bash
+curl -X POST http://localhost:9000/api/entities/refresh/automated/force
+```
+
+**Use Cases**:
+- Immediate data consistency required
+- After bulk data import
+- Testing/debugging
+- Manual intervention during incidents
+
+**Performance**: May block briefly while refresh completes. Use concurrent refresh for minimal impact.
+
+---
+
+### GET `/api/entities/refresh/automated/metrics`
+
+**Purpose**: Retrieve historical refresh metrics and performance statistics
+
+**Description**: Returns detailed metrics from the `refresh_metrics` table showing historical refresh performance, success rates, and trends.
+
+**Query Parameters**:
+- `limit` (optional, default: 100): Maximum number of metrics to return
+- `view_name` (optional): Filter by specific view name
+- `since` (optional): Unix timestamp to filter metrics after this time
+
+**Response Format**:
+```json
+{
+  "status": "success",
+  "metrics": [
+    {
+      "id": 1234,
+      "view_name": "mv_entity_ancestors",
+      "refresh_duration_ms": 856.4,
+      "success": true,
+      "created_at": "2025-11-07T10:30:00Z",
+      "error_message": null
+    },
+    {
+      "id": 1235,
+      "view_name": "mv_descendant_counts",
+      "refresh_duration_ms": 423.1,
+      "success": true,
+      "created_at": "2025-11-07T10:35:00Z",
+      "error_message": null
+    }
+  ],
+  "summary": {
+    "total_count": 142,
+    "success_count": 142,
+    "failure_count": 0,
+    "success_rate": 100.0,
+    "average_duration_ms": 745.3,
+    "p95_duration_ms": 987.2,
+    "p99_duration_ms": 1045.6,
+    "min_duration_ms": 423.1,
+    "max_duration_ms": 1123.4
+  }
+}
+```
+
+**Usage Examples**:
+```bash
+# Get last 100 metrics
+curl http://localhost:9000/api/entities/refresh/automated/metrics
+
+# Get last 50 metrics
+curl http://localhost:9000/api/entities/refresh/automated/metrics?limit=50
+
+# Get metrics for specific view
+curl "http://localhost:9000/api/entities/refresh/automated/metrics?view_name=mv_entity_ancestors"
+
+# Get recent metrics (last hour)
+curl "http://localhost:9000/api/entities/refresh/automated/metrics?since=$(date -d '1 hour ago' +%s)"
+```
+
+**Monitoring Integration**:
+- Use for Grafana dashboards
+- Set up alerts on failure_count > 0
+- Track p95_duration_ms for performance regression
+- Monitor success_rate for SLO compliance
+
+---
 
 ## Implementation Details
 
