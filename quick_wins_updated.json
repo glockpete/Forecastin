@@ -1,0 +1,374 @@
+{
+  "meta": {
+    "generated": "2025-11-07",
+    "source": "claude-code-discovery-baseline",
+    "repository": "Forecastin",
+    "branch": "claude/forecastin-discovery-baseline-011CUu2Hzx1f4SFqQ6QgZ4Wh",
+    "total_items": 15,
+    "total_estimated_hours": 10.5
+  },
+  "quick_wins": [
+    {
+      "id": "QW-001",
+      "title": "Export missing type utility functions",
+      "impact": "CRITICAL",
+      "effort_hours": 0.25,
+      "category": "type-system",
+      "file": "types/contracts.generated.ts",
+      "line": null,
+      "description": "Export getConfidence and getChildrenCount utility functions that are imported by 5+ component files but not exported.",
+      "fix_steps": [
+        "Add export function getConfidence(entity: Entity): number { return entity.confidence ?? 0; }",
+        "Add export function getChildrenCount(entity: Entity): number { return entity.childrenCount ?? 0; }",
+        "Export Entity type from useHierarchy.ts"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-001"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-002",
+      "title": "Fix MessageDeduplicator test failures",
+      "impact": "CRITICAL",
+      "effort_hours": 0.5,
+      "category": "testing",
+      "file": "tests/realtimeHandlers.test.ts",
+      "line": null,
+      "description": "Add missing layerId property to test fixtures. 8 tests currently failing with 'Cannot read properties of undefined'.",
+      "fix_steps": [
+        "Update test message fixtures to include data.layerId property",
+        "Ensure all LayerDataUpdateMessage test objects match schema",
+        "Run npm test to verify all 8 tests pass"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-002"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-003",
+      "title": "Add HierarchyResponse.entities property",
+      "impact": "CRITICAL",
+      "effort_hours": 0.25,
+      "category": "type-system",
+      "file": "frontend/src/types/index.ts",
+      "line": null,
+      "description": "Add missing .entities property to HierarchyResponse type. Fixes 6 TypeScript errors in navigation components.",
+      "fix_steps": [
+        "Add entities: Entity<T>[] to HierarchyResponse<T> interface",
+        "Verify backend actually returns this property (or update frontend code)",
+        "Run tsc --noEmit to verify errors fixed"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-003"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-004",
+      "title": "Add missing enum definitions",
+      "impact": "CRITICAL",
+      "effort_hours": 0.25,
+      "category": "type-system",
+      "file": "types/contracts.generated.ts",
+      "line": "89,122,165",
+      "description": "Define RiskLevel and ValidationStatus enums that are referenced but not defined. Fixes 3 TypeScript errors.",
+      "fix_steps": [
+        "Option 1: Run python scripts/dev/generate_contracts.py to regenerate",
+        "Option 2: Manually add enum RiskLevel { LOW, MEDIUM, HIGH, CRITICAL }",
+        "Option 2: Manually add enum ValidationStatus { PENDING, VALID, INVALID }",
+        "Verify enums match backend Pydantic models"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-004"],
+      "test_required": false,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-005",
+      "title": "Run ESLint autofix",
+      "impact": "MEDIUM",
+      "effort_hours": 0.08,
+      "category": "code-quality",
+      "file": "frontend/src/**/*.{ts,tsx}",
+      "line": null,
+      "description": "Run ESLint autofix to remove ~80 warnings automatically (unused imports, type import consistency).",
+      "fix_steps": [
+        "cd frontend && npx eslint src --ext .ts,.tsx --fix",
+        "Review changes to ensure nothing broke",
+        "Commit with message: 'chore: run eslint autofix'"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-017", "BUG-024"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-006",
+      "title": "Update CI Python version to 3.11",
+      "impact": "MEDIUM",
+      "effort_hours": 0.03,
+      "category": "ci-cd",
+      "file": ".github/workflows/ci.yml",
+      "line": "14",
+      "description": "Change PYTHON_VERSION from '3.9' to '3.11' to match repository requirements in pyproject.toml.",
+      "fix_steps": [
+        "Edit .github/workflows/ci.yml line 14",
+        "Change PYTHON_VERSION: '3.9' to PYTHON_VERSION: '3.11'",
+        "Commit and push to trigger CI run with correct Python version"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-010"],
+      "test_required": false,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-007",
+      "title": "Align safety version in requirements files",
+      "impact": "LOW",
+      "effort_hours": 0.03,
+      "category": "dependencies",
+      "file": "api/requirements-dev.txt",
+      "line": "19",
+      "description": "Change safety==2.3.5 to safety==3.7.0 to match requirements.txt and ensure consistent security scanning.",
+      "fix_steps": [
+        "Edit api/requirements-dev.txt line 19",
+        "Change safety==2.3.5 to safety==3.7.0",
+        "Test: pip install -r api/requirements-dev.txt"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-012"],
+      "test_required": false,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-008",
+      "title": "Remove deprecated messages.ts file",
+      "impact": "LOW",
+      "effort_hours": 0.03,
+      "category": "code-cleanup",
+      "file": "frontend/src/types/zod/messages.ts.deprecated",
+      "line": null,
+      "description": "Delete 7KB deprecated file that should have been removed in previous refactoring.",
+      "fix_steps": [
+        "rm frontend/src/types/zod/messages.ts.deprecated",
+        "git add frontend/src/types/zod/messages.ts.deprecated",
+        "git commit -m 'chore: remove deprecated messages.ts file'"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-016"],
+      "test_required": false,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-009",
+      "title": "Type search filters parameter",
+      "impact": "MEDIUM",
+      "effort_hours": 0.25,
+      "category": "type-safety",
+      "file": "frontend/src/hooks/useHierarchy.ts",
+      "line": "32",
+      "description": "Replace 'any' type with proper SearchFilters interface for type safety and cache key stability.",
+      "fix_steps": [
+        "Define type SearchFilters = { type?: EntityType; confidence?: number; dateRange?: { start: string; end: string }; }",
+        "Update search key factory: search: (query: string, filters?: SearchFilters) => [...]",
+        "Change filters to filters ?? null for consistent cache keys"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-019"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-010",
+      "title": "Add 'as const' to stats query key",
+      "impact": "LOW",
+      "effort_hours": 0.08,
+      "category": "type-safety",
+      "file": "frontend/src/hooks/useHierarchy.ts",
+      "line": "167",
+      "description": "Add missing 'as const' to stats query key for consistency and type safety.",
+      "fix_steps": [
+        "Option 1: Add stats: () => [...hierarchyKeys.all, 'stats'] as const to factory (recommended)",
+        "Option 2: Add 'as const' inline: queryKey: [...hierarchyKeys.all, 'stats'] as const",
+        "Run tests to verify no breakage"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-020"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-011",
+      "title": "Update @types/node to resolve peer dep conflict",
+      "impact": "LOW",
+      "effort_hours": 0.25,
+      "category": "dependencies",
+      "file": "frontend/package.json",
+      "line": null,
+      "description": "Update @types/node from ^16.18.59 to ^18.0.0 to resolve vitest peer dependency warning.",
+      "fix_steps": [
+        "Edit package.json devDependencies: '@types/node': '^18.0.0'",
+        "Run npm install (without --legacy-peer-deps)",
+        "Verify no peer dependency warnings",
+        "Run tests to ensure no breakage"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-021"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-012",
+      "title": "Add override modifiers to ErrorBoundary",
+      "impact": "LOW",
+      "effort_hours": 0.08,
+      "category": "code-quality",
+      "file": "frontend/src/components/UI/ErrorBoundary.tsx",
+      "line": "45,78,85,153",
+      "description": "Add 'override' keyword to 4 React lifecycle methods per TypeScript 4.3+ requirements.",
+      "fix_steps": [
+        "Add 'override' keyword before componentDidCatch, componentDidMount, componentWillUnmount, render",
+        "Run tsc --noEmit to verify errors fixed"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-023"],
+      "test_required": false,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-013",
+      "title": "Migrate GeospatialIntegrationTests to Vitest",
+      "impact": "HIGH",
+      "effort_hours": 0.5,
+      "category": "testing",
+      "file": "frontend/src/layers/tests/GeospatialIntegrationTests.test.ts",
+      "line": null,
+      "description": "Replace Jest imports with Vitest to fix test file that currently cannot execute.",
+      "fix_steps": [
+        "Replace: import { describe, it, expect } from '@jest/globals' → from 'vitest'",
+        "Replace jest.fn() → vi.fn(), jest.mock() → vi.mock(), jest.spyOn() → vi.spyOn()",
+        "Run npm test to verify tests execute"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-008"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-014",
+      "title": "Implement missing type guards for layer-types",
+      "impact": "HIGH",
+      "effort_hours": 1.0,
+      "category": "testing",
+      "file": "frontend/src/layers/types/layer-types.ts",
+      "line": "193",
+      "description": "Add isLayerData, isVisualChannel, isGPUFilterConfig type guards to fix broken test file.",
+      "fix_steps": [
+        "Implement isLayerData(value: unknown): value is LayerData",
+        "Implement isVisualChannel(value: unknown): value is VisualChannel",
+        "Implement isGPUFilterConfig(value: unknown): value is GPUFilterConfig",
+        "Export all three type guards",
+        "Run tests to verify layer-types.test.ts passes"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-009"],
+      "test_required": true,
+      "breaking_change": false
+    },
+    {
+      "id": "QW-015",
+      "title": "Fix security vulnerabilities with npm audit fix",
+      "impact": "HIGH",
+      "effort_hours": 1.0,
+      "category": "security",
+      "file": "frontend/package-lock.json",
+      "line": null,
+      "description": "Run npm audit fix to resolve 13 security vulnerabilities (7 moderate, 6 high).",
+      "fix_steps": [
+        "cd frontend",
+        "npm audit to review vulnerabilities",
+        "npm audit fix (try without --force first)",
+        "If needed: npm audit fix --force (test thoroughly after)",
+        "Run full test suite to verify no breakage",
+        "Commit updated package-lock.json"
+      ],
+      "blockers": [],
+      "dependencies": [],
+      "related_bugs": ["BUG-011"],
+      "test_required": true,
+      "breaking_change": true,
+      "warning": "npm audit fix --force may introduce breaking changes. Test thoroughly."
+    }
+  ],
+  "summary": {
+    "by_impact": {
+      "CRITICAL": 4,
+      "HIGH": 3,
+      "MEDIUM": 3,
+      "LOW": 5
+    },
+    "by_category": {
+      "type-system": 4,
+      "testing": 4,
+      "code-quality": 3,
+      "dependencies": 2,
+      "type-safety": 2,
+      "ci-cd": 1,
+      "code-cleanup": 1,
+      "security": 1
+    },
+    "breaking_changes": 1,
+    "tests_required": 10,
+    "total_estimated_hours": 4.61,
+    "recommended_order": [
+      "QW-001",
+      "QW-002",
+      "QW-003",
+      "QW-004",
+      "QW-013",
+      "QW-014",
+      "QW-015",
+      "QW-009",
+      "QW-005",
+      "QW-006",
+      "QW-007",
+      "QW-008",
+      "QW-010",
+      "QW-011",
+      "QW-012"
+    ]
+  },
+  "execution_plan": {
+    "phase_1_critical": {
+      "items": ["QW-001", "QW-002", "QW-003", "QW-004"],
+      "estimated_hours": 1.25,
+      "goal": "Fix TypeScript compilation errors and failing tests"
+    },
+    "phase_2_high_priority": {
+      "items": ["QW-013", "QW-014", "QW-015"],
+      "estimated_hours": 2.5,
+      "goal": "Fix broken test files and security vulnerabilities"
+    },
+    "phase_3_cleanup": {
+      "items": ["QW-005", "QW-006", "QW-007", "QW-008", "QW-009", "QW-010", "QW-011", "QW-012"],
+      "estimated_hours": 0.86,
+      "goal": "Code quality improvements and dependency updates"
+    }
+  }
+}
