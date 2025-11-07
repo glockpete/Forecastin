@@ -54,8 +54,8 @@ export class RealtimeMessageProcessor {
     const startTime = performance.now();
 
     try {
-      // Extract validated payload
-      const { entityId, entity } = message.payload;
+      // Extract validated data
+      const { entityId, entity } = message.data;
 
       if (!entity && !entityId) {
         console.warn('Entity update message missing entity data');
@@ -137,8 +137,8 @@ export class RealtimeMessageProcessor {
       this.uiStore.getState().resetNavigation();
 
       // Optionally preload critical hierarchy data
-      if (message.payload?.preloadRoots) {
-        this.cacheCoordinator.warmCache(message.payload.preloadRoots);
+      if ((message.data as any)?.preloadRoots) {
+        this.cacheCoordinator.warmCache((message.data as any).preloadRoots);
       }
 
       const duration = performance.now() - startTime;
@@ -158,7 +158,7 @@ export class RealtimeMessageProcessor {
     const startTime = performance.now();
 
     try {
-      const { updates = [] } = message.payload;
+      const updates = (message.data as any).updates || [];
 
       if (updates.length === 0) {
         console.warn('Bulk update message contains no updates');
@@ -206,7 +206,9 @@ export class RealtimeMessageProcessor {
   // Process cache invalidation messages
   async processCacheInvalidate(message: CacheInvalidateMessage): Promise<void> {
     try {
-      const { queryKeys = [], invalidateAll = false } = message.payload || {};
+      const queryKeys = message.data.keys || [];
+      const strategy = message.data.strategy;
+      const invalidateAll = strategy === 'immediate';
 
       if (invalidateAll) {
         this.queryClient.invalidateQueries({
@@ -218,7 +220,7 @@ export class RealtimeMessageProcessor {
         });
       }
 
-      console.log('Cache invalidation processed:', { invalidateAll, queryKeysCount: queryKeys.length });
+      console.log('Cache invalidation processed:', { strategy, queryKeysCount: queryKeys.length });
 
     } catch (error) {
       console.error('Error processing cache invalidation:', error);
@@ -229,7 +231,8 @@ export class RealtimeMessageProcessor {
   // Process search result updates
   async processSearchUpdate(message: SearchUpdateMessage): Promise<void> {
     try {
-      const { query, results } = message.payload;
+      const query = (message as any).payload?.query;
+      const results = (message as any).payload?.results;
 
       if (!query || !results) {
         console.warn('Search update message missing query or results');
