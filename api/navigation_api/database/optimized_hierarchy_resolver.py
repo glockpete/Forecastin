@@ -507,8 +507,8 @@ class OptimizedHierarchyResolver:
                     with conn.cursor(cursor_factory=RealDictCursor) as cur:
                         # Optimized query using LTREE path and depth
                         cur.execute("""
-                            SELECT 
-                                e.entity_id,
+                            SELECT
+                                e.id as entity_id,
                                 e.path,
                                 e.path_depth,
                                 e.path_hash,
@@ -516,8 +516,8 @@ class OptimizedHierarchyResolver:
                                 COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
                                 COALESCE(mv.descendant_count, 0) as descendants
                             FROM entities e
-                            LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
-                            WHERE e.entity_id = %s
+                            LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                            WHERE e.id = %s
                             LIMIT 1
                         """, (entity_id,))
                         
@@ -569,7 +569,7 @@ class OptimizedHierarchyResolver:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     # Query materialized view for pre-computed hierarchy
                     cur.execute("""
-                        SELECT 
+                        SELECT
                             mv.entity_id,
                             e.path,
                             e.path_depth,
@@ -578,7 +578,7 @@ class OptimizedHierarchyResolver:
                             mv.ancestors,
                             mv.descendant_count as descendants
                         FROM mv_entity_ancestors mv
-                        JOIN entities e ON mv.entity_id = e.entity_id
+                        JOIN entities e ON mv.entity_id = e.id
                         WHERE mv.entity_id = %s
                         LIMIT 1
                     """, (entity_id,))
@@ -902,7 +902,7 @@ class OptimizedHierarchyResolver:
                     if lat is not None and lon is not None:
                         cur.execute("""
                             SELECT
-                                e.entity_id,
+                                e.id as entity_id,
                                 e.path,
                                 e.path_depth,
                                 e.path_hash,
@@ -914,7 +914,7 @@ class OptimizedHierarchyResolver:
                                     ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
                                 ) as distance
                             FROM entities e
-                            LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                            LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
                             WHERE e.geom IS NOT NULL
                             ORDER BY distance ASC
                             LIMIT 1
@@ -935,7 +935,7 @@ class OptimizedHierarchyResolver:
                     # Strategy 2: Fuzzy text matching on location name
                     cur.execute("""
                         SELECT
-                            e.entity_id,
+                            e.id as entity_id,
                             e.path,
                             e.path_depth,
                             e.path_hash,
@@ -944,7 +944,7 @@ class OptimizedHierarchyResolver:
                             COALESCE(mv.descendant_count, 0) as descendants,
                             similarity(e.name, %s) as name_similarity
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
                         WHERE similarity(e.name, %s) > 0.3
                         ORDER BY name_similarity DESC
                         LIMIT 1
@@ -1025,7 +1025,7 @@ class OptimizedHierarchyResolver:
                     # Query all entities with their hierarchy information
                     cur.execute("""
                         SELECT
-                            e.entity_id,
+                            e.id as entity_id,
                             e.path,
                             e.path_depth,
                             e.path_hash,
@@ -1037,8 +1037,8 @@ class OptimizedHierarchyResolver:
                             COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
                             COALESCE(mv.descendant_count, 0) as descendants
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
-                        ORDER BY e.path_depth ASC, e.entity_id
+                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                        ORDER BY e.path_depth ASC, e.id
                         LIMIT %s
                     """, (limit,))
                     
@@ -1099,7 +1099,7 @@ class OptimizedHierarchyResolver:
                     # Build query based on filters
                     query = """
                         SELECT
-                            e.entity_id,
+                            e.id as entity_id,
                             e.path,
                             e.path_depth,
                             e.path_hash,
@@ -1111,7 +1111,7 @@ class OptimizedHierarchyResolver:
                             COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
                             COALESCE(mv.descendant_count, 0) as descendants
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.entity_id = mv.entity_id
+                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
                         WHERE e.entity_type LIKE 'rss_%'
                         AND e.confidence_score >= %s
                     """
