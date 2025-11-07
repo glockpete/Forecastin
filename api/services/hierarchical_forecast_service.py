@@ -558,7 +558,7 @@ class HierarchicalForecastManager:
     async def _generate_prophet_forecast(
         self,
         entity_path: str,
-        historical_data: pd.DataFrame,
+        historical_data: 'pd.DataFrame',
         horizon: int
     ) -> Dict[str, Any]:
         """
@@ -612,7 +612,7 @@ class HierarchicalForecastManager:
         self,
         entity_path: str,
         days: int
-    ) -> Optional[pd.DataFrame]:
+    ) -> Optional['pd.DataFrame']:
         """
         Query historical time series data for entity.
         
@@ -662,7 +662,7 @@ class HierarchicalForecastManager:
         
         return None
     
-    def _generate_mock_historical_data(self, days: int) -> pd.DataFrame:
+    def _generate_mock_historical_data(self, days: int) -> 'pd.DataFrame':
         """Generate mock historical data for testing."""
         if pd is None:
             return None
