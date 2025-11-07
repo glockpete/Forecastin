@@ -302,23 +302,229 @@ describe('Field Naming Convention Validation', () => {
 });
 
 // ============================================================================
-// RUNTIME VALIDATION (requires zod or ajv)
+// RUNTIME VALIDATION WITH ZOD
 // ============================================================================
 
-// TODO: Add zod schemas for runtime validation
-// import { z } from 'zod';
-//
-// const EntitySchema = z.object({
-//   id: z.string(),
-//   name: z.string(),
-//   type: z.string(),
-//   path: z.string().regex(/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$/),
-//   pathDepth: z.number().int().min(1),
-//   confidence: z.number().min(0).max(1).optional(),
-//   // ...
-// });
-//
-// test('should validate Entity with zod', () => {
-//   const result = EntitySchema.safeParse(mockEntityResponse);
-//   expect(result.success).toBe(true);
-// });
+import { z } from 'zod';
+
+// Entity Schema
+const EntitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  path: z.string().regex(/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$/),
+  pathDepth: z.number().int().min(1),
+  parentId: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+  hasChildren: z.boolean().optional(),
+  childrenCount: z.number().int().min(0).optional(),
+});
+
+// FeatureFlag Schema
+const FeatureFlagSchema = z.object({
+  id: z.string().uuid(),
+  flagName: z.string(),
+  description: z.string().optional().nullable(),
+  isEnabled: z.boolean(),
+  rolloutPercentage: z.number().int().min(0).max(100),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+// RiskProfile Schema
+const RiskProfileSchema = z.object({
+  riskLevel: z.enum(['low', 'medium', 'high', 'critical']),
+  riskFactors: z.array(z.string()),
+  mitigationStrategies: z.array(z.string()),
+  confidenceScore: z.number().min(0).max(1),
+  assessedAt: z.string().datetime(),
+});
+
+// CollaborationData Schema
+const CollaborationDataSchema = z.object({
+  activeUsers: z.array(z.string()),
+  lastModifiedBy: z.string(),
+  lastModifiedAt: z.string().datetime(),
+  changeCount: z.number().int().min(0),
+  conflictCount: z.number().int().min(0),
+  version: z.number().int().min(1),
+});
+
+// ScenarioEntity Schema
+const ScenarioEntitySchema = z.object({
+  scenarioId: z.string(),
+  path: z.string(),
+  pathDepth: z.number().int().min(1),
+  pathHash: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  confidenceScore: z.number().min(0).max(1),
+  riskAssessment: RiskProfileSchema,
+  validationStatus: z.enum(['pending', 'validated', 'rejected']),
+  collaborationData: CollaborationDataSchema,
+  metadata: z.record(z.unknown()).optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+// FxExposure Schema
+const FxExposureSchema = z.object({
+  currency: z.string().length(3),
+  amount: z.number(),
+  volatility: z.number().min(0).max(1),
+}).nullable();
+
+// Opportunity Schema
+const OpportunitySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  roiScore: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1),
+  horizon: z.enum(['immediate', 'short', 'medium', 'long']),
+  policyWindow: z.number().int().min(0),
+  riskLevel: z.number().min(0).max(1),
+  momentum: z.number().min(0).max(1),
+  sector: z.array(z.string()),
+  marketLevel: z.array(z.string()),
+  stakeholders: z.array(z.string()),
+  evidence: z.array(z.string()),
+  fxExposure: FxExposureSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+// HierarchyResponse Schema
+const HierarchyResponseSchema = z.object({
+  nodes: z.array(EntitySchema),
+  totalCount: z.number().int().min(0),
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable(),
+});
+
+// ============================================================================
+// RUNTIME VALIDATION TESTS
+// ============================================================================
+
+describe('Runtime Schema Validation with Zod', () => {
+  test('should validate Entity with zod', () => {
+    const result = EntitySchema.safeParse(mockEntityResponse);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.error('Entity validation errors:', result.error.errors);
+    }
+  });
+
+  test('should validate FeatureFlag with zod', () => {
+    const result = FeatureFlagSchema.safeParse(mockFeatureFlagResponse);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.error('FeatureFlag validation errors:', result.error.errors);
+    }
+  });
+
+  test('should detect snake_case in FeatureFlag', () => {
+    const invalidFlag = {
+      ...mockFeatureFlagResponse,
+      flag_name: 'invalid',  // snake_case should fail
+    };
+    delete (invalidFlag as any).flagName;
+
+    const result = FeatureFlagSchema.safeParse(invalidFlag);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.errors).toContainEqual(
+        expect.objectContaining({ path: ['flagName'] })
+      );
+    }
+  });
+
+  test('should validate ScenarioEntity with zod', () => {
+    const result = ScenarioEntitySchema.safeParse(mockScenarioEntityResponse);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.error('ScenarioEntity validation errors:', result.error.errors);
+    }
+  });
+
+  test('should validate Opportunity with zod', () => {
+    const result = OpportunitySchema.safeParse(mockOpportunityResponse);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.error('Opportunity validation errors:', result.error.errors);
+    }
+  });
+
+  test('should validate HierarchyResponse with zod', () => {
+    const result = HierarchyResponseSchema.safeParse(mockHierarchyResponse);
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      console.error('HierarchyResponse validation errors:', result.error.errors);
+    }
+  });
+
+  test('should reject invalid rollout percentage', () => {
+    const invalidFlag = {
+      ...mockFeatureFlagResponse,
+      rolloutPercentage: 150,  // Invalid: > 100
+    };
+
+    const result = FeatureFlagSchema.safeParse(invalidFlag);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.errors).toContainEqual(
+        expect.objectContaining({
+          path: ['rolloutPercentage'],
+          message: expect.stringContaining('100'),
+        })
+      );
+    }
+  });
+
+  test('should reject invalid confidence score', () => {
+    const invalidEntity = {
+      ...mockEntityResponse,
+      confidence: 1.5,  // Invalid: > 1.0
+    };
+
+    const result = EntitySchema.safeParse(invalidEntity);
+    expect(result.success).toBe(false);
+  });
+
+  test('should reject invalid path format', () => {
+    const invalidEntity = {
+      ...mockEntityResponse,
+      path: 'invalid path with spaces',
+    };
+
+    const result = EntitySchema.safeParse(invalidEntity);
+    expect(result.success).toBe(false);
+  });
+
+  test('should reject invalid risk level enum', () => {
+    const invalidScenario = {
+      ...mockScenarioEntityResponse,
+      riskAssessment: {
+        ...mockScenarioEntityResponse.riskAssessment,
+        riskLevel: 'invalid',
+      },
+    };
+
+    const result = ScenarioEntitySchema.safeParse(invalidScenario);
+    expect(result.success).toBe(false);
+  });
+
+  test('should reject invalid time horizon enum', () => {
+    const invalidOpportunity = {
+      ...mockOpportunityResponse,
+      horizon: 'invalid',
+    };
+
+    const result = OpportunitySchema.safeParse(invalidOpportunity);
+    expect(result.success).toBe(false);
+  });
+});
