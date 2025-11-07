@@ -32,6 +32,7 @@ from services.scenario_service import (
     RiskLevel
 )
 from services.automated_refresh_service import AutomatedRefreshService, initialize_automated_refresh_service
+from services.rss.rss_ingestion_service import RSSIngestionService, RSSIngestionConfig
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -69,6 +70,7 @@ scenario_collaboration_service: Optional[ScenarioCollaborationService] = None
 analysis_engine: Optional[MultiFactorAnalysisEngine] = None
 cursor_paginator: Optional[CursorPaginator] = None
 automated_refresh_service: Optional[AutomatedRefreshService] = None
+rss_ingestion_service: Optional[RSSIngestionService] = None
 
 
 class HealthResponse(BaseModel):
@@ -170,7 +172,7 @@ def safe_serialize_message(message: Dict[str, Any]) -> str:
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
     global hierarchy_resolver, cache_service, database_manager, realtime_service, feature_flag_service
-    global forecast_manager, scenario_collaboration_service, analysis_engine, cursor_paginator
+    global forecast_manager, scenario_collaboration_service, analysis_engine, cursor_paginator, rss_ingestion_service
     
     # Startup
     logger.info("Starting Forecastin API - Phase 0 initialization")
@@ -256,6 +258,30 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Automated refresh service not initialized due to missing dependencies")
             automated_refresh_service = None
+
+        # Initialize RSS ingestion service
+        if cache_service and realtime_service and hierarchy_resolver:
+            try:
+                rss_config = RSSIngestionConfig(
+                    batch_size=50,
+                    parallel_workers=4,
+                    enable_entity_extraction=True,
+                    enable_deduplication=True,
+                    enable_websocket_notifications=True
+                )
+                rss_ingestion_service = RSSIngestionService(
+                    cache_service=cache_service,
+                    realtime_service=realtime_service,
+                    hierarchy_resolver=hierarchy_resolver,
+                    config=rss_config
+                )
+                logger.info("RSS ingestion service initialized successfully")
+            except Exception as e:
+                logger.warning(f"RSS ingestion service initialization failed: {e}")
+                rss_ingestion_service = None
+        else:
+            logger.warning("RSS ingestion service not initialized due to missing dependencies")
+            rss_ingestion_service = None
         
         # Start background services
         await start_background_services()
@@ -275,10 +301,13 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Forecastin API")
-    
+
     # Cleanup connections in reverse order
     if automated_refresh_service:
         automated_refresh_service.stop_service()
+    if rss_ingestion_service:
+        logger.info("Shutting down RSS ingestion service")
+        # RSS service cleanup (if needed in future)
     if analysis_engine:
         await analysis_engine.cleanup()
     if scenario_collaboration_service:
@@ -1780,6 +1809,184 @@ async def get_scenario_analysis(scenario_id: str):
         raise
     except Exception as e:
         logger.error(f"Error analyzing scenario {scenario_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===========================
+# RSS Ingestion API Endpoints
+# ===========================
+
+@app.post("/api/rss/ingest")
+async def ingest_rss_feed(feed_data: Dict[str, Any]):
+    """
+    Ingest RSS feed with complete processing pipeline.
+
+    Includes:
+    - Route-based content extraction
+    - 5-W entity extraction
+    - Deduplication with 0.8 threshold
+    - Real-time WebSocket notifications
+    """
+    try:
+        if not rss_ingestion_service:
+            raise HTTPException(status_code=503, detail="RSS ingestion service not initialized")
+
+        # Validate required fields
+        if "feed_url" not in feed_data:
+            raise HTTPException(status_code=400, detail="Missing required field: feed_url")
+
+        feed_url = feed_data["feed_url"]
+        route_config = feed_data.get("route_config", {})
+        job_id = feed_data.get("job_id")
+
+        # Start ingestion
+        start_time = time.time()
+        result = await rss_ingestion_service.ingest_rss_feed(
+            feed_url=feed_url,
+            route_config=route_config,
+            job_id=job_id
+        )
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": "RSS feed ingested successfully",
+                "result": result,
+                "duration_ms": duration_ms
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error ingesting RSS feed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rss/ingest/batch")
+async def ingest_multiple_rss_feeds(batch_data: Dict[str, Any]):
+    """
+    Ingest multiple RSS feeds in parallel or sequentially.
+
+    Supports batch processing with configurable parallelism.
+    """
+    try:
+        if not rss_ingestion_service:
+            raise HTTPException(status_code=503, detail="RSS ingestion service not initialized")
+
+        # Validate required fields
+        if "feeds" not in batch_data:
+            raise HTTPException(status_code=400, detail="Missing required field: feeds")
+
+        feeds = batch_data["feeds"]
+        parallel = batch_data.get("parallel", True)
+
+        # Start batch ingestion
+        start_time = time.time()
+        result = await rss_ingestion_service.ingest_multiple_feeds(
+            feed_configs=feeds,
+            parallel=parallel
+        )
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": "Batch RSS ingestion completed",
+                "result": result,
+                "duration_ms": duration_ms
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in batch RSS ingestion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rss/metrics")
+async def get_rss_metrics():
+    """
+    Get RSS ingestion service performance metrics.
+
+    Includes:
+    - Articles processed
+    - Entities extracted
+    - Deduplication statistics
+    - Cache hit rates
+    - WebSocket notification counts
+    """
+    try:
+        if not rss_ingestion_service:
+            raise HTTPException(status_code=503, detail="RSS ingestion service not initialized")
+
+        metrics = await rss_ingestion_service.get_metrics()
+
+        return JSONResponse(content={"metrics": metrics})
+
+    except Exception as e:
+        logger.error(f"Error getting RSS metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rss/health")
+async def get_rss_health():
+    """
+    Perform RSS ingestion service health check.
+
+    Checks:
+    - Service initialization status
+    - Component health (route processor, entity extractor, deduplicator)
+    - Cache service integration
+    - WebSocket notification system
+    """
+    try:
+        if not rss_ingestion_service:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "unavailable",
+                    "message": "RSS ingestion service not initialized"
+                }
+            )
+
+        health = await rss_ingestion_service.health_check()
+
+        return JSONResponse(content=health)
+
+    except Exception as e:
+        logger.error(f"Error performing RSS health check: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rss/jobs/{job_id}")
+async def get_rss_job_status(job_id: str):
+    """
+    Get status of an RSS ingestion job.
+
+    Returns job progress, stage, and results.
+    """
+    try:
+        if not rss_ingestion_service:
+            raise HTTPException(status_code=503, detail="RSS ingestion service not initialized")
+
+        # Get job status from active jobs
+        if job_id in rss_ingestion_service.active_jobs:
+            job_info = rss_ingestion_service.active_jobs[job_id]
+            return JSONResponse(content={"job": job_info})
+        else:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting RSS job status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

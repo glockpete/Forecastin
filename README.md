@@ -329,6 +329,7 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ### **Feature Documentation**
 - [RSS Ingestion Architecture](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md)
+- [RSS API Endpoints](docs/RSS_API_ENDPOINTS.md) - Complete API reference for RSS ingestion
 - [Geospatial Feature Flags](docs/GEOSPATIAL_FEATURE_FLAGS.md)
 - [WebSocket Layer Messages](docs/WEBSOCKET_LAYER_MESSAGES.md)
 - [Performance Optimization Report](docs/PERFORMANCE_OPTIMIZATION_REPORT.md)
