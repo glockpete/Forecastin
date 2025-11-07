@@ -1,0 +1,220 @@
+{
+  "tasks": [
+    {
+      "id": "rss-missing-dependencies",
+      "title": "Implement Missing RSS Service Dependencies",
+      "stream": "backend",
+      "files": [
+        "api/services/rss/entity_extraction/extractor.py",
+        "api/services/rss/deduplication/deduplicator.py", 
+        "api/services/rss/websocket/notifier.py"
+      ],
+      "est_hours": 6,
+      "difficulty_1to10": 5,
+      "deps": [
+        "rss-architecture-validation"
+      ],
+      "acceptance": [
+        "RSSEntityExtractor class implemented with 5-W framework",
+        "RSSDeduplicator with 0.8 similarity threshold",
+        "RSSWebSocketNotifier with custom message types",
+        "All components integrate with existing cache_service and realtime_service"
+      ]
+    },
+    {
+      "id": "performance-ancestor-regression",
+      "title": "Fix Ancestor Resolution Performance Regression",
+      "stream": "backend", 
+      "files": [
+        "api/navigation_api/database/optimized_hierarchy_resolver.py",
+        "api/navigation_api/migrations/003_optimize_hierarchy_performance.sql"
+      ],
+      "est_hours": 4,
+      "difficulty_1to10": 7,
+      "deps": [],
+      "acceptance": [
+        "Ancestor resolution time <1.25ms (P95: <1.87ms)",
+        "Materialized view refresh mechanism validated",
+        "Database query optimization confirmed active",
+        "SLO validation script passes"
+      ]
+    },
+    {
+      "id": "rss-api-endpoints",
+      "title": "Create RSS API Endpoints",
+      "stream": "backend",
+      "files": [
+        "api/main.py"
+      ],
+      "est_hours": 3,
+      "difficulty_1to10": 4,
+      "deps": [
+        "rss-missing-dependencies"
+      ],
+      "acceptance": [
+        "GET /api/v1/rss/feeds - List RSS feed sources",
+        "POST /api/v1/rss/feeds - Add new RSS feed source", 
+        "POST /api/v1/rss/ingest - Trigger manual RSS ingestion",
+        "GET /api/v1/rss/articles/{article_id} - Get RSS article with entities",
+        "GET /api/v1/rss/metrics - RSS ingestion performance metrics"
+      ]
+    },
+    {
+      "id": "rss-websocket-integration",
+      "title": "Implement RSS WebSocket Integration",
+      "stream": "backend",
+      "files": [
+        "api/services/realtime_service.py"
+      ],
+      "est_hours": 4,
+      "difficulty_1to10": 6,
+      "deps": [
+        "rss-missing-dependencies",
+        "rss-api-endpoints"
+      ],
+      "acceptance": [
+        "Custom RSS WebSocket message types implemented",
+        "Feed-specific subscriptions working",
+        "Message batching and throttling active",
+        "Integration with orjson safe_serialize_message()"
+      ]
+    },
+    {
+      "id": "rss-integration-tests",
+      "title": "Create RSS Integration Tests",
+      "stream": "testing",
+      "files": [
+        "api/tests/test_rss_ingestion.py",
+        "api/tests/test_rss_websocket.py"
+      ],
+      "est_hours": 5,
+      "difficulty_1to10": 5,
+      "deps": [
+        "rss-api-endpoints",
+        "rss-websocket-integration"
+      ],
+      "acceptance": [
+        "End-to-end RSS ingestion test pipeline",
+        "WebSocket message validation tests",
+        "Performance SLO validation for RSS components",
+        "Anti-crawler strategy testing"
+      ]
+    },
+    {
+      "id": "rss-ui-components",
+      "title": "Create RSS Management UI Components",
+      "stream": "frontend",
+      "files": [
+        "frontend/src/components/RSS/RSSFeedManager.tsx",
+        "frontend/src/components/RSS/RSSMetrics.tsx",
+        "frontend/src/hooks/useRSS.ts"
+      ],
+      "est_hours": 8,
+      "difficulty_1to10": 7,
+      "deps": [
+        "rss-api-endpoints",
+        "rss-websocket-integration"
+      ],
+      "acceptance": [
+        "RSS feed management interface",
+        "Real-time ingestion metrics display",
+        "WebSocket integration with React Query",
+        "Miller's Columns integration for RSS entities"
+      ]
+    },
+    {
+      "id": "ltree-refresh-validation",
+      "title": "Validate Materialized View Refresh Mechanism",
+      "stream": "backend",
+      "files": [
+        "scripts/test_automated_refresh_fixed.py"
+      ],
+      "est_hours": 2,
+      "difficulty_1to10": 3,
+      "deps": [
+        "performance-ancestor-regression"
+      ],
+      "acceptance": [
+        "Manual refresh mechanism tested and working",
+        "API endpoint /api/navigation/refresh-hierarchy-views functional",
+        "Database trigger-based refresh evaluated",
+        "Performance impact documented"
+      ]
+    },
+    {
+      "id": "rss-anti-crawler-completion",
+      "title": "Complete Anti-Crawler Implementation",
+      "stream": "backend",
+      "files": [
+        "api/services/rss/anti_crawler/manager.py"
+      ],
+      "est_hours": 4,
+      "difficulty_1to10": 6,
+      "deps": [],
+      "acceptance": [
+        "Domain-specific exponential backoff implemented",
+        "User agent rotation functional",
+        "Sliding window success rate analysis",
+        "Persistence across service restarts"
+      ]
+    },
+    {
+      "id": "cache-invalidation-probe",
+      "title": "Implement Cache Invalidation Strategy",
+      "stream": "backend",
+      "files": [
+        "api/services/cache_service.py"
+      ],
+      "est_hours": 6,
+      "difficulty_1to10": 8,
+      "deps": [
+        "rss-missing-dependencies"
+      ],
+      "acceptance": [
+        "Four-tier cache invalidation propagation",
+        "RSS-specific cache key strategies",
+        "Cache performance monitoring integration",
+        "Materialized view coordination with cache layers"
+      ]
+    },
+    {
+      "id": "rss-entity-integration",
+      "title": "Integrate RSS Entities with Hierarchy System",
+      "stream": "backend",
+      "files": [
+        "api/navigation_api/database/optimized_hierarchy_resolver.py"
+      ],
+      "est_hours": 8,
+      "difficulty_1to10": 9,
+      "deps": [
+        "rss-missing-dependencies",
+        "performance-ancestor-regression"
+      ],
+      "acceptance": [
+        "RSS entities automatically linked to geographic hierarchy",
+        "LTREE path generation for RSS entities",
+        "Entity confidence scoring integration",
+        "Hierarchical navigation includes RSS-derived entities"
+      ]
+    }
+  ],
+  "metadata": {
+    "created_at": "2025-11-06T17:02:37.413Z",
+    "focus_areas": [
+      "RSS ingestion pipeline completion",
+      "Performance regression resolution", 
+      "WebSocket-RSS integration",
+      "UI components for RSS management",
+      "Cache strategy optimization"
+    ],
+    "critical_paths": [
+      "rss-missing-dependencies → rss-api-endpoints → rss-websocket-integration → rss-ui-components",
+      "performance-ancestor-regression → ltree-refresh-validation"
+    ],
+    "blockers_identified": [
+      "Missing RSS service dependency classes",
+      "Ancestor resolution performance regression",
+      "Cache invalidation strategy gaps"
+    ]
+  }
+}
