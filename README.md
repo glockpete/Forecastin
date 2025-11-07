@@ -333,6 +333,7 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 - [Performance Optimization Report](docs/PERFORMANCE_OPTIMIZATION_REPORT.md)
 
 ### **Deployment Guides**
+- [Railway Setup Guide](docs/RAILWAY_SETUP_GUIDE.md) - Deploy Forecastin to Railway platform
 - [Geospatial Deployment Guide](docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md)
 - [LTREE Refresh Implementation](docs/LTREE_REFRESH_IMPLEMENTATION.md)
 
