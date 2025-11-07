@@ -1,4 +1,4 @@
-# ========================================
+h# ========================================
 # BUILD STAGE - Install dependencies and build artifacts
 # ========================================
 FROM python:3.11-slim as builder
@@ -24,12 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # Copy requirements first for better layer caching
-COPY requirements.txt .
-
+COPY requirements_mini.txt .
 # Install Python dependencies with specific optimizations
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
-
+pip install --no-cache-dir -r requirements_mini.txt
 # Copy source code for any post-install tasks
 COPY . .
 
