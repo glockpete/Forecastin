@@ -273,6 +273,7 @@ export async function dispatchRealtimeMessage(
 
 export class MessageSequenceTracker {
   private sequences = new Map<string, number>();
+  private processingQueue = new Map<string, Promise<void>>();
 
   /**
    * Check if a message is out of order or duplicate
@@ -305,10 +306,52 @@ export class MessageSequenceTracker {
   }
 
   /**
+   * Process a message in order, preventing race conditions
+   * Ensures messages from the same client are processed sequentially
+   *
+   * @param message - The message to process
+   * @param handler - Async function that processes the message
+   * @returns Promise that resolves when the message is processed
+   */
+  async processInOrder(
+    message: RealtimeMessage,
+    handler: () => Promise<void>
+  ): Promise<void> {
+    const clientId = message.meta.clientId || 'default';
+
+    // Get the previous promise in the queue (or a resolved one if this is the first)
+    const previousPromise = this.processingQueue.get(clientId) || Promise.resolve();
+
+    // Create a new promise that waits for the previous one to complete
+    const currentPromise = previousPromise
+      .then(async () => {
+        // Only process if the message should be processed (sequence check)
+        if (this.shouldProcess(message)) {
+          await handler();
+        } else {
+          console.log(
+            `Skipping out-of-order or duplicate message: seq=${message.meta.sequence}, client=${clientId}`
+          );
+        }
+      })
+      .catch((error) => {
+        // Log error but don't block subsequent messages
+        console.error(`Error processing message in sequence for client ${clientId}:`, error);
+      });
+
+    // Update the queue with the current promise
+    this.processingQueue.set(clientId, currentPromise);
+
+    // Wait for this message to be processed
+    await currentPromise;
+  }
+
+  /**
    * Reset tracking for a client
    */
   reset(clientId: string): void {
     this.sequences.delete(clientId);
+    this.processingQueue.delete(clientId);
   }
 
   /**
@@ -316,6 +359,7 @@ export class MessageSequenceTracker {
    */
   clearAll(): void {
     this.sequences.clear();
+    this.processingQueue.clear();
   }
 }
 
