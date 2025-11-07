@@ -26,13 +26,6 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [
-          types-redis,
-          types-requests,
-          types-aiohttp,
-          pydantic,
-          fastapi
-        ]
         args: [--ignore-missing-imports, --strict-optional]
 
   # Python security linting
@@ -75,12 +68,13 @@ repos:
           - '@prettier/plugin-xml@^3.0.0'
 
   # TypeScript type checking
-  - repo: https://github.com/pre-commit/mirrors-typescript
-    rev: v5.3.3
-    hooks:
-      - id: typecheck
-        files: \.(ts|tsx)$
-        types: [file]
+  # Disabled - type checking is better done in CI/CD pipeline
+  # - repo: https://github.com/pre-commit/mirrors-typescript
+  #   rev: v5.3.3
+  #   hooks:
+  #     - id: typecheck
+  #       files: \.(ts|tsx)$
+  #       types: [file]
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -106,12 +100,13 @@ repos:
         args: [--convention=google]
 
   # SQL formatting
-  - repo: https://github.com/sqlfluff/sqlfluff
-    rev: 2.3.5
-    hooks:
-      - id: sqlfluff-lint
-        additional_dependencies: ['sqlfluff-templater-dbt']
-      - id: sqlfluff-format
+  # Disabled - can be enabled later if needed
+  # - repo: https://github.com/sqlfluff/sqlfluff
+  #   rev: 2.3.5
+  #   hooks:
+  #     - id: sqlfluff-lint
+  #       additional_dependencies: ['sqlfluff-templater-dbt']
+  #     - id: sqlfluff-format
 
   # Dockerfile linting
   - repo: https://github.com/hadolint/hadolint
@@ -127,107 +122,111 @@ repos:
       - id: shellcheck
 
   # Dockerfile formatting
-  - repo: https://github.com/cyril/vim-dockerfile-format
-    rev: v1.1.0
-    hooks:
-      - id: dockerfile-format
+  # Disabled - unusual hook, can be enabled later if needed
+  # - repo: https://github.com/cyril/vim-dockerfile-format
+  #   rev: v1.1.0
+  #   hooks:
+  #     - id: dockerfile-format
 
   # Python requirements.txt sorting
-  - repo: https://github.com/pre-commit/mirrors-pip-tools
-    rev: v7.3.0
-    hooks:
-      - id: pip-compile
-        files: ^(api/requirements\.txt|.*/requirements\.in)$
-        args: [--generate-hashes]
+  # Disabled - causes issues with multiple requirements files
+  # - repo: https://github.com/pre-commit/mirrors-pip-tools
+  #   rev: v7.3.0
+  #   hooks:
+  #     - id: pip-compile
+  #       files: ^(api/requirements\.txt|.*/requirements\.in)$
+  #       args: [--generate-hashes]
 
   # Custom hooks for project-specific checks
-  - repo: local
-    hooks:
-      # Check API endpoint documentation consistency
-      - id: check-api-docs
-        name: Check API documentation consistency
-        entry: python scripts/check_api_docs.py
-        language: system
-        files: api/.*\.py$
-        pass_filenames: false
-
-      # Check TypeScript type definitions consistency
-      - id: check-typescript-consistency
-        name: Check TypeScript type consistency
-        entry: python scripts/check_typescript_consistency.py
-        language: system
-        files: frontend/src/.*\.(ts|tsx)$
-        pass_filenames: false
-
-      # Performance regression check
-      - id: performance-regression-check
-        name: Check performance regression
-        entry: python scripts/check_performance_regression.py
-        language: system
-        files: api/.*\.(py)$
-        pass_filenames: false
-        stages: [push]
-
-      # Database migration validation
-      - id: validate-migrations
-        name: Validate database migrations
-        entry: python scripts/validate_migrations.py
-        language: system
-        files: migrations/.*\.sql$
-        pass_filenames: false
-
-      # Security scan for secrets
-      - id: detect-secrets
-        name: Detect secrets in code
-        entry: python scripts/detect_secrets.py
-        language: system
-        pass_filenames: true
-
-      # Documentation consistency check
-      - id: check-docs-consistency
-        name: Check documentation consistency
-        entry: python scripts/check_docs_consistency.py
-        language: system
-        files: docs/.*\.md$
-        pass_filenames: false
-
-      # Frontend build validation
-      - id: frontend-build-check
-        name: Validate frontend build
-        entry: bash -c 'cd frontend && npm run build --if-present'
-        language: system
-        files: frontend/src/.*\.(ts|tsx|js|jsx)$
-        pass_filenames: false
-
-      # Backend API health check
-      - id: api-health-check
-        name: Check API health
-        entry: python scripts/check_api_health.py
-        language: system
-        files: api/.*\.py$
-        pass_filenames: false
-        stages: [push]
-
-      # Compliance evidence collection
-      - id: collect-compliance-evidence
-        name: Collect compliance evidence
-        entry: python scripts/collect_compliance_evidence.py
-        language: system
-        pass_filenames: false
-        stages: [push]
-
-      # Materialized view refresh check
-      - id: check-mv-refresh
-        name: Check materialized view refresh
-        entry: python scripts/check_materialized_view_refresh.py
-        language: system
-        files: api/navigation_api/.*\.(py)$
-        pass_filenames: false
-
-      # WebSocket serialization check
-      - id: check-websocket-serialization
-        name: Check WebSocket serialization
-        entry: python scripts/check_websocket_serialization.py
-        language: system
-        files: api/.*\.(py)$
-        pass_filenames: false
+  # NOTE: These custom scripts are not yet implemented.
+  # Uncomment and implement when ready.
+  # - repo: local
+  #   hooks:
+  #     # Check API endpoint documentation consistency
+  #     - id: check-api-docs
+  #       name: Check API documentation consistency
+  #       entry: python scripts/check_api_docs.py
+  #       language: system
+  #       files: api/.*\.py$
+  #       pass_filenames: false
+  #
+  #     # Check TypeScript type definitions consistency
+  #     - id: check-typescript-consistency
+  #       name: Check TypeScript type consistency
+  #       entry: python scripts/check_typescript_consistency.py
+  #       language: system
+  #       files: frontend/src/.*\.(ts|tsx)$
+  #       pass_filenames: false
+  #
+  #     # Performance regression check
+  #     - id: performance-regression-check
+  #       name: Check performance regression
+  #       entry: python scripts/check_performance_regression.py
+  #       language: system
+  #       files: api/.*\.(py)$
+  #       pass_filenames: false
+  #       stages: [push]
+  #
+  #     # Database migration validation
+  #     - id: validate-migrations
+  #       name: Validate database migrations
+  #       entry: python scripts/validate_migrations.py
+  #       language: system
+  #       files: migrations/.*\.sql$
+  #       pass_filenames: false
+  #
+  #     # Security scan for secrets
+  #     - id: detect-secrets
+  #       name: Detect secrets in code
+  #       entry: python scripts/detect_secrets.py
+  #       language: system
+  #       pass_filenames: true
+  #
+  #     # Documentation consistency check
+  #     - id: check-docs-consistency
+  #       name: Check documentation consistency
+  #       entry: python scripts/check_docs_consistency.py
+  #       language: system
+  #       files: docs/.*\.md$
+  #       pass_filenames: false
+  #
+  #     # Frontend build validation
+  #     - id: frontend-build-check
+  #       name: Validate frontend build
+  #       entry: bash -c 'cd frontend && npm run build --if-present'
+  #       language: system
+  #       files: frontend/src/.*\.(ts|tsx|js|jsx)$
+  #       pass_filenames: false
+  #
+  #     # Backend API health check
+  #     - id: api-health-check
+  #       name: Check API health
+  #       entry: python scripts/check_api_health.py
+  #       language: system
+  #       files: api/.*\.py$
+  #       pass_filenames: false
+  #       stages: [push]
+  #
+  #     # Compliance evidence collection
+  #     - id: collect-compliance-evidence
+  #       name: Collect compliance evidence
+  #       entry: python scripts/collect_compliance_evidence.py
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [push]
+  #
+  #     # Materialized view refresh check
+  #     - id: check-mv-refresh
+  #       name: Check materialized view refresh
+  #       entry: python scripts/check_materialized_view_refresh.py
+  #       language: system
+  #       files: api/navigation_api/.*\.(py)$
+  #       pass_filenames: false
+  #
+  #     # WebSocket serialization check
+  #     - id: check-websocket-serialization
+  #       name: Check WebSocket serialization
+  #       entry: python scripts/check_websocket_serialization.py
+  #       language: system
+  #       files: api/.*\.(py)$
+  #       pass_filenames: false

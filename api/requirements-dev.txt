@@ -1,0 +1,28 @@
+# Development Dependencies
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+
+# Testing Dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-benchmark==4.0.0
+
+# Code Quality and Linting
+black==23.12.1
+isort==5.13.2
+flake8==7.0.0
+mypy==1.7.1
+types-redis==4.6.0.11
+
+# Security Scanning
+bandit==1.7.5
+safety==2.3.5
+semgrep==1.45.0
+
+# Pre-commit hooks
+pre-commit==3.6.0
+
+# Performance Testing
+locust==2.20.0
+memory-profiler==0.61.0
+psutil==5.9.6

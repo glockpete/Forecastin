@@ -63,43 +63,38 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('api/requirements.txt') }}
 
       - name: Install Python dependencies
-        continue-on-error: true
         run: |
           cd api
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
-          pip install pytest-cov black isort flake8 bandit safety || true
+          pip install -r requirements.txt
+          pip install pytest-cov black isort flake8 bandit safety
 
       - name: Install Node dependencies
-        continue-on-error: true
         run: |
           cd frontend
-          npm ci || true
+          npm ci
 
       - name: Run backend linting
-        continue-on-error: true
         run: |
           cd api
-          black --check . || echo "Black formatting issues found (non-blocking)"
-          isort --check-only . || echo "Import sorting issues found (non-blocking)"
-          flake8 . --max-line-length=120 --extend-ignore=E203,W503 || echo "Flake8 issues found (non-blocking)"
-          bandit -r . -f json -o bandit-report.json || echo "Bandit security issues found (non-blocking)"
+          black --check .
+          isort --check-only .
+          flake8 . --max-line-length=120 --extend-ignore=E203,W503
+          bandit -r . -f json -o bandit-report.json
 
       - name: Run backend tests with coverage
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
         run: |
           cd api
-          pytest --cov=. --cov-report=xml --cov-report=html || echo "Some tests failed (non-blocking)"
+          pytest --cov=. --cov-report=xml --cov-report=html
 
       - name: Security scan
-        continue-on-error: true
         run: |
           cd api
-          safety check || echo "Safety check found issues (non-blocking)"
-          bandit -r . -ll || echo "Bandit found security issues (non-blocking)"
+          safety check
+          bandit -r . -ll
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -123,23 +118,20 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        continue-on-error: true
         run: |
           cd frontend
-          npm ci || true
+          npm ci
 
       - name: Run frontend linting
-        continue-on-error: true
         run: |
           cd frontend
-          npx eslint src --ext .ts,.tsx --format json --output-file eslint-report.json || echo "ESLint issues found (non-blocking)"
-          npx tsc --noEmit || echo "TypeScript errors found (non-blocking)"
+          npx eslint src --ext .ts,.tsx --format json --output-file eslint-report.json
+          npx tsc --noEmit
 
       - name: Run frontend tests
-        continue-on-error: true
         run: |
           cd frontend
-          npm test || echo "Frontend tests found issues (non-blocking)"
+          npm test
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -175,32 +167,29 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install database dependencies
-        continue-on-error: true
         run: |
-          pip install psycopg2-binary || true
+          pip install psycopg2-binary
 
       - name: Test database schema
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         run: |
           # Test that migrations run successfully
-          psql $DATABASE_URL -c "SELECT 1;" || echo "Database connection failed"
+          psql $DATABASE_URL -c "SELECT 1;"
 
           # Validate LTREE and PostGIS extensions
-          psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS ltree;" || echo "LTREE extension failed"
-          psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "PostGIS extension failed"
+          psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS ltree;"
+          psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
           # Test sample schema creation (validate our initial schema)
           echo "Testing initial schema migration..."
 
       - name: Performance validation
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         run: |
           # Run performance tests to validate SLOs
-          python scripts/performance_test.py || echo "Performance tests completed with warnings"
+          python scripts/performance_test.py
 
   # Docker Build and Security Scan
   docker-build:
@@ -211,23 +200,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        continue-on-error: true
         uses: docker/setup-buildx-action@v3
 
       - name: Build backend Docker image
-        continue-on-error: true
         run: |
-          docker build -t forecastin-api:test ./api || echo "Backend Docker build completed with warnings"
+          docker build -t forecastin-api:test ./api
           exit 0
 
       - name: Build frontend Docker image
-        continue-on-error: true
         run: |
-          docker build -t forecastin-frontend:test ./frontend || echo "Frontend Docker build completed with warnings"
+          docker build -t forecastin-frontend:test ./frontend
           exit 0
 
       - name: Run Trivy vulnerability scanner
-        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'forecastin-api:test'
@@ -235,7 +220,6 @@ jobs:
           output: 'trivy-results-api.sarif'
 
       - name: Run Trivy on frontend
-        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'forecastin-frontend:test'
@@ -243,7 +227,6 @@ jobs:
           output: 'trivy-results-frontend.sarif'
 
       - name: Upload Trivy scan results
-        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'trivy-results-api.sarif'
@@ -266,30 +249,26 @@ jobs:
           exit 0
 
       - uses: actions/checkout@v4
-        continue-on-error: true
 
       - name: Set up Python
-        continue-on-error: true
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Run compliance evidence collection
-        continue-on-error: true
         run: |
           # Collect evidence for compliance reporting
-          python scripts/gather_metrics.py --output deliverables/compliance/evidence/metrics.json || true
-          python scripts/check_consistency.py --target deliverables/compliance/evidence/consistency_check.json || true
+          python scripts/gather_metrics.py --output deliverables/compliance/evidence/metrics.json
+          python scripts/check_consistency.py --target deliverables/compliance/evidence/consistency_check.json
 
           # Generate compliance report
           python scripts/generate_compliance_report.py \
             --evidence-dir deliverables/compliance/evidence \
-            --output deliverables/compliance/compliance_report.md || true
+            --output deliverables/compliance/compliance_report.md
 
           exit 0
 
       - name: Upload compliance evidence
-        continue-on-error: true
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -313,7 +292,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run load tests
-        continue-on-error: true
         run: |
           # Run performance tests to validate SLOs
           # Target metrics from AGENTS.md:
@@ -329,7 +307,6 @@ jobs:
           echo "✅ Performance tests completed"
 
       - name: Upload performance results
-        continue-on-error: true
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -378,17 +355,15 @@ jobs:
           node-version: "18"
 
       - name: Run npm security audit
-        continue-on-error: true
         run: |
           cd frontend
-          npm audit --audit-level=moderate || echo "npm audit found issues (non-blocking)"
+          npm audit --audit-level=moderate
 
       - name: Run Python safety check
-        continue-on-error: true
         run: |
-          pip install safety || true
+          pip install safety
           cd api
-          safety check --json || echo "safety check found issues (non-blocking)"
+          safety check --json
 
       - name: License compliance check
         run: |
@@ -489,13 +464,13 @@ jobs:
 
           echo "✅ $SUCCESS_COUNT/7 jobs completed successfully"
 
-          # Pass CI if critical jobs succeeded or if using continue-on-error
+          # Fail CI if any critical jobs failed
           if [[ "${{ needs.backend-test.result }}" != "failure" && \
                 "${{ needs.frontend-test.result }}" != "failure" ]]; then
-            echo "✅ CI/CD Pipeline: PASSED (critical jobs completed)"
+            echo "✅ CI/CD Pipeline: PASSED (all critical jobs completed)"
             exit 0
           else
-            echo "⚠️ CI/CD Pipeline: Some checks need attention"
-            echo "✅ Allowing pipeline to continue (non-blocking mode)"
-            exit 0
+            echo "❌ CI/CD Pipeline: FAILED (one or more critical jobs failed)"
+            echo "Critical jobs must pass before merging."
+            exit 1
           fi
