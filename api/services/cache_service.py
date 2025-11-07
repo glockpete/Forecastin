@@ -8,17 +8,22 @@ Implements the multi-tier caching strategy:
 - L4: Materialized views (handled by DB layer)
 
 Following the patterns specified in AGENTS.md.
+
+Performance optimizations:
+- OrderedDict-based LRU for O(1) operations instead of list-based O(n)
+- orjson for fast Redis serialization (2-5x faster than standard json)
 """
 
 import asyncio
-import json
 import logging
 import threading
 import time
 from typing import Any, Dict, List, Optional, Set, Union, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from collections import OrderedDict
 
+import orjson
 import redis.asyncio as aioredis
 from redis.asyncio import Redis, ConnectionPool
 
@@ -145,6 +150,8 @@ class LRUMemoryCache:
     
     Uses RLock instead of standard Lock for re-entrant locking
     to prevent deadlocks in complex query scenarios.
+    
+    Performance: Uses OrderedDict for O(1) LRU operations instead of list-based O(n).
     """
     
     def __init__(self, max_size: int = 10000):
@@ -155,8 +162,8 @@ class LRUMemoryCache:
             max_size: Maximum number of entries in cache
         """
         self.max_size = max_size
-        self._cache: Dict[str, LRUCacheEntry] = {}
-        self._access_order: List[str] = []  # LRU order (least recently used at end)
+        # OrderedDict maintains insertion order and provides O(1) move_to_end()
+        self._cache: OrderedDict[str, LRUCacheEntry] = OrderedDict()
         
         # Use RLock instead of standard Lock for thread safety
         self._lock = threading.RLock()
@@ -186,9 +193,8 @@ class LRUMemoryCache:
                     self._metrics.last_miss_time = time.time()
                     return None
 
-            # Update access order and count
-            self._access_order.remove(key)
-            self._access_order.append(key)
+            # Update access order with O(1) operation
+            self._cache.move_to_end(key)
             entry.access_count += 1
 
             self._metrics.hits += 1
@@ -220,23 +226,20 @@ class LRUMemoryCache:
                 if key_type:
                     entry.key_type = key_type
 
-                # Update access order
-                if key in self._access_order:
-                    self._access_order.remove(key)
-                self._access_order.append(key)
+                # Update access order with O(1) operation
+                self._cache.move_to_end(key)
             else:
                 # Check if we need to evict
                 if len(self._cache) >= self.max_size:
                     self._evict_lru()
 
-                # Add new entry
+                # Add new entry - OrderedDict insertion is O(1)
                 self._cache[key] = LRUCacheEntry(
                     value=value,
                     timestamp=current_time,
                     ttl=ttl,
                     key_type=key_type
                 )
-                self._access_order.append(key)
 
             # Trigger invalidation hooks for multi-tier coordination
             self._trigger_invalidation_hooks(key, value)
@@ -250,27 +253,25 @@ class LRUMemoryCache:
         """Internal delete method (assumes lock is held)."""
         if key in self._cache:
             del self._cache[key]
-            if key in self._access_order:
-                self._access_order.remove(key)
             return True
         return False
     
     def _evict_lru(self) -> None:
-        """Evict least recently used entry."""
-        if self._access_order:
-            lru_key = self._access_order[0]
-            self._delete(lru_key)
+        """Evict least recently used entry. OrderedDict keeps oldest items first."""
+        if self._cache:
+            # popitem(last=False) removes the first (oldest) item - O(1)
+            lru_key, _ = self._cache.popitem(last=False)
             self._metrics.evictions += 1
     
     def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
+            eviction_count = len(self._cache)
             self._cache.clear()
-            self._access_order.clear()
-            self._metrics.evictions += len(self._cache)
+            self._metrics.evictions += eviction_count
     
     def get_metrics(self) -> CacheMetrics:
-        """Get cache performance metrics."""
+        """Get cache performance metrics including RSS-specific counters."""
         with self._lock:
             return CacheMetrics(
                 hits=self._metrics.hits,
@@ -280,7 +281,12 @@ class LRUMemoryCache:
                 memory_operations=self._metrics.memory_operations,
                 last_hit_time=self._metrics.last_hit_time,
                 last_miss_time=self._metrics.last_miss_time,
-                total_response_time=self._metrics.total_response_time
+                total_response_time=self._metrics.total_response_time,
+                rss_feed_hits=self._metrics.rss_feed_hits,
+                rss_article_hits=self._metrics.rss_article_hits,
+                rss_entity_hits=self._metrics.rss_entity_hits,
+                invalidations=self._metrics.invalidations,
+                cascade_invalidations=self._metrics.cascade_invalidations
             )
     
     def add_invalidation_hook(self, hook: callable) -> None:
@@ -420,11 +426,11 @@ class CacheService:
                 )
                 
                 if redis_value is not None:
-                    # Deserialize and store in L1 for next time
+                    # Deserialize with orjson (2-5x faster than standard json) and store in L1
                     try:
-                        value = json.loads(redis_value.decode('utf-8'))
-                    except (json.JSONDecodeError, UnicodeDecodeError):
-                        value = redis_value  # Store as bytes
+                        value = orjson.loads(redis_value)
+                    except (orjson.JSONDecodeError, UnicodeDecodeError, ValueError):
+                        value = redis_value  # Store as bytes if deserialization fails
                     
                     # Store in memory cache for faster subsequent access
                     self._memory_cache.set(key, value, self.default_ttl)
@@ -473,11 +479,16 @@ class CacheService:
         # L2: Store in Redis
         if self._redis_connected and self._redis:
             try:
-                # Serialize value for Redis
+                # Serialize value for Redis with orjson (2-5x faster than standard json)
                 try:
-                    redis_value = json.dumps(value, default=str)
+                    # orjson.dumps returns bytes, perfect for Redis
+                    redis_value = orjson.dumps(
+                        value,
+                        option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
+                    )
                 except (TypeError, ValueError):
-                    redis_value = value  # Store as-is if serialization fails
+                    # Fallback: try converting to string for non-serializable types
+                    redis_value = str(value).encode('utf-8')
 
                 await self._retry_redis_operation(
                     self._redis.setex(key, ttl, redis_value)
