@@ -1,0 +1,27 @@
+{
+  "type": "gpu_filter_sync",
+  "payload": {
+    "filter_id": "spatial-filter-tokyo",
+    "filter_type": "spatial",
+    "filter_params": {
+      "bounds": {
+        "minLat": 35.0,
+        "maxLat": 36.0,
+        "minLng": 139.0,
+        "maxLng": 140.0
+      }
+    },
+    "affected_layers": [
+      "tokyo-infrastructure",
+      "cities-layer",
+      "weather-layer"
+    ],
+    "status": "applied",
+    "changed_at": 1699564801.234
+  },
+  "meta": {
+    "timestamp": 1699564801.234,
+    "sequence": 10,
+    "clientId": "client-002"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "type": "linestring_update",
+  "action": "route_change",
+  "payload": {
+    "entityId": "entity-nordstream-pipeline",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [10.0, 54.0],
+        [13.0, 55.0],
+        [16.0, 56.0],
+        [20.0, 58.0],
+        [28.0, 60.0]
+      ]
+    },
+    "properties": {
+      "name": "Nord Stream Pipeline",
+      "entityType": "pipeline",
+      "confidence": 0.91,
+      "hierarchyPath": "world.europe.infrastructure.energy.nordstream"
+    },
+    "bbox": {
+      "minLat": 54.0,
+      "maxLat": 60.0,
+      "minLng": 10.0,
+      "maxLng": 28.0
+    },
+    "changeReason": "Infrastructure damage update",
+    "timestamp": "2024-11-06T12:35:00.000Z"
+  },
+  "meta": {
+    "timestamp": 1699564803.890,
+    "sequence": 20,
+    "clientId": "client-003"
+  }
+}

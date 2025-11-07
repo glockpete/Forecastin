@@ -1,0 +1,30 @@
+{
+  "type": "layer_data_update",
+  "payload": {
+    "layer_id": "weather-layer",
+    "layer_type": "heatmap",
+    "layer_data": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [140.5, 35.5]
+          },
+          "properties": {
+            "temperature": 22.5,
+            "humidity": 65,
+            "confidence": 0.87
+          }
+        }
+      ]
+    },
+    "changed_at": 1699564790.789
+  },
+  "meta": {
+    "timestamp": 1699564790.789,
+    "sequence": 3,
+    "clientId": "client-001"
+  }
+}

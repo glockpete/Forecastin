@@ -1,0 +1,80 @@
+--- a/frontend/src/types/ws_messages.ts
++++ b/frontend/src/types/ws_messages.ts
+@@ -366,10 +366,13 @@ export class MessageDeduplicator {
+   private recentMessages = new Map<string, number>();
+   private readonly windowMs: number;
++  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+   constructor(windowMs: number = 5000) {
+     this.windowMs = windowMs;
++    // Periodic cleanup to prevent memory leak during idle periods
++    this.cleanupTimer = setInterval(() => this.cleanup(Date.now()), windowMs);
+   }
+
+   /**
+@@ -410,6 +413,14 @@ export class MessageDeduplicator {
+   clear(): void {
+     this.recentMessages.clear();
+   }
++
++  /**
++   * Destroy and cleanup timer (call on component unmount)
++   */
++  destroy(): void {
++    if (this.cleanupTimer) {
++      clearInterval(this.cleanupTimer);
++    }
++  }
+ }
+
+--- /dev/null
++++ b/frontend/src/types/__tests__/MessageDeduplicator.leak.test.ts
+@@ -0,0 +1,48 @@
++/**
++ * Test that MessageDeduplicator doesn't leak memory during idle periods
++ */
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
++import { MessageDeduplicator } from '../ws_messages';
++
++describe('MessageDeduplicator memory leak prevention', () => {
++  beforeEach(() => {
++    vi.useFakeTimers();
++  });
++
++  afterEach(() => {
++    vi.useRealTimers();
++  });
++
++  it('should cleanup old messages during idle period', () => {
++    const windowMs = 1000;
++    const dedup = new MessageDeduplicator(windowMs);
++
++    // Process 10 messages at time 0
++    const mockMessage = {
++      type: 'layer_data_update' as const,
++      payload: {
++        layer_id: 'test',
++        layer_type: 'point' as const,
++        layer_data: { type: 'FeatureCollection' as const, features: [] },
++        changed_at: 0,
++      },
++      meta: { timestamp: 0 },
++    };
++
++    for (let i = 0; i < 10; i++) {
++      dedup.isNew(mockMessage);
++    }
++
++    // Verify messages are tracked
++    expect((dedup as any).recentMessages.size).toBeGreaterThan(0);
++
++    // Advance time beyond window (no new messages)
++    vi.advanceTimersByTime(windowMs + 100);
++
++    // Timer should have cleaned up old messages
++    expect((dedup as any).recentMessages.size).toBe(0);
++
++    // Cleanup
++    dedup.destroy();
++  });
++});

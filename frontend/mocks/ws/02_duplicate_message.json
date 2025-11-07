@@ -1,0 +1,36 @@
+{
+  "type": "layer_data_update",
+  "payload": {
+    "layer_id": "cities-layer",
+    "layer_type": "point",
+    "layer_data": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [139.6917, 35.6895, 40]
+          },
+          "properties": {
+            "name": "Tokyo",
+            "population": 13960000,
+            "confidence": 0.98
+          }
+        }
+      ]
+    },
+    "bbox": {
+      "minLat": 35.0,
+      "maxLat": 36.0,
+      "minLng": 139.0,
+      "maxLng": 140.0
+    },
+    "changed_at": 1699564800.456
+  },
+  "meta": {
+    "timestamp": 1699564800.456,
+    "sequence": 5,
+    "clientId": "client-001"
+  }
+}
