@@ -187,12 +187,12 @@ export class LayerPerformanceMonitor extends EventEmitter {
 
     if (this.reportingInterval) {
       clearInterval(this.reportingInterval);
-      this.reportingInterval = undefined;
+      delete (this as any).reportingInterval;
     }
 
     if (this.websocket) {
       this.websocket.close();
-      this.websocket = undefined;
+      delete (this as any).websocket;
     }
 
     console.log('[LayerPerformanceMonitor] Stopped monitoring');
@@ -224,7 +224,7 @@ export class LayerPerformanceMonitor extends EventEmitter {
         memoryUsage,
         cacheHitRate: cacheStats?.hitRate || 0,
         cacheTier: cacheStats?.tier as any,
-        cacheLatency: cacheStats?.latency,
+        ...(cacheStats?.latency !== undefined && { cacheLatency: cacheStats.latency }),
         timestamp: Date.now()
       };
 
@@ -258,12 +258,14 @@ export class LayerPerformanceMonitor extends EventEmitter {
     pointsProcessed: number
   ): Promise<void> {
     await this.acquireLock();
-    
+
     try {
       const layerMetrics = this.metrics.get(layerId);
       if (layerMetrics && layerMetrics.length > 0) {
         const latestMetric = layerMetrics[layerMetrics.length - 1];
-        latestMetric.gpuFilterTime = filterTime;
+        if (latestMetric) {
+          latestMetric.gpuFilterTime = filterTime;
+        }
       }
 
       // Check GPU filter SLO
@@ -425,6 +427,10 @@ export class LayerPerformanceMonitor extends EventEmitter {
       );
 
       const latestMetric = layerMetrics[layerMetrics.length - 1];
+
+      if (!latestMetric) {
+        return null;
+      }
 
       return {
         layerId,

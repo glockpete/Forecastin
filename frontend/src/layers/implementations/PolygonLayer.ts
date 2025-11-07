@@ -124,10 +124,9 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
   private centroidBuffer: Float32Array | null = null;
   private performanceTarget = 10; // ms for 1000 polygons
   private updateTriggers = new Map<string, any>();
-  
-  // Multi-tier cache with RLock synchronization (simulated in JS)
-  protected readonly cacheLock = new Map<string, boolean>();
-  protected cacheStats = {
+
+  // Extended cache statistics (beyond BaseLayer's base stats)
+  protected override cacheStats = {
     hits: 0,
     misses: 0,
     ttlExpired: 0,
@@ -297,10 +296,12 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
     coordinates.forEach(polygon => {
       polygon.forEach(ring => {
         ring.forEach(([lng, lat]) => {
-          minLat = Math.min(minLat, lat);
-          maxLat = Math.max(maxLat, lat);
-          minLng = Math.min(minLng, lng);
-          maxLng = Math.max(maxLng, lng);
+          if (typeof lat === 'number' && typeof lng === 'number') {
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+          }
         });
       });
     });
@@ -458,6 +459,7 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
           ring.forEach(([lng, lat]) => {
             totalVertices++;
             if (
+              typeof lat === 'number' && typeof lng === 'number' &&
               lat >= config.bounds.minLat &&
               lat <= config.bounds.maxLat &&
               lng >= config.bounds.minLng &&
@@ -599,15 +601,20 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
    * Get polygon coordinates from entity
    */
   private getPolygonCoordinates(entity: PolygonEntityDataPoint): number[][] | number[][][] {
-    if (!entity.geometry) {
+    if (!entity.geometry || !entity.geometry.coordinates) {
       return [];
     }
-    
+
     if (entity.geometry.type === 'Polygon') {
-      return entity.geometry.coordinates[0]; // Return exterior ring
+      const ring = entity.geometry.coordinates[0];
+      return ring ? ring : []; // Return exterior ring with safety check
     } else {
       // For MultiPolygon, return first polygon's exterior ring
-      return entity.geometry.coordinates[0][0];
+      const polygon = entity.geometry.coordinates[0];
+      if (!polygon || !polygon[0]) {
+        return [];
+      }
+      return polygon[0];
     }
   }
 
@@ -855,24 +862,30 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
    * Compute centroid of polygon geometry
    */
   private computeCentroid(geometry: PolygonEntityDataPoint['geometry']): [number, number] {
-    if (!geometry) {
+    if (!geometry || !geometry.coordinates) {
       return [0, 0];
     }
-    
+
     const coordinates = geometry.type === 'Polygon' ?
       geometry.coordinates[0] :
-      geometry.coordinates[0][0];
-    
+      geometry.coordinates[0]?.[0];
+
+    if (!coordinates || !Array.isArray(coordinates) || coordinates.length === 0) {
+      return [0, 0];
+    }
+
     let sumLng = 0;
     let sumLat = 0;
     const pointCount = coordinates.length;
-    
+
     coordinates.forEach(([lng, lat]) => {
-      sumLng += lng;
-      sumLat += lat;
+      if (typeof lng === 'number' && typeof lat === 'number') {
+        sumLng += lng;
+        sumLat += lat;
+      }
     });
-    
-    return [sumLng / pointCount, sumLat / pointCount];
+
+    return pointCount > 0 ? [sumLng / pointCount, sumLat / pointCount] : [0, 0];
   }
 
   /**
@@ -943,7 +956,7 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
   /**
    * Trigger performance optimization when constraints are violated
    */
-  protected triggerPerformanceOptimization(): void {
+  protected override triggerPerformanceOptimization(): void {
     this.logAuditEvent('performance_optimization_triggered', {
       reason: 'performance_constraint_violation',
       currentRenderTime: this.performanceMetrics?.renderTime,

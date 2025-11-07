@@ -795,10 +795,10 @@ export type LegacyEntityData = EntityDataPoint[];
 
 // Type assertion helpers for legacy compatibility
 export const asLegacyConfig = (config: EnhancedLayerConfig): LegacyPointLayerConfig => {
-  return {
+  const result = {
     ...config,
     data: [], // Provide default empty array for legacy compatibility
-    featureFlag: config.featureFlag?.flagName, // Convert to string for legacy compatibility
+    ...(config.featureFlag?.flagName !== undefined && { featureFlag: config.featureFlag?.flagName }),
     getPosition: config.position ?
       (entity: EntityDataPoint) => {
         const lat = config.position?.lat ? (entity as any)[config.position.lat] : 0;
@@ -823,7 +823,9 @@ export const asLegacyConfig = (config: EnhancedLayerConfig): LegacyPointLayerCon
       entityIdField: 'id',
       confidenceField: 'confidence'
     }
-  };
+  } as LegacyPointLayerConfig;
+
+  return result;
 };
 
 // ============================================================================

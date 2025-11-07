@@ -98,7 +98,7 @@ export interface PointLayerProps {
 
 export class PointLayer extends BaseLayer<EntityDataPoint> {
   // Make startPerformanceMonitoring protected to match BaseLayer visibility
-  protected startPerformanceMonitoring(): void {
+  protected override startPerformanceMonitoring(): void {
     setInterval(() => {
       this.checkPerformanceHealth();
     }, 30000);
@@ -709,6 +709,7 @@ export class PointLayer extends BaseLayer<EntityDataPoint> {
       
       for (let j = 0; j < batch.length; j++) {
         const entity = batch[j];
+        if (!entity) continue;
         const filterValue = gpuConfig.filteredValueAccessor(entity);
         this.gpuFilterBuffer[i + j] = filterValue;
       }
@@ -864,7 +865,7 @@ export class PointLayer extends BaseLayer<EntityDataPoint> {
   /**
    * Trigger performance optimization when constraints are violated
    */
-  protected triggerPerformanceOptimization(): void {
+  protected override triggerPerformanceOptimization(): void {
     this.logAuditEvent('performance_optimization_triggered', {
       layerId: this.id,
       reason: 'performance_constraint_violation',
@@ -896,7 +897,7 @@ export class PointLayer extends BaseLayer<EntityDataPoint> {
   /**
    * Perform data sampling for performance optimization
    */
-  protected performDataSampling(): void {
+  protected override performDataSampling(): void {
     if (this.data.length <= 1000) return;
 
     // Sample data to maintain performance
@@ -917,7 +918,7 @@ export class PointLayer extends BaseLayer<EntityDataPoint> {
   /**
    * Invalidate caches when data changes
    */
-  protected invalidateCaches(): void {
+  protected override invalidateCaches(): void {
     this.entityCache.clear();
     this.updateTriggers.clear();
   }

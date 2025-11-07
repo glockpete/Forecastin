@@ -393,6 +393,13 @@ export class LayerDataTransform {
       }
 
       const transformed = rawData.map((item, index) => {
+        const hierarchy = options.includeHierarchy && item.entityId ? {
+          ancestors: [], // Would be populated from navigation API
+          descendants: [],
+          path: `entity:${item.entityId}`,
+          depth: 1
+        } : undefined;
+
         const layerData: LayerData = {
           id: item.id || `item_${index}`,
           geometry: item.geometry || null,
@@ -401,12 +408,7 @@ export class LayerDataTransform {
           source: item.source,
           timestamp: item.timestamp || new Date().toISOString(),
           entityId: item.entityId,
-          hierarchy: options.includeHierarchy && item.entityId ? {
-            ancestors: [], // Would be populated from navigation API
-            descendants: [],
-            path: `entity:${item.entityId}`,
-            depth: 1
-          } : undefined
+          ...(hierarchy !== undefined && { hierarchy })
         };
 
         return layerData;
