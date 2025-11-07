@@ -23,6 +23,7 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
+from pydantic import BaseModel, Field, ConfigDict
 
 from services.database_manager import DatabaseManager
 from services.cache_service import CacheService
@@ -32,33 +33,47 @@ from services.realtime_service import RealtimeService
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class FeatureFlag:
-    """Feature flag data model."""
+def to_camel(string: str) -> str:
+    """Convert snake_case to camelCase."""
+    components = string.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+
+class FeatureFlag(BaseModel):
+    """Feature flag data model with automatic camelCase serialization."""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
     id: UUID
     flag_name: str
-    description: Optional[str]
+    description: Optional[str] = None
     is_enabled: bool
     rollout_percentage: int
     created_at: float
     updated_at: float
-    
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert feature flag to dictionary."""
+        """Convert feature flag to dictionary with camelCase keys."""
         return {
             'id': str(self.id),
-            'flag_name': self.flag_name,
+            'flagName': self.flag_name,
             'description': self.description,
-            'is_enabled': self.is_enabled,
-            'rollout_percentage': self.rollout_percentage,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
+            'isEnabled': self.is_enabled,
+            'rolloutPercentage': self.rollout_percentage,
+            'createdAt': self.created_at,
+            'updatedAt': self.updated_at
         }
 
 
-@dataclass
-class CreateFeatureFlagRequest:
-    """Request model for creating feature flags."""
+class CreateFeatureFlagRequest(BaseModel):
+    """Request model for creating feature flags with automatic camelCase support."""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
     flag_name: str
     description: Optional[str] = None
     is_enabled: bool = False
@@ -67,9 +82,13 @@ class CreateFeatureFlagRequest:
     dependencies: Optional[List[str]] = None  # Flags this flag depends on
 
 
-@dataclass
-class UpdateFeatureFlagRequest:
-    """Request model for updating feature flags."""
+class UpdateFeatureFlagRequest(BaseModel):
+    """Request model for updating feature flags with automatic camelCase support."""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
     description: Optional[str] = None
     is_enabled: Optional[bool] = None
     rollout_percentage: Optional[int] = None
@@ -226,7 +245,7 @@ class FeatureFlagService:
         import orjson
         import json
         from uuid import UUID
-        
+
         # Handle both orjson and regular JSON data
         try:
             if data.startswith('{'):
@@ -238,15 +257,16 @@ class FeatureFlagService:
         except Exception as e:
             self.logger.error(f"Failed to deserialize feature flag: {e}")
             raise ValueError(f"Invalid feature flag data format")
-        
+
+        # Handle both camelCase (new format) and snake_case (legacy format)
         return FeatureFlag(
-            id=UUID(data_dict['id']),
-            flag_name=data_dict['flag_name'],
+            id=UUID(data_dict.get('id')),
+            flag_name=data_dict.get('flagName', data_dict.get('flag_name')),
             description=data_dict.get('description'),
-            is_enabled=data_dict['is_enabled'],
-            rollout_percentage=data_dict['rollout_percentage'],
-            created_at=data_dict['created_at'],
-            updated_at=data_dict['updated_at']
+            is_enabled=data_dict.get('isEnabled', data_dict.get('is_enabled')),
+            rollout_percentage=data_dict.get('rolloutPercentage', data_dict.get('rollout_percentage')),
+            created_at=data_dict.get('createdAt', data_dict.get('created_at')),
+            updated_at=data_dict.get('updatedAt', data_dict.get('updated_at'))
         )
     
     async def _retry_database_operation(self, coro):
