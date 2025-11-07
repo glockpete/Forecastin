@@ -1,0 +1,38 @@
+{
+  "type": "polygon_update",
+  "action": "boundary_change",
+  "payload": {
+    "entityId": "entity-ukraine-border",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [22.0, 48.0],
+          [40.0, 48.0],
+          [40.0, 52.0],
+          [22.0, 52.0],
+          [22.0, 48.0]
+        ]
+      ]
+    },
+    "properties": {
+      "name": "Ukraine Border Region",
+      "entityType": "country",
+      "confidence": 0.82,
+      "hierarchyPath": "world.europe.ukraine"
+    },
+    "bbox": {
+      "minLat": 48.0,
+      "maxLat": 52.0,
+      "minLng": 22.0,
+      "maxLng": 40.0
+    },
+    "changeReason": "Territorial dispute update",
+    "timestamp": "2024-11-06T12:30:00.000Z"
+  },
+  "meta": {
+    "timestamp": 1699564802.567,
+    "sequence": 15,
+    "clientId": "client-003"
+  }
+}

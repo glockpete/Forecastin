@@ -1,0 +1,29 @@
+{
+  "id": "rss-item-me-003",
+  "title": "Diplomatic tensions rise over territorial waters dispute",
+  "link": "https://example.com/news/middle-east-dispute-2024",
+  "description": "Regional powers engage in naval standoff over contested maritime boundaries in the Persian Gulf",
+  "pubDate": "2024-11-06T11:45:00.000Z",
+  "fiveW": {
+    "who": "Regional naval forces",
+    "what": "Naval standoff over territorial waters",
+    "when": "2024-11-06T06:00:00.000Z",
+    "where": {
+      "name": "Persian Gulf",
+      "coordinates": [52.0, 27.0],
+      "bbox": {
+        "minLat": 24.0,
+        "maxLat": 30.0,
+        "minLng": 48.0,
+        "maxLng": 56.0
+      }
+    },
+    "why": "Disputed maritime boundaries and resource rights",
+    "confidence": 0.79
+  },
+  "extracted": {
+    "entities": ["Iran", "Saudi Arabia", "UAE", "Naval Forces"],
+    "locations": ["Persian Gulf", "Strait of Hormuz"],
+    "sentiment": -0.58
+  }
+}

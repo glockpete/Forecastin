@@ -1,0 +1,638 @@
+{
+  "version": "2.0.0",
+  "project": "Forecastin - Combined Quick Wins",
+  "description": "High-value improvements from Frontend Hardening and Code Audit efforts",
+  "created": "2025-11-06",
+  "updated": "2025-11-07",
+  "quickWins": [
+    {
+      "id": "QW-1",
+      "title": "Add explicit types to React Query callbacks",
+      "description": "Many useQuery hooks have implicit 'any' types in retry and retryDelay callbacks",
+      "impact": "high",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Add explicit types: retry: (failureCount: number, error: Error) => ...",
+      "estimatedTime": "15 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-2",
+      "title": "Remove duplicate Entity type definitions",
+      "description": "Entity interface defined in 3 places: types/index.ts, hooks/useHierarchy.ts, imported in uiStore.ts",
+      "impact": "medium",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/types/index.ts"
+      ],
+      "suggestedFix": "Import Entity from types/index.ts instead of defining locally",
+      "estimatedTime": "10 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-3",
+      "title": "Unify BreadcrumbItem schema",
+      "description": "BreadcrumbItem has different fields in types/index.ts (id, name, type) vs uiStore.ts (label, path, entityId?)",
+      "impact": "medium",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/store/uiStore.ts"
+      ],
+      "suggestedFix": "Choose canonical schema and update all usages",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-4",
+      "title": "Replace 'any' with 'unknown' in type definitions",
+      "description": "Several interfaces use 'any' for data/metadata fields, should use 'unknown' for better type safety",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Replace Record<string, any> with Record<string, unknown>",
+      "estimatedTime": "10 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-5",
+      "title": "Add missing file header comments",
+      "description": "Some files lack descriptive header comments explaining purpose and patterns",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts",
+        "frontend/src/utils/*.ts"
+      ],
+      "suggestedFix": "Add JSDoc-style file headers with description, examples, and patterns",
+      "estimatedTime": "30 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-6",
+      "title": "Use const assertions for query keys",
+      "description": "Query key factories should use 'as const' for better type inference",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Already using 'as const' in hierarchyKeys - good pattern to apply elsewhere",
+      "estimatedTime": "15 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-7",
+      "title": "Extract API_BASE to centralized config",
+      "description": "API base URL duplicated across multiple hooks and utilities",
+      "impact": "medium",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts",
+        "frontend/src/config/env.ts"
+      ],
+      "suggestedFix": "Create getApiBaseUrl() in config/env.ts and import everywhere",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-8",
+      "title": "Add readonly modifier to arrays in interfaces",
+      "description": "Arrays in interfaces should be readonly to prevent accidental mutation",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/types/index.ts"
+      ],
+      "suggestedFix": "Change string[] to readonly string[], Entity[] to readonly Entity[]",
+      "estimatedTime": "10 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-9",
+      "title": "Use URLSearchParams more consistently",
+      "description": "Some fetch calls manually construct query strings, others use URLSearchParams",
+      "impact": "low",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Always use URLSearchParams for query string construction",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-10",
+      "title": "Add AbortController to fetch calls",
+      "description": "Fetch calls in React Query don't use AbortController for cancellation",
+      "impact": "medium",
+      "effort": "medium",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts"
+      ],
+      "suggestedFix": "Use queryKey signal parameter and pass to fetch({ signal })",
+      "estimatedTime": "30 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-11",
+      "title": "Consolidate error handling patterns",
+      "description": "Different hooks throw errors differently - some use Error(), some use string messages",
+      "impact": "medium",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts"
+      ],
+      "suggestedFix": "Create custom error classes (NetworkError, ValidationError, etc.)",
+      "estimatedTime": "45 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-12",
+      "title": "Add React.memo to expensive components",
+      "description": "Large components like MillerColumns, OutcomesDashboard lack memoization",
+      "impact": "high",
+      "effort": "small",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/components/MillerColumns/MillerColumns.tsx",
+        "frontend/src/components/Outcomes/OutcomesDashboard.tsx"
+      ],
+      "suggestedFix": "Wrap with React.memo() and add custom comparison if needed",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-13",
+      "title": "Use useCallback for event handlers passed as props",
+      "description": "Event handlers passed to child components aren't wrapped in useCallback",
+      "impact": "medium",
+      "effort": "small",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/components/**/*.tsx"
+      ],
+      "suggestedFix": "Wrap onClick, onChange, etc. with useCallback",
+      "estimatedTime": "60 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-14",
+      "title": "Extract magic numbers to named constants",
+      "description": "Magic numbers for staleTime, gcTime, intervals scattered throughout code",
+      "impact": "low",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/hooks/useWebSocket.ts"
+      ],
+      "suggestedFix": "Create constants.ts with FIVE_MINUTES, TEN_MINUTES, etc.",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-15",
+      "title": "Add data-testid to interactive elements",
+      "description": "Components lack data-testid attributes for testing",
+      "impact": "medium",
+      "effort": "small",
+      "category": "testing",
+      "filesAffected": [
+        "frontend/src/components/**/*.tsx"
+      ],
+      "suggestedFix": "Add data-testid to buttons, inputs, clickable elements",
+      "estimatedTime": "45 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-16",
+      "title": "Use barrel exports for cleaner imports",
+      "description": "Imports from types, utils, hooks require full paths",
+      "impact": "low",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/utils/index.ts",
+        "frontend/src/hooks/index.ts"
+      ],
+      "suggestedFix": "Create index.ts barrel files exporting public APIs",
+      "estimatedTime": "15 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-17",
+      "title": "Add GENERATED header to brand.ts",
+      "description": "brand.ts should have 'GENERATED: Do not edit by hand' header",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Already added in implementation",
+      "estimatedTime": "1 minute",
+      "status": "completed"
+    },
+    {
+      "id": "QW-18",
+      "title": "Validate path format in toPathString",
+      "description": "toPathString should validate LTREE-compatible path format",
+      "impact": "medium",
+      "effort": "small",
+      "category": "validation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Add regex validation for valid path characters and structure",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-19",
+      "title": "Add examples to brand.ts JSDoc",
+      "description": "Brand type constructors should have usage examples in JSDoc",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Already included in file header, could add to individual functions",
+      "estimatedTime": "20 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-20",
+      "title": "Create Result.match() pattern helper",
+      "description": "Result type could benefit from match() for exhaustive pattern matching",
+      "impact": "low",
+      "effort": "small",
+      "category": "api-improvement",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Add match<T,E,R>(result, { ok: (T) => R, err: (E) => R }): R",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW001",
+      "title": "Adopt Discriminated Union for WebSocket Messages",
+      "priority": "CRITICAL",
+      "estimated_diff_lines": 150,
+      "estimated_hours": 4,
+      "roi_score": 95,
+      "files": [
+        "frontend/src/types/index.ts",
+        "frontend/src/hooks/useWebSocket.ts",
+        "frontend/src/hooks/useHybridState.ts",
+        "frontend/src/layers/utils/layer-ws-utilities.ts"
+      ],
+      "description": "Replace loose `WebSocketMessage` interface with discriminated union from types/ws_messages.ts. Provides compile-time type safety for all message handlers.",
+      "benefits": [
+        "Eliminates entire class of runtime type errors",
+        "Enables exhaustive switch checking",
+        "Improves IDE autocomplete and refactoring",
+        "Catches breaking changes at compile time"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Use mocks/ws/fixtures.ts to verify all message types handled correctly"
+    },
+    {
+      "id": "QW002",
+      "title": "Import Generated Contracts for Type Safety",
+      "priority": "CRITICAL",
+      "estimated_diff_lines": 80,
+      "estimated_hours": 2,
+      "roi_score": 90,
+      "files": [
+        "frontend/src/types/index.ts",
+        "frontend/src/types/outcomes.ts",
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/hooks/useFeatureFlag.ts"
+      ],
+      "description": "Import types from types/contracts.generated.ts instead of manually defining interfaces. Ensures frontend types match backend Pydantic models.",
+      "benefits": [
+        "Eliminates contract drift",
+        "Single source of truth for API contracts",
+        "Automatic field name normalization (snake_case → camelCase)",
+        "Built-in validators for LTREE paths, ISO dates, UUIDs"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Run tests/contracts/contract_drift.spec.ts to verify alignment"
+    },
+    {
+      "id": "QW003",
+      "title": "Fix React Query Cache Key Serialization",
+      "priority": "HIGH",
+      "estimated_diff_lines": 25,
+      "estimated_hours": 1,
+      "roi_score": 85,
+      "files": [
+        "frontend/src/types/outcomes.ts"
+      ],
+      "description": "Serialize filter objects to stable strings in query key factories. Prevents cache misses from object reference inequality.",
+      "benefits": [
+        "Reduces API calls by ~20%",
+        "Improves perceived performance",
+        "Better cache hit rates",
+        "Lower server load"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Test with identical filter payloads, verify cache hits",
+      "code_change": {
+        "file": "frontend/src/types/outcomes.ts",
+        "line_range": "209-210",
+        "from": "opportunitiesFiltered: (filters: LensFilters) => [...outcomesKeys.opportunities(), filters] as const,",
+        "to": "opportunitiesFiltered: (filters: LensFilters) => [...outcomesKeys.opportunities(), JSON.stringify(filters)] as const,"
+      }
+    },
+    {
+      "id": "QW004",
+      "title": "Consolidate safe_serialize_message() Function",
+      "priority": "HIGH",
+      "estimated_diff_lines": 50,
+      "estimated_hours": 1.5,
+      "roi_score": 75,
+      "files": [
+        "api/main.py",
+        "api/services/realtime_service.py",
+        "api/services/websocket_manager.py",
+        "api/services/scenario_service.py",
+        "api/services/hierarchical_forecast_service.py",
+        "api/services/automated_refresh_service.py"
+      ],
+      "description": "Extract safe_serialize_message() to single source in api/services/serialization_utils.py. Eliminates duplication and inconsistent error handling.",
+      "benefits": [
+        "Single source of truth for serialization",
+        "Consistent error messages",
+        "Easier to add datetime/Decimal/dataclass support",
+        "Simpler maintenance"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Add tests/backend/serialization_spec.py with datetime, Decimal, set, dataclass cases"
+    },
+    {
+      "id": "QW005",
+      "title": "Add Safe Entity Field Accessors",
+      "priority": "HIGH",
+      "estimated_diff_lines": 30,
+      "estimated_hours": 1,
+      "roi_score": 70,
+      "files": [
+        "frontend/src/components/**/*.tsx (anywhere Entity is used)"
+      ],
+      "description": "Use safe accessor functions from types/contracts.generated.ts (getConfidence, getChildrenCount, normalizeEntity) instead of direct optional field access.",
+      "benefits": [
+        "Prevents runtime NaN/undefined errors",
+        "Consistent fallback values",
+        "Better null safety",
+        "Easier refactoring"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Grep for entity.confidence, entity.childrenCount without null checks; replace with getters"
+    },
+    {
+      "id": "QW006",
+      "title": "Add Message Deduplication to WebSocket Handler",
+      "priority": "CRITICAL",
+      "estimated_diff_lines": 60,
+      "estimated_hours": 3,
+      "roi_score": 88,
+      "files": [
+        "frontend/src/hooks/useWebSocket.ts"
+      ],
+      "description": "Implement LRU cache (100 message IDs) for deduplication and timestamp-based ordering enforcement. Requires backend to add messageId field.",
+      "benefits": [
+        "Eliminates duplicate cache updates",
+        "Prevents UI flickering",
+        "Ensures message ordering",
+        "Idempotent handler behavior"
+      ],
+      "breaking_change": true,
+      "requires_backend_change": true,
+      "test_strategy": "Use mocks/ws/fixtures.ts duplicateMessages and outOfOrderMessages fixtures",
+      "implementation_notes": [
+        "Backend: Add messageId (UUID) and sequenceNumber to all WS messages",
+        "Frontend: Maintain LRU cache with lru-cache npm package",
+        "Reject messages with timestamps > 5 seconds old (clock skew tolerance)"
+      ]
+    },
+    {
+      "id": "QW007",
+      "title": "Add LTREE Path Validation",
+      "priority": "MEDIUM",
+      "estimated_diff_lines": 20,
+      "estimated_hours": 0.5,
+      "roi_score": 60,
+      "files": [
+        "frontend/src/utils/validators.ts (new file)",
+        "frontend/src/components/EntityForm.tsx (example)"
+      ],
+      "description": "Use isValidLTreePath() from types/contracts.generated.ts before sending paths to backend. Provides client-side validation.",
+      "benefits": [
+        "Catches invalid paths early",
+        "Better UX with immediate feedback",
+        "Reduces backend errors",
+        "Defensive validation"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Test with valid (root.child) and invalid (.root, root., root..child) paths"
+    },
+    {
+      "id": "QW008",
+      "title": "Add ISO DateTime Validation",
+      "priority": "MEDIUM",
+      "estimated_diff_lines": 15,
+      "estimated_hours": 0.5,
+      "roi_score": 55,
+      "files": [
+        "frontend/src/utils/dateHelpers.ts",
+        "frontend/src/components/EntityList.tsx (example)"
+      ],
+      "description": "Use parseEntityDate() and isValidISODateTime() from types/contracts.generated.ts for safe date parsing.",
+      "benefits": [
+        "Prevents Date parsing errors",
+        "Consistent date handling",
+        "Type-safe with ISODateTimeString branded type",
+        "Better error messages"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Test with valid ISO dates, invalid formats, undefined values"
+    },
+    {
+      "id": "QW009",
+      "title": "Add Pydantic alias_generator for camelCase",
+      "priority": "HIGH",
+      "estimated_diff_lines": 40,
+      "estimated_hours": 2,
+      "roi_score": 80,
+      "files": [
+        "api/services/feature_flag_service.py",
+        "api/services/scenario_service.py"
+      ],
+      "description": "Add Pydantic Config with alias_generator to automatically convert field names to camelCase in JSON serialization.",
+      "benefits": [
+        "Automatic snake_case → camelCase conversion",
+        "Eliminates manual field renaming in to_dict()",
+        "Consistent API responses",
+        "Frontend can use camelCase naturally"
+      ],
+      "breaking_change": true,
+      "requires_api_version_bump": true,
+      "test_strategy": "Integration test comparing serialized JSON field names",
+      "implementation_example": {
+        "before": "@dataclass\\nclass FeatureFlag:\\n    flag_name: str\\n    is_enabled: bool",
+        "after": "@dataclass\\nclass FeatureFlag(BaseModel):\\n    flag_name: str\\n    is_enabled: bool\\n\\n    class Config:\\n        alias_generator = to_camel\\n        populate_by_name = True"
+      }
+    },
+    {
+      "id": "QW010",
+      "title": "Create Contract Generation Script",
+      "priority": "MEDIUM",
+      "estimated_diff_lines": 200,
+      "estimated_hours": 4,
+      "roi_score": 85,
+      "files": [
+        "scripts/dev/generate_contracts.py (new file)"
+      ],
+      "description": "Automate TypeScript interface generation from Pydantic models. Parses Python AST and outputs types/contracts.generated.ts.",
+      "benefits": [
+        "Automated contract synchronization",
+        "Prevents manual drift",
+        "Run in CI/CD pipeline",
+        "Single command to regenerate types"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Compare generated types with manual types, verify compilation",
+      "implementation_notes": [
+        "Use Python ast module to parse dataclasses and Pydantic models",
+        "Convert Python types to TypeScript (str→string, int→number, etc.)",
+        "Handle Optional, List, Dict, Union types",
+        "Add npm script: npm run generate:contracts"
+      ]
+    },
+    {
+      "id": "QW011",
+      "title": "Add WebSocket Message Fixtures Tests",
+      "priority": "MEDIUM",
+      "estimated_diff_lines": 120,
+      "estimated_hours": 2,
+      "roi_score": 70,
+      "files": [
+        "frontend/src/tests/ws_handlers.spec.tsx (new file)"
+      ],
+      "description": "Create unit tests for WebSocket handlers using mocks/ws/fixtures.ts. Tests valid, adversarial, and edge case messages.",
+      "benefits": [
+        "Catches regressions early",
+        "Documents expected behavior",
+        "No need for live WebSocket",
+        "Fast test execution"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Test all message types from validMessages, adversarialMessages, scenarioMessages collections"
+    },
+    {
+      "id": "QW012",
+      "title": "Add Contract Drift Detection Test",
+      "priority": "HIGH",
+      "estimated_diff_lines": 80,
+      "estimated_hours": 2,
+      "roi_score": 75,
+      "files": [
+        "tests/contracts/contract_drift.spec.ts (new file)"
+      ],
+      "description": "Automated test that compares types/contracts.generated.ts with actual API responses. Fails CI if contracts drift.",
+      "benefits": [
+        "Catches contract changes immediately",
+        "Prevents production bugs",
+        "Enforces contract discipline",
+        "Runs in CI/CD"
+      ],
+      "breaking_change": false,
+      "test_strategy": "Fetch from API, validate against TypeScript types using zod or ajv"
+    }
+  ],
+  "summary": {
+    "total": 32,
+    "frontend_hardening": {
+      "count": 20,
+      "completed": 4,
+      "partial": 3,
+      "pending": 13,
+      "estimatedTotalTime": "470 minutes (7.8 hours)",
+      "estimatedRemainingTime": "395 minutes (6.6 hours)"
+    },
+    "code_audit": {
+      "count": 12,
+      "total_estimated_hours": 25.5,
+      "total_estimated_diff_lines": 870,
+      "average_roi_score": 75.67,
+      "priority_breakdown": {
+        "CRITICAL": 3,
+        "HIGH": 5,
+        "MEDIUM": 4
+      },
+      "breaking_changes": 2,
+      "requires_backend_changes": 2
+    },
+    "categories": {
+      "type-safety": 4,
+      "code-quality": 6,
+      "consistency": 3,
+      "performance": 3,
+      "documentation": 3,
+      "testing": 1,
+      "validation": 1,
+      "api-improvement": 1,
+      "contracts": 3,
+      "websocket": 2,
+      "backend": 2,
+      "testing-infrastructure": 2
+    }
+  },
+  "recommended_order": [
+    "QW001 (WebSocket discriminated union)",
+    "QW006 (Message deduplication)",
+    "QW002 (Generated contracts)",
+    "QW009 (Pydantic alias_generator)",
+    "QW004 (Consolidate serialization)",
+    "QW003 (Cache key serialization)",
+    "QW005 (Safe accessors)",
+    "QW012 (Contract drift test)",
+    "QW011 (WS fixtures tests)",
+    "QW010 (Contract generation script)",
+    "QW007 (LTREE validation)",
+    "QW008 (ISO date validation)"
+  ],
+  "deployment_strategy": {
+    "phase_1_immediate": ["QW003", "QW005", "QW007", "QW008"],
+    "phase_2_backend_coordination": ["QW009", "QW004", "QW006"],
+    "phase_3_type_safety": ["QW001", "QW002"],
+    "phase_4_automation": ["QW010", "QW011", "QW012"]
+  }
+}

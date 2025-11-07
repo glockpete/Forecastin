@@ -1,0 +1,29 @@
+{
+  "id": "rss-item-china-002",
+  "title": "China announces new trade agreement with Southeast Asian nations",
+  "link": "https://example.com/news/china-trade-2024",
+  "description": "Chinese officials sign comprehensive trade agreement covering technology, agriculture, and infrastructure development",
+  "pubDate": "2024-11-06T10:15:00.000Z",
+  "fiveW": {
+    "who": "Chinese government, ASEAN member states",
+    "what": "Comprehensive trade agreement signing",
+    "when": "2024-11-05T14:00:00.000Z",
+    "where": {
+      "name": "Beijing, China",
+      "coordinates": [116.4074, 39.9042],
+      "bbox": {
+        "minLat": 39.4,
+        "maxLat": 40.4,
+        "minLng": 115.9,
+        "maxLng": 116.9
+      }
+    },
+    "why": "Economic cooperation and regional influence expansion",
+    "confidence": 0.94
+  },
+  "extracted": {
+    "entities": ["China", "ASEAN", "Trade Agreement"],
+    "locations": ["Beijing", "Southeast Asia"],
+    "sentiment": 0.65
+  }
+}
