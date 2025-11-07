@@ -1,5 +1,0 @@
-Migration File,Purpose
-001_initial_schema.sql,Phase 0 Initial Schema with LTREE and PostGIS extensions for optimized hierarchy performance
-002_ml_ab_testing_framework.sql,ML Model A/B Testing Framework with persistent Test Registry and automatic rollback capabilities
-004_automated_materialized_view_refresh.sql,Automated Materialized View Refresh System with smart triggers and scheduler
-004_rss_entity_extraction_schema.sql,RSS Entity Extraction Schema for storing articles and 5-W entity extraction results
