@@ -206,7 +206,7 @@ export interface OutcomesWebSocketMessage {
 export const outcomesKeys = {
   all: ['outcomes'] as const,
   opportunities: () => [...outcomesKeys.all, 'opportunities'] as const,
-  opportunitiesFiltered: (filters: LensFilters) => [...outcomesKeys.opportunities(), filters] as const,
+  opportunitiesFiltered: (filters: LensFilters) => [...outcomesKeys.opportunities(), JSON.stringify(filters)] as const,
   opportunity: (id: string) => [...outcomesKeys.opportunities(), id] as const,
   actions: () => [...outcomesKeys.all, 'actions'] as const,
   actionsForOpportunity: (opportunityId: string) => [...outcomesKeys.actions(), opportunityId] as const,

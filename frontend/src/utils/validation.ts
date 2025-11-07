@@ -325,3 +325,144 @@ export function parseWithMetrics<T>(
   globalValidationMetrics.record(schemaName, result);
   return result;
 }
+
+// ============================================================================
+// DOMAIN-SPECIFIC VALIDATORS (QW007, QW008)
+// ============================================================================
+
+import {
+  isValidLTreePath,
+  isValidUUID,
+  isValidISODateTime,
+  parseEntityDate,
+  LTreePath,
+  UUIDString,
+  ISODateTimeString
+} from '../../types/contracts.generated';
+
+/**
+ * Validate LTREE path and return Result
+ *
+ * @example
+ * const result = validateLTreePath('root.child.grandchild');
+ * if (isOk(result)) {
+ *   const path: LTreePath = result.value;
+ * }
+ */
+export function validateLTreePath(path: string): Result<LTreePath, ParseError> {
+  if (isValidLTreePath(path)) {
+    return Ok(path as LTreePath);
+  }
+  return Err(new ParseError(
+    'Invalid LTREE path format. Expected: "root.child.grandchild" (alphanumeric + underscores, no leading/trailing/double dots)',
+    undefined,
+    path,
+    'LTreePath'
+  ));
+}
+
+/**
+ * Validate UUID and return Result
+ */
+export function validateUUID(uuid: string): Result<UUIDString, ParseError> {
+  if (isValidUUID(uuid)) {
+    return Ok(uuid as UUIDString);
+  }
+  return Err(new ParseError(
+    'Invalid UUID format. Expected: 8-4-4-4-12 hex format (e.g., 550e8400-e29b-41d4-a716-446655440000)',
+    undefined,
+    uuid,
+    'UUID'
+  ));
+}
+
+/**
+ * Validate ISO 8601 datetime string and return Result
+ */
+export function validateISODateTime(dateStr: string): Result<ISODateTimeString, ParseError> {
+  if (isValidISODateTime(dateStr)) {
+    return Ok(dateStr as ISODateTimeString);
+  }
+  return Err(new ParseError(
+    'Invalid ISO 8601 datetime format. Expected: YYYY-MM-DDTHH:mm:ss.sssZ',
+    undefined,
+    dateStr,
+    'ISODateTime'
+  ));
+}
+
+/**
+ * Parse entity date safely with Result pattern
+ */
+export function validateEntityDate(dateStr?: string | null): Result<Date, ParseError> {
+  const date = parseEntityDate(dateStr);
+  if (date) {
+    return Ok(date);
+  }
+  return Err(new ParseError(
+    'Invalid date string or null/undefined value',
+    undefined,
+    dateStr,
+    'EntityDate'
+  ));
+}
+
+/**
+ * Client-side form validation helper
+ * Use before submitting forms to backend
+ *
+ * @example
+ * const errors = validateFormData({
+ *   path: formData.path,
+ *   parentId: formData.parentId,
+ *   createdAt: formData.createdAt
+ * });
+ *
+ * if (errors.length > 0) {
+ *   setFormErrors(errors);
+ *   return;
+ * }
+ */
+export interface FormValidationError {
+  field: string;
+  message: string;
+}
+
+export function validateFormData(data: {
+  path?: string;
+  parentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}): FormValidationError[] {
+  const errors: FormValidationError[] = [];
+
+  if (data.path) {
+    const result = validateLTreePath(data.path);
+    if (!result.success) {
+      errors.push({ field: 'path', message: result.error.toUserString() });
+    }
+  }
+
+  if (data.parentId) {
+    const result = validateUUID(data.parentId);
+    if (!result.success) {
+      errors.push({ field: 'parentId', message: result.error.toUserString() });
+    }
+  }
+
+  if (data.createdAt) {
+    const result = validateISODateTime(data.createdAt);
+    if (!result.success) {
+      errors.push({ field: 'createdAt', message: result.error.toUserString() });
+    }
+  }
+
+  if (data.updatedAt) {
+    const result = validateISODateTime(data.updatedAt);
+    if (!result.success) {
+      errors.push({ field: 'updatedAt', message: result.error.toUserString() });
+    }
+  }
+
+  return errors;
+}

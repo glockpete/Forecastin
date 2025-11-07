@@ -4,12 +4,12 @@
  */
 
 import React from 'react';
-import { 
-  X, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Building, 
+import {
+  X,
+  Calendar,
+  MapPin,
+  Users,
+  Building,
   FileText,
   Tag,
   Clock,
@@ -21,6 +21,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useEntity, Entity } from '../../hooks/useHierarchy';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { cn } from '../../utils/cn';
+import { getConfidence, getChildrenCount } from '../../../../types/contracts.generated';
 
 export const EntityDetail: React.FC = () => {
   const { activeEntity, setActiveEntity } = useUIStore();
@@ -92,9 +93,9 @@ export const EntityDetail: React.FC = () => {
                 <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full capitalize">
                   {entity.type}
                 </span>
-                {entity.confidence && (
+                {getConfidence(entity) > 0 && (
                   <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full">
-                    {(entity.confidence * 100).toFixed(0)}% confidence
+                    {(getConfidence(entity) * 100).toFixed(0)}% confidence
                   </span>
                 )}
               </div>
@@ -140,7 +141,7 @@ export const EntityDetail: React.FC = () => {
                     <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Children Count</p>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">{entity.childrenCount || 0}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{getChildrenCount(entity)}</p>
                     </div>
                   </div>
                 )}

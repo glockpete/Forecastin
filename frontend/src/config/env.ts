@@ -26,7 +26,7 @@ export const RUNTIME = (() => {
   // Runtime detection from browser location
   const isHttps = window.location.protocol === 'https:';
   const host = window.location.hostname;
-  
+
   // Port detection - use 9000 for API by default (matching api/main.py:1394)
   // In production with reverse proxy, port may be same as frontend
   const apiPort = Number(
@@ -35,9 +35,17 @@ export const RUNTIME = (() => {
     9000
   );
 
+  // WebSocket port - can be different from API port for flexibility
+  // Falls back to API port if not specified
+  const wsPort = Number(
+    process.env.REACT_APP_WS_PORT ||
+    process.env.VITE_WS_PORT ||
+    apiPort
+  );
+
   // Allow environment variable override for development
   // But compute from window.location by default to avoid Docker hostname issues
-  const apiBase = 
+  const apiBase =
     process.env.REACT_APP_API_URL_OVERRIDE ||
     process.env.VITE_API_URL_OVERRIDE ||
     `${isHttps ? 'https' : 'http'}://${host}:${apiPort}`;
@@ -45,7 +53,7 @@ export const RUNTIME = (() => {
   const wsBase =
     process.env.REACT_APP_WS_URL_OVERRIDE ||
     process.env.VITE_WS_URL_OVERRIDE ||
-    `${isHttps ? 'wss' : 'ws'}://${host}:${apiPort}`;
+    `${isHttps ? 'wss' : 'ws'}://${host}:${wsPort}`;
 
   // Log configuration for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
@@ -54,6 +62,8 @@ export const RUNTIME = (() => {
       host: window.location.hostname,
       port: window.location.port,
       isHttps,
+      apiPort,
+      wsPort,
       apiBase,
       wsBase,
     });

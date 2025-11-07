@@ -95,6 +95,71 @@ export const ErrorMessageSchema = z.object({
 
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 
+// Additional message types for entity/hierarchy updates
+export const EntityUpdatePayloadSchema = z.object({
+  entityId: z.string(),
+  entity: z.any(), // Will be validated against Entity type in handler
+  preloadRelated: z.boolean().optional(),
+}).strict();
+
+export const EntityUpdateMessageSchema = z.object({
+  type: z.literal('entity_update'),
+  payload: EntityUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type EntityUpdateMessage = z.infer<typeof EntityUpdateMessageSchema>;
+
+export const HierarchyChangePayloadSchema = z.object({
+  preloadRoots: z.array(z.string()).optional(),
+}).strict();
+
+export const HierarchyChangeMessageSchema = z.object({
+  type: z.literal('hierarchy_change'),
+  payload: HierarchyChangePayloadSchema.optional(),
+  meta: MessageMetaSchema,
+}).strict();
+
+export type HierarchyChangeMessage = z.infer<typeof HierarchyChangeMessageSchema>;
+
+export const BulkUpdatePayloadSchema = z.object({
+  updates: z.array(z.any()), // Each update will be validated individually
+}).strict();
+
+export const BulkUpdateMessageSchema = z.object({
+  type: z.literal('bulk_update'),
+  payload: BulkUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type BulkUpdateMessage = z.infer<typeof BulkUpdateMessageSchema>;
+
+export const CacheInvalidatePayloadSchema = z.object({
+  queryKeys: z.array(z.any()).optional(),
+  invalidateAll: z.boolean().optional(),
+}).strict();
+
+export const CacheInvalidateMessageSchema = z.object({
+  type: z.literal('cache_invalidate'),
+  payload: CacheInvalidatePayloadSchema.optional(),
+  meta: MessageMetaSchema,
+}).strict();
+
+export type CacheInvalidateMessage = z.infer<typeof CacheInvalidateMessageSchema>;
+
+export const SearchUpdatePayloadSchema = z.object({
+  query: z.string(),
+  results: z.array(z.any()), // Will be validated against Entity[] in handler
+}).strict();
+
+export const SearchUpdateMessageSchema = z.object({
+  type: z.literal('search_update'),
+  payload: SearchUpdatePayloadSchema,
+  meta: MessageMetaSchema,
+}).strict();
+
+export type SearchUpdateMessage = z.infer<typeof SearchUpdateMessageSchema>;
+
 // ============================================================================
 // Discriminated Union
 // ============================================================================
@@ -105,6 +170,11 @@ export const RealtimeMessageSchema = z.discriminatedUnion('type', [
   PolygonUpdateMessageSchema,
   LinestringUpdateMessageSchema,
   GeometryBatchUpdateMessageSchema,
+  EntityUpdateMessageSchema,
+  HierarchyChangeMessageSchema,
+  BulkUpdateMessageSchema,
+  CacheInvalidateMessageSchema,
+  SearchUpdateMessageSchema,
   HeartbeatMessageSchema,
   ErrorMessageSchema,
 ]);
@@ -115,6 +185,11 @@ export type RealtimeMessage =
   | PolygonUpdateMessage
   | LinestringUpdateMessage
   | GeometryBatchUpdateMessage
+  | EntityUpdateMessage
+  | HierarchyChangeMessage
+  | BulkUpdateMessage
+  | CacheInvalidateMessage
+  | SearchUpdateMessage
   | HeartbeatMessage
   | ErrorMessage;
 
@@ -169,6 +244,41 @@ export function isHeartbeat(msg: RealtimeMessage): msg is HeartbeatMessage {
  */
 export function isError(msg: RealtimeMessage): msg is ErrorMessage {
   return msg.type === 'error';
+}
+
+/**
+ * Type guard for EntityUpdateMessage
+ */
+export function isEntityUpdate(msg: RealtimeMessage): msg is EntityUpdateMessage {
+  return msg.type === 'entity_update';
+}
+
+/**
+ * Type guard for HierarchyChangeMessage
+ */
+export function isHierarchyChange(msg: RealtimeMessage): msg is HierarchyChangeMessage {
+  return msg.type === 'hierarchy_change';
+}
+
+/**
+ * Type guard for BulkUpdateMessage
+ */
+export function isBulkUpdate(msg: RealtimeMessage): msg is BulkUpdateMessage {
+  return msg.type === 'bulk_update';
+}
+
+/**
+ * Type guard for CacheInvalidateMessage
+ */
+export function isCacheInvalidate(msg: RealtimeMessage): msg is CacheInvalidateMessage {
+  return msg.type === 'cache_invalidate';
+}
+
+/**
+ * Type guard for SearchUpdateMessage
+ */
+export function isSearchUpdate(msg: RealtimeMessage): msg is SearchUpdateMessage {
+  return msg.type === 'search_update';
 }
 
 // ============================================================================
@@ -239,6 +349,11 @@ export interface MessageHandlers {
   onPolygonUpdate?: (msg: PolygonUpdateMessage) => void | Promise<void>;
   onLinestringUpdate?: (msg: LinestringUpdateMessage) => void | Promise<void>;
   onGeometryBatchUpdate?: (msg: GeometryBatchUpdateMessage) => void | Promise<void>;
+  onEntityUpdate?: (msg: EntityUpdateMessage) => void | Promise<void>;
+  onHierarchyChange?: (msg: HierarchyChangeMessage) => void | Promise<void>;
+  onBulkUpdate?: (msg: BulkUpdateMessage) => void | Promise<void>;
+  onCacheInvalidate?: (msg: CacheInvalidateMessage) => void | Promise<void>;
+  onSearchUpdate?: (msg: SearchUpdateMessage) => void | Promise<void>;
   onHeartbeat?: (msg: HeartbeatMessage) => void | Promise<void>;
   onError?: (msg: ErrorMessage) => void | Promise<void>;
 }
@@ -260,6 +375,16 @@ export async function dispatchRealtimeMessage(
     await handlers.onLinestringUpdate(message);
   } else if (isGeometryBatchUpdate(message) && handlers.onGeometryBatchUpdate) {
     await handlers.onGeometryBatchUpdate(message);
+  } else if (isEntityUpdate(message) && handlers.onEntityUpdate) {
+    await handlers.onEntityUpdate(message);
+  } else if (isHierarchyChange(message) && handlers.onHierarchyChange) {
+    await handlers.onHierarchyChange(message);
+  } else if (isBulkUpdate(message) && handlers.onBulkUpdate) {
+    await handlers.onBulkUpdate(message);
+  } else if (isCacheInvalidate(message) && handlers.onCacheInvalidate) {
+    await handlers.onCacheInvalidate(message);
+  } else if (isSearchUpdate(message) && handlers.onSearchUpdate) {
+    await handlers.onSearchUpdate(message);
   } else if (isHeartbeat(message) && handlers.onHeartbeat) {
     await handlers.onHeartbeat(message);
   } else if (isError(message) && handlers.onError) {
@@ -273,6 +398,7 @@ export async function dispatchRealtimeMessage(
 
 export class MessageSequenceTracker {
   private sequences = new Map<string, number>();
+  private processingQueue = new Map<string, Promise<void>>();
 
   /**
    * Check if a message is out of order or duplicate
@@ -305,10 +431,52 @@ export class MessageSequenceTracker {
   }
 
   /**
+   * Process a message in order, preventing race conditions
+   * Ensures messages from the same client are processed sequentially
+   *
+   * @param message - The message to process
+   * @param handler - Async function that processes the message
+   * @returns Promise that resolves when the message is processed
+   */
+  async processInOrder(
+    message: RealtimeMessage,
+    handler: () => Promise<void>
+  ): Promise<void> {
+    const clientId = message.meta.clientId || 'default';
+
+    // Get the previous promise in the queue (or a resolved one if this is the first)
+    const previousPromise = this.processingQueue.get(clientId) || Promise.resolve();
+
+    // Create a new promise that waits for the previous one to complete
+    const currentPromise = previousPromise
+      .then(async () => {
+        // Only process if the message should be processed (sequence check)
+        if (this.shouldProcess(message)) {
+          await handler();
+        } else {
+          console.log(
+            `Skipping out-of-order or duplicate message: seq=${message.meta.sequence}, client=${clientId}`
+          );
+        }
+      })
+      .catch((error) => {
+        // Log error but don't block subsequent messages
+        console.error(`Error processing message in sequence for client ${clientId}:`, error);
+      });
+
+    // Update the queue with the current promise
+    this.processingQueue.set(clientId, currentPromise);
+
+    // Wait for this message to be processed
+    await currentPromise;
+  }
+
+  /**
    * Reset tracking for a client
    */
   reset(clientId: string): void {
     this.sequences.delete(clientId);
+    this.processingQueue.delete(clientId);
   }
 
   /**
@@ -316,6 +484,7 @@ export class MessageSequenceTracker {
    */
   clearAll(): void {
     this.sequences.clear();
+    this.processingQueue.clear();
   }
 }
 
@@ -326,9 +495,16 @@ export class MessageSequenceTracker {
 export class MessageDeduplicator {
   private recentMessages = new Map<string, number>();
   private readonly windowMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(windowMs: number = 5000) {
     this.windowMs = windowMs;
+
+    // Periodic cleanup timer to prevent unbounded memory growth
+    // Runs every window duration to clean up expired entries even during idle periods
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup(Date.now());
+    }, windowMs);
   }
 
   /**
@@ -340,7 +516,8 @@ export class MessageDeduplicator {
     const now = Date.now();
     const lastSeen = this.recentMessages.get(key);
 
-    // Clean up old entries
+    // Note: Periodic cleanup timer handles old entries,
+    // but we still do inline cleanup for immediate response
     this.cleanup(now);
 
     if (lastSeen && now - lastSeen < this.windowMs) {
@@ -368,6 +545,21 @@ export class MessageDeduplicator {
     if (isGeometryBatchUpdate(message)) {
       return `batch:${message.payload.batch_id}:${message.payload.timestamp}`;
     }
+    if (isEntityUpdate(message)) {
+      return `entity:${message.payload.entityId}:${message.meta.timestamp}`;
+    }
+    if (isHierarchyChange(message)) {
+      return `hierarchy:${message.meta.timestamp}`;
+    }
+    if (isBulkUpdate(message)) {
+      return `bulk:${message.payload.updates.length}:${message.meta.timestamp}`;
+    }
+    if (isCacheInvalidate(message)) {
+      return `cache_invalidate:${message.meta.timestamp}`;
+    }
+    if (isSearchUpdate(message)) {
+      return `search:${message.payload.query}:${message.meta.timestamp}`;
+    }
 
     // Fallback for other message types
     return `${message.type}:${message.meta.timestamp}`;
@@ -386,6 +578,18 @@ export class MessageDeduplicator {
    * Clear all tracked messages
    */
   clear(): void {
+    this.recentMessages.clear();
+  }
+
+  /**
+   * Destroy the deduplicator and clean up resources
+   * Call this when the component unmounts to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
     this.recentMessages.clear();
   }
 }
