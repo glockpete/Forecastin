@@ -1,11 +1,71 @@
+# FastAPI and ASGI
 fastapi==0.104.1
-uvicorn==0.24.0
-python-dotenv==1.0.0
-pydantic==1.10.13
-sqlalchemy==2.0.23
-psycopg==3.1.18
-redis==5.0.1
-aiofiles==23.2.1
-python-dateutil==2.8.2
+uvicorn[standard]==0.24.0
+
+# Database
+psycopg[binary]==3.1.18
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+asyncpg==0.29.0
+
+# Serialization (CRITICAL: orjson required for WebSocket in main.py)
+orjson==3.9.10
 ujson==5.9.0
+
+# Caching and Redis (L2 Cache Tier)
+redis==5.0.1
+hiredis==2.2.3
+
+# HTTP Client and API
 httpx==0.25.2
+aiohttp==3.9.1
+
+# WebSocket Support
+websockets==12.0
+
+# Configuration and Environment
+pydantic==1.10.13
+pydantic-settings==2.0.3
+python-dotenv==1.0.0
+
+# File Operations
+aiofiles==23.2.1
+
+# Date/Time Utilities
+python-dateutil==2.8.2
+
+# Logging and Monitoring
+structlog==23.2.0
+prometheus-client==0.14.1
+
+# Testing Dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-benchmark==4.0.0
+
+# Code Quality and Linting
+black==23.12.1
+isort==5.13.2
+flake8==7.0.0
+mypy==1.7.1
+types-redis==4.6.0.11
+
+# Security Scanning
+bandit==1.7.5
+safety==2.3.5
+semgrep==1.45.0
+
+# Pre-commit hooks
+pre-commit==3.6.0
+
+# Performance Testing
+locust==2.20.0
+memory-profiler==0.61.0
+psutil==5.9.6
+
+# Geospatial (for PostGIS integration)
+shapely==2.0.2
+
+# Note: Prophet, pandas, numpy, and pyarrow are optional for basic functionality
+# They require extensive build dependencies. Add them when forecasting features are needed.
