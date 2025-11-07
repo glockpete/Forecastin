@@ -103,10 +103,15 @@ class ConnectionManager:
     
     def disconnect(self, client_id: str):
         if client_id in self.active_connections:
-            del self.active_connections[client_id]
-            self.connection_stats['active_connections'] -= 1
-            self.connection_stats['last_activity'] = time.time()
-            logger.info(f"WebSocket client {client_id} disconnected. Active: {self.connection_stats['active_connections']}")
+            try:
+                del self.active_connections[client_id]
+                self.connection_stats['active_connections'] -= 1
+                self.connection_stats['last_activity'] = time.time()
+                logger.info(f"WebSocket client {client_id} disconnected. Active: {self.connection_stats['active_connections']}")
+            except KeyError:
+                # This can happen in a race condition where the client disconnects
+                # between the check and the deletion.
+                logger.warning(f"Client {client_id} was already disconnected.")
     
     async def send_personal_message(self, message: Dict[str, Any], client_id: str):
         """Send message to specific client with orjson serialization"""
@@ -481,7 +486,15 @@ async def refresh_hierarchy_views():
         refresh_results = hierarchy_resolver.refresh_all_materialized_views()
         
         duration_ms = (time.time() - start_time) * 1000
-        
+
+        # SLO enforcement: documented target is sub-second performance (< 1000ms)
+        SLO_REFRESH_TARGET_MS = 1000
+        if duration_ms > SLO_REFRESH_TARGET_MS:
+            logger.warning(
+                f"LTREE refresh SLO violation: {duration_ms:.2f}ms > {SLO_REFRESH_TARGET_MS}ms target. "
+                f"Consider optimizing materialized view refresh or increasing infrastructure resources."
+            )
+
         # Check if all views were successfully refreshed
         failed_views = [view for view, success in refresh_results.items() if not success]
         

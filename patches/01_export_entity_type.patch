@@ -1,0 +1,13 @@
+diff --git a/frontend/src/hooks/useHierarchy.ts b/frontend/src/hooks/useHierarchy.ts
+index abc1234..def5678 100644
+--- a/frontend/src/hooks/useHierarchy.ts
++++ b/frontend/src/hooks/useHierarchy.ts
+@@ -12,7 +12,7 @@ import { toEntityId, toPathString } from '../types/brand';
+  * Core entity type for hierarchy navigation
+  * Aligned with backend Entity model
+  */
+-type Entity = {
++export type Entity = {
+   id: string;
+   name: string;
+   type: string;

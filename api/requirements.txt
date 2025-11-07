@@ -69,3 +69,6 @@ shapely==2.0.2
 
 # Note: Prophet, pandas, numpy, and pyarrow are optional for basic functionality
 # They require extensive build dependencies. Add them when forecasting features are needed.
+
+# For development dependencies (testing, linting, security scanning, etc.):
+# pip install -r requirements-dev.txt
