@@ -937,13 +937,16 @@ async def websocket_health_endpoint(websocket: WebSocket):
 
                     elif message_type == 'get_status':
                         # Client requested current health status
+                        # Recalculate connection age for accurate response
+                        current_response_time = time.time()
+                        response_connection_age = current_response_time - connection_start_time
                         status_response = {
                             "type": "health_status",
                             "status": "healthy",
-                            "connection_age_seconds": connection_age,
+                            "connection_age_seconds": response_connection_age,
                             "ping_count": ping_count,
                             "pong_count": pong_count,
-                            "timestamp": current_time,
+                            "timestamp": current_response_time,
                             "client_id": client_id
                         }
                         await websocket.send_text(safe_serialize_message(status_response))
