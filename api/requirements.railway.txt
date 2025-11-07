@@ -1,0 +1,44 @@
+# FastAPI and ASGI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database
+psycopg[binary]==3.1.18
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+asyncpg==0.29.0
+
+# Serialization (CRITICAL: orjson required for WebSocket)
+orjson==3.9.10
+
+# Caching and Redis (L2 Cache Tier)
+redis==5.0.1
+hiredis==2.2.3
+
+# HTTP Client and API
+httpx==0.25.2
+aiohttp==3.9.1
+
+# WebSocket Support
+websockets==12.0
+
+# Configuration and Environment
+pydantic-settings==2.0.3
+python-dotenv==1.0.0
+
+# Logging and Monitoring
+structlog==23.2.0
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Geospatial (for PostGIS integration)
+shapely==2.0.2
+
+# Monitoring
+prometheus-client==0.14.1
+
+# Note: Prophet, pandas, numpy, and pyarrow removed for Railway deployment
+# These packages require extensive build dependencies and are optional for basic functionality
+# Add them back when you need forecasting features
