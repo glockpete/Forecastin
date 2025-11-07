@@ -11,7 +11,11 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { WebSocketMessage } from '../types';
+import {
+  WebSocketMessage,
+  safeParseWebSocketJSON,
+  logUnknownMessage,
+} from '../types/ws_messages';
 import { getWebSocketUrl } from '../config/env';
 
 export interface UseWebSocketOptions {
@@ -57,48 +61,67 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const isManualDisconnect = useRef(false);
   const isConnecting = useRef(false);
 
-  // Handle WebSocket messages with orjson-safe deserialization
+  // Handle WebSocket messages with Zod runtime validation
   const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      // Handle orjson serialization - parse safely to prevent crashes
-      const message = JSON.parse(event.data);
-      
-      // Validate message structure
-      if (typeof message !== 'object' || !message.type) {
-        console.warn('Invalid WebSocket message structure:', message);
-        return;
-      }
+    // Parse and validate with Zod
+    const result = safeParseWebSocketJSON(event.data);
 
-      setLastMessage(message);
-      setError(null);
-      
-      // Call custom message handler
-      if (onMessage) {
-        onMessage(message);
-      }
+    if (!result.success) {
+      // Log validation failure for monitoring
+      console.error('[WebSocket] Message validation failed:', {
+        error: result.error.message,
+        raw: event.data,
+      });
+      logUnknownMessage(event.data);
+      setError(new Event('message_validation_error'));
+      return;
+    }
 
-      // Handle different message types
-      switch (message.type) {
-        case 'entity_update':
-        case 'hierarchy_change':
-        case 'layer_data_update':
-        case 'gpu_filter_sync':
-        case 'serialization_error':
-          console.log(`Received ${message.type}:`, message.data);
-          break;
-        default:
-          console.log('Unknown message type:', message.type);
-      }
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
-      setError(new Event('message_parse_error'));
-      
-      // Send structured error message instead of crashing
-      const errorMessage: WebSocketMessage = {
-        type: 'serialization_error',
-        error: 'Failed to parse WebSocket message',
-      };
-      setLastMessage(errorMessage);
+    const message = result.data;
+    setLastMessage(message);
+    setError(null);
+
+    // Call custom message handler with validated message
+    if (onMessage) {
+      onMessage(message);
+    }
+
+    // Exhaustive message type handling (compile-time checked)
+    switch (message.type) {
+      case 'entity_update':
+      case 'hierarchy_change':
+      case 'bulk_update':
+      case 'layer_data_update':
+      case 'gpu_filter_sync':
+      case 'feature_flag_change':
+      case 'feature_flag_created':
+      case 'feature_flag_deleted':
+      case 'forecast_update':
+      case 'hierarchical_forecast_update':
+      case 'scenario_analysis_update':
+      case 'scenario_validation_update':
+      case 'collaboration_update':
+      case 'opportunity_update':
+      case 'action_update':
+      case 'stakeholder_update':
+      case 'evidence_update':
+      case 'ping':
+      case 'pong':
+      case 'serialization_error':
+      case 'connection_established':
+      case 'error':
+      case 'heartbeat':
+      case 'echo':
+      case 'subscribe':
+      case 'unsubscribe':
+      case 'cache_invalidate':
+      case 'batch':
+        console.debug(`[WebSocket] Received ${message.type}`);
+        break;
+      default:
+        // This will cause a TypeScript error if we miss any message types
+        const _exhaustiveCheck: never = message;
+        console.warn('[WebSocket] Unhandled message type:', _exhaustiveCheck);
     }
   }, [onMessage]);
 

@@ -285,7 +285,7 @@ jobs:
         run: |
           # Collect evidence for compliance reporting
           python scripts/gather_metrics.py --output deliverables/compliance/evidence/metrics.json || true
-          python scripts/check_consistency.py --target deliverables/compliance/evidence/consistency_check.json || true
+          python scripts/validation/check_consistency.py --target deliverables/compliance/evidence/consistency_check.json || true
 
           # Generate compliance report
           python scripts/generate_compliance_report.py \
@@ -422,7 +422,7 @@ jobs:
         continue-on-error: true
         run: |
           # Check embedded JSON blocks in markdown
-          python scripts/check_consistency.py || echo "Consistency check completed"
+          python scripts/validation/check_consistency.py
 
           # Validate that documentation matches implementation
           python scripts/validate_docs_consistency.py || echo "Documentation validation completed"
