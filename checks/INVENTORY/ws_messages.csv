@@ -1,0 +1,13 @@
+Message Type,Payload Schema,Description
+layer_data_update,LayerDataUpdatePayloadSchema,Updates to geospatial layer data
+gpu_filter_sync,GPUFilterSyncPayloadSchema,Synchronization of GPU filter parameters
+polygon_update,PolygonUpdatePayloadSchema,Updates to polygon geometries with action
+linestring_update,LinestringUpdatePayloadSchema,Updates to linestring geometries with action
+geometry_batch_update,GeometryBatchUpdatePayloadSchema,Batch updates to multiple geometries
+entity_update,EntityUpdatePayloadSchema,Updates to entity data
+hierarchy_change,HierarchyChangePayloadSchema,Changes to hierarchical navigation structure
+bulk_update,BulkUpdatePayloadSchema,Bulk updates to multiple entities
+cache_invalidate,CacheInvalidatePayloadSchema,Cache invalidation messages
+search_update,SearchUpdatePayloadSchema,Search result updates
+heartbeat,MessageMetaSchema,Periodic heartbeat for connection health
+error,ErrorPayloadSchema,Error messages with details

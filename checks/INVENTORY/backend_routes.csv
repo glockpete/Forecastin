@@ -1,0 +1,30 @@
+Method,Endpoint,Description,Feature Flags
+GET,/health,Comprehensive health check endpoint,N/A
+GET,/api/entities,Get all active entities with hierarchy optimization,N/A
+GET,/api/entities/{entity_id}/hierarchy,Get entity hierarchy with optimized performance,N/A
+POST,/api/entities/refresh,Manually refresh LTREE materialized views,N/A
+GET,/api/entities/refresh/status,Get status of materialized view refresh operations,N/A
+POST,/api/entities/refresh/automated/start,Start the automated refresh service,N/A
+POST,/api/entities/refresh/automated/stop,Stop the automated refresh service,N/A
+POST,/api/entities/refresh/automated/force,Force a refresh of all materialized views,N/A
+GET,/api/entities/refresh/automated/metrics,Get recent automated refresh metrics,N/A
+GET,/api/feature-flags,Get current feature flags status,N/A
+POST,/api/feature-flags,Create a new feature flag,N/A
+PUT,/api/feature-flags/{flag_name},Update an existing feature flag,N/A
+DELETE,/api/feature-flags/{flag_name},Delete a feature flag,N/A
+GET,/api/feature-flags/{flag_name},Get a specific feature flag by name,N/A
+GET,/api/feature-flags/{flag_name}/enabled,Check if a feature flag is enabled,N/A
+GET,/api/feature-flags/metrics,Get feature flag service performance metrics,N/A
+GET,/api/feature-flags/metrics/cache,Get cache service metrics for feature flags,N/A
+GET,/api/opportunities,Get opportunities data for frontend testing,N/A
+GET,/api/actions,Get actions data for frontend testing,N/A
+GET,/api/stakeholders,Get stakeholders data for frontend testing,N/A
+GET,/api/evidence,Get evidence data for frontend testing,N/A
+GET,/api/v3/scenarios/{path:path}/forecasts,Django-inspired hierarchical forecast endpoint with cursor-based pagination,ff.prophet_forecasting
+GET,/api/v3/scenarios/{path:path}/hierarchy,Django-inspired hierarchical navigation structure,N/A
+POST,/api/v6/scenarios,Create new scenario with LTREE path validation,ff.scenario_construction
+GET,/api/v6/scenarios/{scenario_id}/analysis,Multi-factor scenario analysis with four-tier caching,ff.scenario_construction
+GET,/ws,WebSocket endpoint for real-time updates with orjson serialization,N/A
+GET,/ws/echo,Dedicated WebSocket echo endpoint for testing and diagnostics,N/A
+GET,/ws/health,WebSocket health check endpoint for monitoring connection stability,N/A
+GET,/ws/v3/scenarios/{path:path}/forecasts,Real-time forecast updates via WebSocket,ff.prophet_forecasting

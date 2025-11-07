@@ -1,173 +1,112 @@
-[
-  {
-    "id": "qw-001",
-    "title": "Add zod validation to WebSocket message handler",
-    "description": "Wrap parseRealtimeMessage() around all incoming WebSocket data to catch malformed messages before they corrupt state",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts",
-      "frontend/src/hooks/useWebSocket.ts"
-    ],
-    "eta_hours": 2,
-    "impact": "high",
-    "confidence": 0.95,
-    "rationale": "Prevents crashes from malformed messages. Single function call addition. Already have zod schemas ready.",
-    "dependencies": [],
-    "testing": "Unit test with invalid mock, verify error logged and state unchanged"
-  },
-  {
-    "id": "qw-002",
-    "title": "Integrate MessageDeduplicator into RealtimeMessageProcessor",
-    "description": "Add deduplicator.isNew() check before processing messages to prevent duplicate renders",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts"
-    ],
-    "eta_hours": 1,
-    "impact": "medium",
-    "confidence": 0.9,
-    "rationale": "Reduces redundant cache updates and renders during network retries. Class already implemented, just needs integration.",
-    "dependencies": [],
-    "testing": "Send duplicate message, verify only processed once"
-  },
-  {
-    "id": "qw-003",
-    "title": "Add periodic cleanup timer to MessageDeduplicator",
-    "description": "setInterval cleanup every windowMs to prevent memory leak during idle periods",
-    "files": [
-      "frontend/src/types/ws_messages.ts"
-    ],
-    "eta_hours": 0.5,
-    "impact": "medium",
-    "confidence": 0.95,
-    "rationale": "Fixes memory leak with 3-line change. Critical for long-running sessions.",
-    "dependencies": [],
-    "testing": "Unit test: wait beyond window, verify map cleared"
-  },
-  {
-    "id": "qw-004",
-    "title": "Batch cache updates in processBulkUpdate",
-    "description": "Suspend queries during batch, update all items, then single invalidation",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts"
-    ],
-    "eta_hours": 3,
-    "impact": "high",
-    "confidence": 0.85,
-    "rationale": "Eliminates N+1 query problem. Reduces 100-item batch from ~3s to <100ms. Major UX improvement.",
-    "dependencies": [],
-    "testing": "Benchmark: 100-item batch should complete in <100ms"
-  },
-  {
-    "id": "qw-005",
-    "title": "Separate EntityDataPoint into geometry-specific types",
-    "description": "Create discriminated union with PointEntity | PolygonEntity | LinestringEntity",
-    "files": [
-      "frontend/src/layers/types/layer-types.ts",
-      "frontend/src/types/contracts.generated.ts"
-    ],
-    "eta_hours": 4,
-    "impact": "high",
-    "confidence": 0.8,
-    "rationale": "Enables zod .strict() validation. Catches excess properties at compile time. Improves type safety across codebase.",
-    "dependencies": [],
-    "testing": "TypeScript compilation with strict mode, no errors"
-  },
-  {
-    "id": "qw-006",
-    "title": "Add error boundary to WebSocket message processing",
-    "description": "Wrap message handler in try/catch with structured error logging",
-    "files": [
-      "frontend/src/hooks/useWebSocket.ts"
-    ],
-    "eta_hours": 1.5,
-    "impact": "high",
-    "confidence": 0.9,
-    "rationale": "Prevents single bad message from breaking entire pipeline. Essential resilience pattern.",
-    "dependencies": [],
-    "testing": "Send malformed message, verify handler continues processing subsequent messages"
-  },
-  {
-    "id": "qw-007",
-    "title": "Make WebSocket port configurable via env var",
-    "description": "Read REACT_APP_WS_PORT and fallback to 9000",
-    "files": [
-      "frontend/src/config/env.ts"
-    ],
-    "eta_hours": 0.25,
-    "impact": "low",
-    "confidence": 1.0,
-    "rationale": "One-line change. Improves deployment flexibility. No downside.",
-    "dependencies": [],
-    "testing": "Set env var, verify connection uses correct port"
-  },
-  {
-    "id": "qw-008",
-    "title": "Add CI job for contract drift verification",
-    "description": "Run npm run contracts:check in CI, fail build if any mock invalid",
-    "files": [
-      ".github/workflows/ci.yml"
-    ],
-    "eta_hours": 0.5,
-    "impact": "medium",
-    "confidence": 0.95,
-    "rationale": "Prevents invalid mocks from reaching main. Low effort, high value.",
-    "dependencies": ["qw-001"],
-    "testing": "Commit invalid mock, verify CI fails"
-  },
-  {
-    "id": "qw-009",
-    "title": "Add production mode skip for zod validation",
-    "description": "Check NODE_ENV and skip validation in production for performance",
-    "files": [
-      "frontend/src/types/ws_messages.ts"
-    ],
-    "eta_hours": 0.5,
-    "impact": "low",
-    "confidence": 0.85,
-    "rationale": "Eliminates 0.5-2ms overhead per message in production. Safety in dev, speed in prod.",
-    "dependencies": ["qw-001"],
-    "testing": "Benchmark: 200 msgs/sec, verify latency <50ms"
-  },
-  {
-    "id": "qw-010",
-    "title": "Add feature flag smoke test to CI",
-    "description": "Run smoke_geo.ts in CI to verify ff dependency chain",
-    "files": [
-      ".github/workflows/ci.yml",
-      "scripts/feature_flags/smoke_geo.ts"
-    ],
-    "eta_hours": 1,
-    "impact": "medium",
-    "confidence": 0.9,
-    "rationale": "Catches misconfigurations before deployment. Prevents broken feature rollouts.",
-    "dependencies": [],
-    "testing": "Misconfigure ff, verify CI fails with clear error"
-  },
-  {
-    "id": "qw-011",
-    "title": "Add tests for verify_contract_drift.ts script",
-    "description": "Unit tests covering validation logic for both valid and invalid mocks",
-    "files": [
-      "scripts/__tests__/verify_contract_drift.test.ts"
-    ],
-    "eta_hours": 2,
-    "impact": "low",
-    "confidence": 0.9,
-    "rationale": "Ensures script itself is tested. Meta-testing prevents false positives/negatives.",
-    "dependencies": [],
-    "testing": "Test script against known-good and known-bad mocks"
-  },
-  {
-    "id": "qw-012",
-    "title": "Add performance benchmarks to CI",
-    "description": "Vitest benchmark suite measuring message processing latency",
-    "files": [
-      "frontend/tests/performance.bench.ts"
-    ],
-    "eta_hours": 3,
-    "impact": "medium",
-    "confidence": 0.8,
-    "rationale": "Tracks performance regressions. Validates <10ms render, <50ms latency SLOs.",
-    "dependencies": ["qw-004"],
-    "testing": "Run benchmark, verify all SLOs met"
-  }
-]
+{
+  "quick_wins": [
+    {
+      "id": "QW001",
+      "title": "Add discriminated union example to WebSocket message types",
+      "description": "Enhance the WebSocket message types documentation with a clear example of how to use discriminated unions for type-safe message handling",
+      "file_path": "frontend/src/types/ws_messages.ts",
+      "risk_level": "low",
+      "patch_sketch": "Add a comprehensive example showing how to properly use discriminated unions with Zod schemas for WebSocket message handling, demonstrating type narrowing and exhaustive checking patterns.",
+      "estimated_effort": "30 minutes"
+    },
+    {
+      "id": "QW002",
+      "title": "Improve WebSocket serialization error handling",
+      "description": "Add more comprehensive error handling around the safe_serialize_message function to catch and log serialization issues",
+      "file_path": "api/realtime_service.py",
+      "risk_level": "low",
+      "patch_sketch": "Wrap the orjson serialization in additional try/except blocks to catch specific serialization errors and log them with more context before falling back to the generic error handler.",
+      "estimated_effort": "45 minutes"
+    },
+    {
+      "id": "QW003",
+      "title": "Add cache key validation utility",
+      "description": "Create a utility function to validate cache keys before use to prevent injection-like issues",
+      "file_path": "api/cache.py",
+      "risk_level": "low",
+      "patch_sketch": "Implement a validation function that checks cache keys against a whitelist of allowed characters and patterns, and integrate it into the cache access functions.",
+      "estimated_effort": "1 hour"
+    },
+    {
+      "id": "QW004",
+      "title": "Enhance TypeScript type definitions for feature flags",
+      "description": "Improve the TypeScript type definitions for feature flags to provide better autocomplete and type safety",
+      "file_path": "frontend/src/types/featureFlags.ts",
+      "risk_level": "low",
+      "patch_sketch": "Create a comprehensive type definition file with strict typing for all feature flags, using discriminated unions where appropriate and adding JSDoc comments for better IDE support.",
+      "estimated_effort": "1 hour"
+    },
+    {
+      "id": "QW005",
+      "title": "Add safe accessor patterns for nested objects",
+      "description": "Implement safe accessor functions for deeply nested objects to prevent runtime errors",
+      "file_path": "frontend/src/utils/safeAccessors.ts",
+      "risk_level": "low",
+      "patch_sketch": "Create utility functions that safely access nested object properties with optional chaining and default value support, reducing the risk of runtime errors from undefined property access.",
+      "estimated_effort": "2 hours"
+    },
+    {
+      "id": "QW006",
+      "title": "Improve error messages in hierarchy resolver",
+      "description": "Enhance error messages in the optimized hierarchy resolver to provide more context for debugging",
+      "file_path": "api/navigation_api/database/optimized_hierarchy_resolver.py",
+      "risk_level": "low",
+      "patch_sketch": "Add more descriptive error messages that include relevant context like entity IDs, path information, and operation types when hierarchy resolution fails.",
+      "estimated_effort": "1 hour"
+    },
+    {
+      "id": "QW007",
+      "title": "Add validation for RSS route processor configurations",
+      "description": "Implement configuration validation for RSS route processors to catch misconfigurations early",
+      "file_path": "api/services/rss/route_processors/base_processor.py",
+      "risk_level": "low",
+      "patch_sketch": "Add a validation method that checks processor configurations for required fields and valid values when processors are initialized, providing clear error messages for invalid configurations.",
+      "estimated_effort": "1.5 hours"
+    },
+    {
+      "id": "QW008",
+      "title": "Enhance logging in anti-crawler manager",
+      "description": "Improve logging in the anti-crawler manager to provide better visibility into domain-specific backoff strategies",
+      "file_path": "api/services/rss/anti_crawler/manager.py",
+      "risk_level": "low",
+      "patch_sketch": "Add structured logging that captures domain information, backoff states, success rates, and strategy changes to help with debugging and monitoring of the anti-crawler system.",
+      "estimated_effort": "1 hour"
+    },
+    {
+      "id": "QW009",
+      "title": "Add type safety to geospatial layer configurations",
+      "description": "Improve TypeScript type definitions for geospatial layer configurations to prevent runtime errors",
+      "file_path": "frontend/src/layers/types.ts",
+      "risk_level": "low",
+      "patch_sketch": "Create comprehensive TypeScript interfaces for all geospatial layer configurations with strict typing and validation schemas to catch configuration errors at compile time.",
+      "estimated_effort": "2 hours"
+    },
+    {
+      "id": "QW010",
+      "title": "Improve documentation for LTREE materialized view refresh",
+      "description": "Enhance documentation for the LTREE materialized view refresh process with clearer examples and explanations",
+      "file_path": "docs/LTREE_REFRESH_IMPLEMENTATION.md",
+      "risk_level": "low",
+      "patch_sketch": "Add detailed examples of when and how to call refresh_materialized_view(), clarify the performance implications, and provide troubleshooting guidance for common refresh issues.",
+      "estimated_effort": "1.5 hours"
+    },
+    {
+      "id": "QW011",
+      "title": "Add connection pool health check endpoint",
+      "description": "Create a health check endpoint that reports on database connection pool status and utilization",
+      "file_path": "api/health.py",
+      "risk_level": "low",
+      "patch_sketch": "Implement an endpoint that exposes connection pool metrics like current usage, available connections, and health status to aid in monitoring and debugging connection issues.",
+      "estimated_effort": "2 hours"
+    },
+    {
+      "id": "QW012",
+      "title": "Enhance WebSocket message batching documentation",
+      "description": "Improve documentation for WebSocket message batching strategies with concrete implementation examples",
+      "file_path": "docs/WEBSOCKET_LAYER_MESSAGES.md",
+      "risk_level": "low",
+      "patch_sketch": "Add detailed examples of how to implement server-side debouncing, client-side batching, and diff-based updates to reduce WebSocket traffic and improve performance.",
+      "estimated_effort": "1.5 hours"
+    }
+  ]
+}
