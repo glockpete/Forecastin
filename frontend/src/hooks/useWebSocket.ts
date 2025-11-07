@@ -55,6 +55,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const reconnectCountRef = useRef(0);
   const pingIntervalRef = useRef<NodeJS.Timeout>();
   const isManualDisconnect = useRef(false);
+  const isConnecting = useRef(false);
 
   // Handle WebSocket messages with orjson-safe deserialization
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -129,10 +130,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
   // Connect to WebSocket with hardened reconnection logic
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting.current || wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
+    isConnecting.current = true;
     setConnectionStatus('connecting');
     isManualDisconnect.current = false;
 
@@ -143,6 +146,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
       ws.onopen = () => {
         console.log('[WebSocket] Connected successfully');
+        isConnecting.current = false;
         setIsConnected(true);
         setConnectionStatus('connected');
         setError(null);
@@ -167,9 +171,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       ws.onclose = (event) => {
         console.log(`[useWebSocket] WebSocket closed - code: ${event.code}, reason: "${event.reason}"`);
         console.log(`[useWebSocket] Close details - wasClean: ${event.wasClean}, URL: ${wsUrl}`);
+        isConnecting.current = false;
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        
+
         // Stop keepalive ping
         stopPingInterval();
         
@@ -197,12 +202,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       ws.onerror = (error) => {
         console.error('[useWebSocket] WebSocket error:', error);
         console.error(`[useWebSocket] Error details - URL: ${wsUrl}, readyState: ${ws.readyState}`);
+        isConnecting.current = false;
         setError(error);
         setConnectionStatus('error');
         onError?.(error);
       };
     } catch (error) {
       console.error('[useWebSocket] Failed to create WebSocket connection:', error);
+      isConnecting.current = false;
       setConnectionStatus('error');
     }
   }, [wsUrl, channels, handleMessage, onConnect, onDisconnect, onError, reconnectAttempts, reconnectInterval, startPingInterval, stopPingInterval]);
@@ -210,18 +217,19 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   // Disconnect WebSocket
   const disconnect = useCallback(() => {
     isManualDisconnect.current = true;
-    
+    isConnecting.current = false;
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
-    
+
     stopPingInterval();
-    
+
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual disconnect');
       wsRef.current = null;
     }
-    
+
     setIsConnected(false);
     setConnectionStatus('disconnected');
   }, [stopPingInterval]);
