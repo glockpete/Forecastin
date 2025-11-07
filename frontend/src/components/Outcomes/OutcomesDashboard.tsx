@@ -3,6 +3,7 @@
  * Main "One Dashboard, Multiple Lenses" implementation
  * Replaces Miller's Columns with opportunity-focused dashboard
  * Implements Four Horizons: Immediate | Short | Medium | Long
+ * Performance: Wrapped with React.memo for optimization
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -18,7 +19,7 @@ import EvidencePanel from './EvidencePanel';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { ErrorBoundary } from '../UI/ErrorBoundary';
 
-const OutcomesDashboard: React.FC = () => {
+const OutcomesDashboard: React.FC = React.memo(() => {
   const [searchParams] = useSearchParams();
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
@@ -273,6 +274,6 @@ const OutcomesDashboard: React.FC = () => {
       </div>
     </ErrorBoundary>
   );
-};
+});
 
 export default OutcomesDashboard;

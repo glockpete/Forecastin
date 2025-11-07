@@ -42,8 +42,11 @@ export interface GeospatialViewProps {
  * 2. Subscribe to WebSocket layer updates
  * 3. Manage layer instances via registry
  * 4. Cleanup on unmount to prevent memory leaks
+ * 
+ * Performance: Wrapped with React.memo to prevent unnecessary re-renders
+ * when parent components update but props remain the same.
  */
-export const GeospatialView: React.FC<GeospatialViewProps> = ({
+export const GeospatialView: React.FC<GeospatialViewProps> = React.memo(({
   className,
   onLayerClick,
   onViewStateChange
@@ -528,6 +531,6 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
       </div>
     </ErrorBoundary>
   );
-};
+});
 
 export default GeospatialView;

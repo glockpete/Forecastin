@@ -344,7 +344,7 @@ export class LayerFeatureFlagManager {
    */
   private generateRolloutId(): string {
     // Generate a hash-based ID for consistent rollout
-    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
   
   /**
