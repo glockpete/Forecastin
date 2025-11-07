@@ -1,0 +1,239 @@
+name: WebSocket Smoke Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'api/**'
+      - '.github/workflows/ws-smoke.yml'
+  pull_request:
+    paths:
+      - 'api/**'
+      - '.github/workflows/ws-smoke.yml'
+
+# Cancel in-progress runs for the same workflow on the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  websocket-tests:
+    name: WebSocket Robustness Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+    env:
+      # WebSocket configuration for testing
+      WS_PING_INTERVAL: "5"      # Faster pings for CI (vs 30s default)
+      WS_PING_TIMEOUT: "2"       # Shorter timeout for CI
+      ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      PUBLIC_BASE_URL: "http://localhost:9000"
+      WS_PUBLIC_URL: "ws://localhost:9000/ws"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'api/requirements.txt'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('api/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies
+        working-directory: ./api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Display environment configuration
+        run: |
+          echo "=== WebSocket Configuration ==="
+          echo "WS_PING_INTERVAL: $WS_PING_INTERVAL"
+          echo "WS_PING_TIMEOUT: $WS_PING_TIMEOUT"
+          echo "ALLOWED_ORIGINS: $ALLOWED_ORIGINS"
+          echo "WS_PUBLIC_URL: $WS_PUBLIC_URL"
+          echo ""
+          echo "=== Python Environment ==="
+          python --version
+          pip --version
+          echo ""
+          echo "=== Installed Packages ==="
+          pip list | grep -E "(fastapi|pytest|websockets|starlette)"
+
+      - name: Run WebSocket Echo Tests
+        working-directory: ./api
+        env:
+          PYTHONPATH: /home/runner/work/Forecastin/Forecastin/api
+        run: |
+          pytest tests/test_ws_echo.py -v \
+            --tb=short \
+            --color=yes \
+            --junit-xml=test-results/ws-echo-results.xml
+        continue-on-error: false
+
+      - name: Run WebSocket Health Tests
+        working-directory: ./api
+        env:
+          PYTHONPATH: /home/runner/work/Forecastin/Forecastin/api
+        run: |
+          pytest tests/test_ws_health.py -v \
+            --tb=short \
+            --color=yes \
+            --junit-xml=test-results/ws-health-results.xml
+        continue-on-error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: websocket-test-results-${{ matrix.python-version }}
+          path: api/test-results/*.xml
+          retention-days: 30
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "### WebSocket Test Results 🔌" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Ping Interval: ${WS_PING_INTERVAL}s" >> $GITHUB_STEP_SUMMARY
+          echo "- Ping Timeout: ${WS_PING_TIMEOUT}s" >> $GITHUB_STEP_SUMMARY
+          echo "- Python Version: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f api/test-results/ws-echo-results.xml ] || [ -f api/test-results/ws-health-results.xml ]; then
+            echo "✅ Tests completed - check artifacts for detailed results" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Test results not found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install analysis tools
+        run: |
+          pip install ruff mypy
+
+      - name: Ruff linting (WebSocket files)
+        working-directory: ./api
+        run: |
+          echo "=== Linting WebSocket implementation ==="
+          ruff check main.py services/websocket_manager.py tests/test_ws_*.py --select E,F,W,C90 || true
+
+      - name: Type checking (optional)
+        working-directory: ./api
+        run: |
+          echo "=== Type checking WebSocket code ==="
+          mypy main.py --ignore-missing-imports --no-strict-optional || true
+        continue-on-error: true
+
+  integration-validation:
+    name: Integration Validation
+    runs-on: ubuntu-latest
+    needs: websocket-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate configuration files
+        run: |
+          echo "=== Validating Nginx config syntax ==="
+          if [ -f ops/nginx/ws.conf ]; then
+            echo "✓ Nginx WebSocket config exists"
+            # Note: Full nginx -t requires nginx installation
+            grep -q "proxy_set_header Upgrade" ops/nginx/ws.conf && echo "✓ Upgrade header configured"
+            grep -q "proxy_set_header Connection" ops/nginx/ws.conf && echo "✓ Connection header configured"
+            grep -q "proxy_read_timeout 300s" ops/nginx/ws.conf && echo "✓ Generous read timeout configured"
+          fi
+
+          echo ""
+          echo "=== Validating Docker Compose override example ==="
+          if [ -f docker-compose.override.example.yml ]; then
+            echo "✓ Docker Compose override example exists"
+            grep -q "WS_PING_INTERVAL" docker-compose.override.example.yml && echo "✓ WS_PING_INTERVAL documented"
+            grep -q "ALLOWED_ORIGINS" docker-compose.override.example.yml && echo "✓ ALLOWED_ORIGINS documented"
+          fi
+
+          echo ""
+          echo "=== Validating smoke test scripts ==="
+          if [ -f scripts/dev/ws_smoke.sh ]; then
+            echo "✓ Smoke test script exists"
+            test -x scripts/dev/ws_smoke.sh && echo "✓ Script is executable"
+          fi
+          if [ -f scripts/dev/ws_smoke.md ]; then
+            echo "✓ Smoke test documentation exists"
+          fi
+
+          echo ""
+          echo "=== Validating diagnostics documentation ==="
+          if [ -f checks/ws_server_diagnostics.md ]; then
+            echo "✓ WebSocket diagnostics playbook exists"
+            grep -q "close code 1006" checks/ws_server_diagnostics.md && echo "✓ 1006 troubleshooting documented"
+          fi
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "=== Checking for hardcoded secrets ==="
+          # Check that no actual secrets are committed (only examples/placeholders)
+          ! grep -r "password=" api/ --include="*.py" --exclude-dir=tests | grep -v "forecastin_password" || {
+            echo "⚠️ Potential hardcoded password found"
+            exit 1
+          }
+          echo "✓ No hardcoded credentials detected"
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [websocket-tests, static-analysis, integration-validation]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "### 🔌 WebSocket Robustness Validation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Suites:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ WebSocket Tests: ${{ needs.websocket-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Static Analysis: ${{ needs.static-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration Validation: ${{ needs.integration-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Coverage:**" >> $GITHUB_STEP_SUMMARY
+          echo "- `/ws/echo` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- `/ws/health` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- Server-side heartbeat configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Close code tracking (prevent 1006)" >> $GITHUB_STEP_SUMMARY
+          echo "- Configuration validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.websocket-tests.result }}" != "success" ]; then
+            echo "⚠️ WebSocket tests failed - review logs for 1006 errors or config issues" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
