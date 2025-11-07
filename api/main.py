@@ -452,7 +452,15 @@ async def refresh_hierarchy_views():
         refresh_results = hierarchy_resolver.refresh_all_materialized_views()
         
         duration_ms = (time.time() - start_time) * 1000
-        
+
+        # SLO enforcement: documented target is sub-second performance (< 1000ms)
+        SLO_REFRESH_TARGET_MS = 1000
+        if duration_ms > SLO_REFRESH_TARGET_MS:
+            logger.warning(
+                f"LTREE refresh SLO violation: {duration_ms:.2f}ms > {SLO_REFRESH_TARGET_MS}ms target. "
+                f"Consider optimizing materialized view refresh or increasing infrastructure resources."
+            )
+
         # Check if all views were successfully refreshed
         failed_views = [view for view, success in refresh_results.items() if not success]
         
