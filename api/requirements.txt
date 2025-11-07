@@ -14,7 +14,7 @@ ujson==5.9.0
 
 # Caching and Redis (L2 Cache Tier)
 redis==5.0.1
-hiredis==2.2.3
+hiredis==2.4.0
 
 # HTTP Client and API
 httpx==0.25.2
