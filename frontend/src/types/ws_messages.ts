@@ -722,3 +722,287 @@ export function logUnknownMessage(raw: unknown): void {
     timestamp: new Date().toISOString(),
   });
 }
+
+// ============================================================================
+// DEFECT FIX #1: RUNTIME VALIDATION FOR WEBSOCKET MESSAGES
+// ============================================================================
+
+/**
+ * Alias for backward compatibility with existing code
+ */
+export type RealtimeMessage = WebSocketMessage;
+
+/**
+ * Validation result type
+ */
+export interface ValidationResult {
+  valid: boolean;
+  message?: WebSocketMessage;
+  errors?: z.ZodError['errors'];
+}
+
+/**
+ * Validate a raw message against the WebSocket schema
+ * Returns a validation result with detailed error information
+ */
+export function validateRealtimeMessage(raw: unknown): ValidationResult {
+  const result = safeParseWebSocketMessage(raw);
+
+  if (result.success) {
+    return {
+      valid: true,
+      message: result.data,
+    };
+  } else {
+    return {
+      valid: false,
+      errors: result.error.errors,
+    };
+  }
+}
+
+/**
+ * Parse and validate a realtime message (throws on failure)
+ * Use this when you want errors to be thrown for invalid messages
+ */
+export function parseRealtimeMessage(raw: unknown): RealtimeMessage {
+  return parseWebSocketMessage(raw);
+}
+
+/**
+ * Type aliases for message types used in handlers
+ */
+export type SearchUpdateMessage = WebSocketMessage & {
+  type: 'search_update';
+  payload: {
+    query: string;
+    results: Array<{
+      id: string;
+      name: string;
+      path: string;
+      type: string;
+    }>;
+  };
+};
+
+/**
+ * Type guard for search update messages
+ */
+export function isSearchUpdate(msg: WebSocketMessage): msg is SearchUpdateMessage {
+  return (msg as any).type === 'search_update';
+}
+
+// ============================================================================
+// DEFECT FIX #2: MESSAGE SEQUENCE TRACKER (RACE CONDITION FIX)
+// ============================================================================
+
+/**
+ * Tracks message sequence numbers to prevent processing out-of-order messages
+ * Also provides a processing queue to ensure sequential execution
+ *
+ * FIXES: Defect #2 - Race condition where concurrent async message processing
+ * could cause out-of-order state updates
+ */
+export class MessageSequenceTracker {
+  private sequenceMap = new Map<string, number>();
+  private processingQueue = new Map<string, Promise<void>>();
+
+  /**
+   * Check if a message should be processed based on sequence number
+   * Returns false if an equal or higher sequence number has already been seen
+   */
+  shouldProcess(message: RealtimeMessage): boolean {
+    const clientId = (message as any).meta?.clientId || (message as any).clientId || 'default';
+    const sequence = (message as any).meta?.sequence || (message as any).sequence;
+
+    if (sequence === undefined) {
+      // No sequence number - allow processing
+      return true;
+    }
+
+    const lastSequence = this.sequenceMap.get(clientId) ?? -1;
+
+    if (sequence <= lastSequence) {
+      // Out of order or duplicate message
+      console.warn(`Dropping out-of-order message: sequence=${sequence}, last=${lastSequence}, client=${clientId}`);
+      return false;
+    }
+
+    // Update sequence tracker
+    this.sequenceMap.set(clientId, sequence);
+    return true;
+  }
+
+  /**
+   * Process a message in order, ensuring sequential execution
+   * Messages from the same client are processed sequentially, even if async
+   *
+   * @param message - The message to process
+   * @param handler - Async handler function to execute
+   */
+  async processInOrder(
+    message: RealtimeMessage,
+    handler: () => Promise<void>
+  ): Promise<void> {
+    const clientId = (message as any).meta?.clientId || (message as any).clientId || 'default';
+
+    // Get the previous promise for this client (or resolve immediately)
+    const previousPromise = this.processingQueue.get(clientId) || Promise.resolve();
+
+    // Chain this message's processing after the previous one
+    const currentPromise = previousPromise
+      .then(async () => {
+        // Check if we should process this message
+        if (this.shouldProcess(message)) {
+          await handler();
+        }
+      })
+      .catch((error) => {
+        // Log error but don't block subsequent messages
+        console.error('Error processing message in sequence:', error);
+      });
+
+    // Store the promise for the next message to chain after
+    this.processingQueue.set(clientId, currentPromise);
+
+    // Wait for this message to complete
+    await currentPromise;
+  }
+
+  /**
+   * Reset sequence tracking for a specific client
+   */
+  reset(clientId: string): void {
+    this.sequenceMap.delete(clientId);
+    this.processingQueue.delete(clientId);
+  }
+
+  /**
+   * Clear all sequence tracking data
+   */
+  clearAll(): void {
+    this.sequenceMap.clear();
+    this.processingQueue.clear();
+  }
+}
+
+// ============================================================================
+// DEFECT FIX #4: MESSAGE DEDUPLICATOR WITH MEMORY LEAK FIX
+// ============================================================================
+
+/**
+ * Deduplicates WebSocket messages within a time window
+ * Prevents processing duplicate messages that arrive close together
+ *
+ * FIXES: Defect #4 - Memory leak where old entries never expire during idle periods
+ * Added periodic cleanup timer to ensure bounded memory usage
+ */
+export class MessageDeduplicator {
+  private recentMessages = new Map<string, number>();
+  private windowMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * @param windowMs - Time window for deduplication in milliseconds (default 5000ms)
+   */
+  constructor(windowMs: number = 5000) {
+    this.windowMs = windowMs;
+
+    // DEFECT FIX #4: Start periodic cleanup timer
+    // This ensures old entries are removed even during idle periods
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup(Date.now());
+    }, windowMs);
+  }
+
+  /**
+   * Check if a message is new (not a duplicate)
+   * @param message - The message to check
+   * @returns true if message is new, false if duplicate
+   */
+  isNew(message: RealtimeMessage): boolean {
+    const key = this.generateKey(message);
+    const now = Date.now();
+
+    // Inline cleanup for immediate response
+    this.cleanup(now);
+
+    const lastSeen = this.recentMessages.get(key);
+
+    if (lastSeen && (now - lastSeen) < this.windowMs) {
+      // Duplicate message within time window
+      return false;
+    }
+
+    // New message - record it
+    this.recentMessages.set(key, now);
+    return true;
+  }
+
+  /**
+   * Generate a unique key for a message based on its content
+   */
+  private generateKey(message: RealtimeMessage): string {
+    const type = message.type;
+    const timestamp = (message as any).timestamp || (message as any).meta?.timestamp;
+
+    // Generate key based on message type and relevant identifying fields
+    switch (type) {
+      case 'entity_update':
+        const entityMsg = message as EntityUpdateMessage;
+        return `entity_update:${entityMsg.data.entityId}:${timestamp}`;
+
+      case 'hierarchy_change':
+        const hierarchyMsg = message as HierarchyChangeMessage;
+        return `hierarchy_change:${hierarchyMsg.data.path}:${timestamp}`;
+
+      case 'bulk_update':
+        const bulkMsg = message as BulkUpdateMessage;
+        return `bulk_update:${bulkMsg.data.entityIds.join(',')}:${timestamp}`;
+
+      case 'cache_invalidate':
+        const cacheMsg = message as CacheInvalidateMessage;
+        return `cache_invalidate:${JSON.stringify(cacheMsg.data.keys)}:${timestamp}`;
+
+      case 'layer_data_update':
+        const layerMsg = message as LayerDataUpdateMessage;
+        return `layer_data_update:${layerMsg.data.layerId}:${timestamp}`;
+
+      default:
+        // Generic key for other message types
+        return `${type}:${timestamp}:${JSON.stringify(message).substring(0, 100)}`;
+    }
+  }
+
+  /**
+   * Remove expired entries from the deduplication map
+   */
+  private cleanup(now: number): void {
+    const cutoff = now - this.windowMs;
+
+    for (const [key, timestamp] of this.recentMessages.entries()) {
+      if (timestamp < cutoff) {
+        this.recentMessages.delete(key);
+      }
+    }
+  }
+
+  /**
+   * DEFECT FIX #4: Cleanup method to prevent memory leaks
+   * Call this when the deduplicator is no longer needed (e.g., component unmount)
+   */
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    this.recentMessages.clear();
+  }
+
+  /**
+   * Get current size of the deduplication map (for monitoring)
+   */
+  getSize(): number {
+    return this.recentMessages.size;
+  }
+}
