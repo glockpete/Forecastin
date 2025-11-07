@@ -41,7 +41,7 @@ jobs:
           
       - name: Upload TypeScript errors (if any)
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: typescript-errors
           path: frontend/ts_errors*.txt
@@ -321,7 +321,7 @@ jobs:
 
       # Upload performance results
       - name: Upload performance validation results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: performance-slo-validation-results
@@ -412,7 +412,7 @@ jobs:
           "
 
       - name: Upload database performance results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: database-performance-results
@@ -631,7 +631,7 @@ jobs:
           "
           
       - name: Upload SLO Compliance Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: slo-compliance-report
           path: slo_compliance_report.json

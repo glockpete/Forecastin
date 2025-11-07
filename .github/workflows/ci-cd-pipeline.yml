@@ -202,7 +202,7 @@ jobs:
           
       # Upload performance reports
       - name: Upload performance reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: performance-reports
           path: |
@@ -293,7 +293,7 @@ jobs:
             --output=deliverables/compliance/performance_validation_report.md
             
       - name: Upload compliance evidence
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: compliance-evidence
           path: deliverables/compliance/
@@ -389,7 +389,7 @@ jobs:
           kill $API_PID || true
           
       - name: Upload integration test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: integration-test-results
           path: |
