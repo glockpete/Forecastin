@@ -314,7 +314,8 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 ### Core Implementation Files
 - [`api/main.py`](api/main.py) - FastAPI service and routing
 - [`api/navigation_api/database/optimized_hierarchy_resolver.py`](api/navigation_api/database/optimized_hierarchy_resolver.py) - Precomputation and query paths
-- [`api/navigation_api/migrations/003_optimize_hierarchy_performance.sql`](api/navigation_api/migrations/003_optimize_hierarchy_performance.sql) - Materialised views and indexes
+- [`migrations/001_initial_schema.sql`](migrations/001_initial_schema.sql) - Initial schema with LTREE and PostGIS
+- [`migrations/004_automated_materialized_view_refresh.sql`](migrations/004_automated_materialized_view_refresh.sql) - Automated materialized view refresh
 - [`api/services/database_manager.py`](api/services/database_manager.py) - Database connection management with TCP keepalives
 - [`api/services/cache_service.py`](api/services/cache_service.py) - Multi-tier caching implementation (L1-L4)
 - [`api/services/feature_flag_service.py`](api/services/feature_flag_service.py) - Feature flag management with WebSocket notifications
@@ -347,16 +348,27 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - [`slo_test_report.json`](slo_test_report.json) - Current SLO validation status
 - [`simple_pipeline_check.json`](simple_pipeline_check.json) - CI/CD pipeline validation status
 
-### API Endpoints (v3)
-- `GET /api/v3/hierarchy/world` - Root hierarchy endpoint
-- `GET /api/v3/hierarchy/{node}` - Query by LTREE path
-- `GET /api/v3/steep?path=…` - STEEP analysis by path
-- `GET /api/v3/signals?path=…&since=…&limit=…` - Signal retrieval with pagination
-- `GET /api/v3/rss/feeds` - RSS feed management endpoint
-- `GET /api/v3/rss/ingest/{feed_id}` - RSS feed ingestion endpoint
-- `GET /api/v3/rss/entities` - RSS entity extraction endpoint
-- `WS /ws/updates` - Real-time updates payload `{type, path, ids, ts}`
-- `WS /ws/rss` - RSS-specific real-time updates payload `{type, feed_id, entities, ts}`
+### API Endpoints
+- `GET /health` - Health check endpoint
+- `GET /api/entities` - Get all entities
+- `GET /api/entities/{entity_id}/hierarchy` - Get entity hierarchy
+- `POST /api/entities/refresh` - Manual materialized view refresh
+- `GET /api/entities/refresh/status` - Refresh status and metrics
+- `POST /api/entities/refresh/automated/start` - Start automated refresh
+- `POST /api/entities/refresh/automated/stop` - Stop automated refresh
+- `POST /api/entities/refresh/automated/force` - Force refresh
+- `GET /api/entities/refresh/automated/metrics` - Get automated refresh metrics
+- `GET /api/feature-flags` - Get all feature flags
+- `POST /api/feature-flags` - Create feature flag
+- `PUT /api/feature-flags/{flag_name}` - Update feature flag
+- `DELETE /api/feature-flags/{flag_name}` - Delete feature flag
+- `GET /api/feature-flags/{flag_name}` - Get specific feature flag
+- `GET /api/feature-flags/{flag_name}/enabled` - Check if feature flag is enabled
+- `GET /api/feature-flags/metrics` - Get feature flag metrics
+- `GET /api/feature-flags/metrics/cache` - Get feature flag cache metrics
+- `WS /ws` - Primary real-time updates WebSocket
+- `WS /ws/echo` - Echo server for testing WebSocket connections
+- `WS /ws/health` - Health monitoring WebSocket with heartbeat
 
 ---
 

@@ -328,7 +328,7 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ### **Deployment Guides**
 - [Geospatial Deployment Guide](docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md)
-- [LTREE Refresh Implementation](LTREE_REFRESH_IMPLEMENTATION.md)
+- [LTREE Refresh Implementation](docs/LTREE_REFRESH_IMPLEMENTATION.md)
 
 ---
 
