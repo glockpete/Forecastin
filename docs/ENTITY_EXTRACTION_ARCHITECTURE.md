@@ -43,12 +43,14 @@
     }
   },
   "confidence_factors": {
-    "name_recognition": 0.0-1.0,
-    "context_consistency": 0.0-1.0,
-    "source_reliability": 0.0-1.0
+    "name_recognition": 0.95,
+    "context_consistency": 0.87,
+    "source_reliability": 0.92
   }
 }
 ```
+
+Note: Confidence factors range from 0.0 to 1.0.
 
 #### What (Event)
 - **Purpose**: Capture geopolitical events and actions
@@ -65,9 +67,9 @@
     "resources_involved": ["string"]
   },
   "confidence_factors": {
-    "event_verification": 0.0-1.0,
-    "temporal_consistency": 0.0-1.0,
-    "source_corroboration": 0.0-1.0
+    "event_verification": 0.91,
+    "temporal_consistency": 0.88,
+    "source_corroboration": 0.94
   }
 }
 ```
@@ -89,9 +91,9 @@
     "boundary_type": "administrative|natural|custom"
   },
   "confidence_factors": {
-    "geographic_accuracy": 0.0-1.0,
-    "hierarchy_consistency": 0.0-1.0,
-    "coordinate_precision": 0.0-1.0
+    "geographic_accuracy": 0.93,
+    "hierarchy_consistency": 0.89,
+    "coordinate_precision": 0.96
   }
 }
 ```
@@ -111,9 +113,9 @@
     "temporal_context": "past|present|future"
   },
   "confidence_factors": {
-    "temporal_accuracy": 0.0-1.0,
-    "source_timestamp_reliability": 0.0-1.0,
-    "contextual_alignment": 0.0-1.0
+    "temporal_accuracy": 0.90,
+    "source_timestamp_reliability": 0.86,
+    "contextual_alignment": 0.92
   }
 }
 ```
@@ -132,9 +134,9 @@
     "historical_precedents": ["entity_id"]
   },
   "confidence_factors": {
-    "causal_plausibility": 0.0-1.0,
-    "historical_consistency": 0.0-1.0,
-    "actor_motivation_alignment": 0.0-1.0
+    "causal_plausibility": 0.84,
+    "historical_consistency": 0.91,
+    "actor_motivation_alignment": 0.87
   }
 }
 ```
@@ -238,7 +240,7 @@ AND e2.confidence_score > 0.7;
       "type": "who|what|where|when|why",
       "confidence_score": 0.85,
       "canonical_key": "sha256_hash",
-      "metadata": { /* 5-W specific attributes */ }
+      "metadata": {}
     }
   ],
   "processing_metrics": {
@@ -249,6 +251,8 @@ AND e2.confidence_score > 0.7;
 }
 ```
 
+Note: `metadata` contains 5-W specific attributes based on the entity type.
+
 #### GET /api/entity-extraction/entities/{entity_id}
 **Purpose**: Get extracted entity with 5-W metadata
 
@@ -258,10 +262,10 @@ AND e2.confidence_score > 0.7;
   "entity": {
     "entity_id": "string",
     "type": "5w_type",
-    "confidence_score": 0.0-1.0,
+    "confidence_score": 0.88,
     "canonical_key": "string",
-    "metadata": { /* 5-W specific attributes */ },
-    "audit_trail": [ /* change history */ ],
+    "metadata": {},
+    "audit_trail": [],
     "hierarchy_path": "ltree_path",
     "created_at": "timestamp",
     "updated_at": "timestamp"
@@ -270,11 +274,17 @@ AND e2.confidence_score > 0.7;
     {
       "entity_id": "string",
       "relationship_type": "causal|temporal|spatial",
-      "relationship_confidence": 0.0-1.0
+      "relationship_confidence": 0.92
     }
   ]
 }
 ```
+
+Note:
+- `confidence_score` ranges from 0.0 to 1.0
+- `metadata` contains 5-W specific attributes based on entity type
+- `audit_trail` contains change history
+- `relationship_confidence` ranges from 0.0 to 1.0
 
 #### POST /api/entity-extraction/deduplicate
 **Purpose**: Trigger deduplication process for specific entities
@@ -296,11 +306,13 @@ AND e2.confidence_score > 0.7;
       "canonical_entity": "entity_id",
       "merged_entities": ["entity_id_1", "entity_id_2"],
       "similarity_score": 0.85,
-      "audit_trail_entries": [ /* merge records */ ]
+      "audit_trail_entries": []
     }
   ]
 }
 ```
+
+Note: `audit_trail_entries` contains merge records for the deduplication operation.
 
 #### GET /api/entity-extraction/stats
 **Purpose**: Get extraction statistics and confidence metrics

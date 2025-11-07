@@ -56,8 +56,9 @@ def check_consistency(target_file=None) -> Dict:
     """Check consistency across documentation files."""
 
     # Find all markdown files
-    docs_dir = Path(__file__).parent.parent / "docs"
-    root_dir = Path(__file__).parent.parent
+    # Script is at scripts/validation/check_consistency.py, need to go up 3 levels to root
+    docs_dir = Path(__file__).parent.parent.parent / "docs"
+    root_dir = Path(__file__).parent.parent.parent
 
     markdown_files = list(docs_dir.glob("**/*.md")) if docs_dir.exists() else []
     markdown_files.extend(root_dir.glob("*.md"))

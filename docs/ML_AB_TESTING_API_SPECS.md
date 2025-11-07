@@ -192,7 +192,7 @@ This document defines the REST API endpoints for managing ML model A/B tests in 
   "rollout_percentage": 25,
   "target_sample_size": 1000,
   "current_sample_size": 150,
-  "risk_conditions": { /* configured risk thresholds */ },
+  "risk_conditions": {},
   "performance_metrics": {
     "champion": {
       "accuracy": 0.88,
@@ -284,7 +284,7 @@ This document defines the REST API endpoints for managing ML model A/B tests in 
 ```json
 {
   "completion_reason": "Statistical significance achieved",
-  "winner": "challenger", // "champion" or "challenger"
+  "winner": "challenger",
   "performance_summary": {
     "accuracy_improvement": 0.04,
     "latency_impact": 0.03,
@@ -292,6 +292,8 @@ This document defines the REST API endpoints for managing ML model A/B tests in 
   }
 }
 ```
+
+Note: `winner` can be either `"champion"` or `"challenger"`.
 
 **Success Response** (200 OK):
 ```json

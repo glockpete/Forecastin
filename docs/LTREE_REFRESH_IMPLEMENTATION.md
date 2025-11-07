@@ -36,9 +36,11 @@ This implementation provides a manual refresh mechanism for LTREE materialized v
     "mv_entity_hierarchy_stats": true
   },
   "duration_ms": 123.45,
-  "failed_views": [] // only present if partial success
+  "failed_views": []
 }
 ```
+
+Note: `failed_views` is only present if status is `partial_success`.
 
 **Error Response**:
 ```json
@@ -57,11 +59,11 @@ This implementation provides a manual refresh mechanism for LTREE materialized v
   "status": "available",
   "last_refresh": 1234567890.123,
   "cache_metrics": {
-    "l1_cache": {...},
-    "l2_cache": {...},
-    "l3_cache": {...},
-    "l4_cache": {...},
-    "overall": {...}
+    "l1_cache": {},
+    "l2_cache": {},
+    "l3_cache": {},
+    "l4_cache": {},
+    "overall": {}
   },
   "message": "LTREE materialized view refresh service is operational"
 }
