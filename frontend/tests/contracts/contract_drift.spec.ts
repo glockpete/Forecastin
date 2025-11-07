@@ -7,14 +7,14 @@
  * Run: npm test -- contract_drift.spec.ts
  */
 
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vitest';
 import type {
   Entity,
   FeatureFlag,
   ScenarioEntity,
   Opportunity,
   HierarchyResponse,
-} from '../../types/contracts.generated';
+} from '../../src/types/contracts.generated';
 
 // ============================================================================
 // MOCK API RESPONSES (simulating backend JSON)
