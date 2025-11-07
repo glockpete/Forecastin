@@ -495,9 +495,16 @@ export class MessageSequenceTracker {
 export class MessageDeduplicator {
   private recentMessages = new Map<string, number>();
   private readonly windowMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(windowMs: number = 5000) {
     this.windowMs = windowMs;
+
+    // Periodic cleanup timer to prevent unbounded memory growth
+    // Runs every window duration to clean up expired entries even during idle periods
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup(Date.now());
+    }, windowMs);
   }
 
   /**
@@ -509,7 +516,8 @@ export class MessageDeduplicator {
     const now = Date.now();
     const lastSeen = this.recentMessages.get(key);
 
-    // Clean up old entries
+    // Note: Periodic cleanup timer handles old entries,
+    // but we still do inline cleanup for immediate response
     this.cleanup(now);
 
     if (lastSeen && now - lastSeen < this.windowMs) {
@@ -570,6 +578,18 @@ export class MessageDeduplicator {
    * Clear all tracked messages
    */
   clear(): void {
+    this.recentMessages.clear();
+  }
+
+  /**
+   * Destroy the deduplicator and clean up resources
+   * Call this when the component unmounts to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
     this.recentMessages.clear();
   }
 }
