@@ -3,12 +3,13 @@
  * Following forecastin patterns for entity hierarchy and WebSocket integration
  */
 
-import {
+import type {
   EntityId as BrandedEntityId,
   EntityType,
   PathString,
   ConfidenceScore as BrandedConfidenceScore,
-  Timestamp,
+  Timestamp} from './brand';
+import {
   toEntityId,
   toPathString,
   toConfidenceScore,
@@ -62,6 +63,7 @@ export interface HierarchyNode<T extends EntityType = EntityType> {
 
 export interface HierarchyResponse<T extends EntityType = EntityType> {
   nodes: Entity<T>[];
+  entities: Entity<T>[]; // Alias for nodes - used by components
   totalCount: number;
   hasMore: boolean;
   nextCursor?: string;

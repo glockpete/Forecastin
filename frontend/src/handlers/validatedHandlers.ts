@@ -10,7 +10,8 @@
 
 import { z } from 'zod';
 import { Result, Ok, Err } from '../types/brand';
-import { parseOrReport, ParseError } from '../utils/validation';
+import type { ParseError } from '../utils/validation';
+import { parseOrReport } from '../utils/validation';
 import {
   wsIdempotencyGuard,
   wsIdempotencyMetrics,

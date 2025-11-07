@@ -3,8 +3,8 @@
  * Following forecastin patterns with multi-tier caching and WebSocket integration
  */
 
-import { BaseLayer } from '../base/BaseLayer';
-import { LayerConfig, LayerType, LayerRegistryEntry, FeatureFlagConfig, LayerPerformanceMetrics, LayerEvent } from '../types/layer-types';
+import type { BaseLayer } from '../base/BaseLayer';
+import type { LayerConfig, LayerType, LayerRegistryEntry, FeatureFlagConfig, LayerPerformanceMetrics, LayerEvent } from '../types/layer-types';
 import { layerCacheManager } from '../utils/layer-utils';
 import { LayerWebSocketIntegration } from '../../integrations/LayerWebSocketIntegration';
 import { layerFeatureFlags } from '../../config/feature-flags';

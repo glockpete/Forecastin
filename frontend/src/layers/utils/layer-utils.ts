@@ -3,7 +3,8 @@
  * Following forecastin patterns with thread-safe LRU cache and Redis integration
  */
 
-import { LayerConfig, LayerData, LayerPerformanceMetrics, LayerWebSocketMessage } from '../types/layer-types';
+import type { LayerData, LayerPerformanceMetrics, LayerWebSocketMessage } from '../types/layer-types';
+import { LayerConfig } from '../types/layer-types';
 import { EventEmitter } from 'events';
 
 // Thread-safe LRU Cache with RLock (following forecastin patterns)
@@ -19,7 +20,7 @@ class ThreadSafeLRUCache<K, V> {
   private locked = false;
   private queue: (() => void)[] = [];
 
-  constructor(maxSize: number = 1000) {
+  constructor(maxSize = 1000) {
     this.maxSize = maxSize;
   }
 

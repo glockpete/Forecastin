@@ -15,7 +15,7 @@
  * 8. WebSocket serialization with orjson patterns
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { layerFeatureFlags } from '../../config/feature-flags';
 import { LayerRegistry } from '../registry/LayerRegistry';
 import { PointLayer } from '../implementations/PointLayer';
@@ -205,14 +205,14 @@ describe('Real-time WebSocket Data Synchronization', () => {
     layerRegistry = new LayerRegistry();
     
     mockWebSocket = {
-      send: jest.fn(),
-      close: jest.fn(),
+      send: vi.fn(),
+      close: vi.fn(),
       readyState: WebSocket.OPEN,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn()
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn()
     };
     
-    (global as any).WebSocket = jest.fn(() => mockWebSocket);
+    (global as any).WebSocket = vi.fn(() => mockWebSocket);
   });
 
   afterEach(() => {
@@ -272,7 +272,7 @@ describe('Real-time WebSocket Data Synchronization', () => {
   test('WebSocket handles connection resilience with exponential backoff', async () => {
     let connectionAttempts = 0;
     
-    mockWebSocket.addEventListener = jest.fn((event, handler) => {
+    mockWebSocket.addEventListener = vi.fn((event, handler) => {
       if (event === 'error') {
         connectionAttempts++;
         if (connectionAttempts < 3) {
@@ -295,8 +295,8 @@ describe('Real-time WebSocket Data Synchronization', () => {
 
   test('React Query invalidation triggered by WebSocket updates', async () => {
     const mockQueryClient = {
-      invalidateQueries: jest.fn(),
-      setQueryData: jest.fn()
+      invalidateQueries: vi.fn(),
+      setQueryData: vi.fn()
     };
     
     wsIntegration = new LayerWebSocketIntegration({
@@ -670,13 +670,13 @@ describe('End-to-End Integration Workflow', () => {
     
     // Step 7: Test WebSocket integration
     const mockWebSocket = {
-      send: jest.fn(),
-      close: jest.fn(),
+      send: vi.fn(),
+      close: vi.fn(),
       readyState: WebSocket.OPEN,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn()
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn()
     };
-    (global as any).WebSocket = jest.fn(() => mockWebSocket);
+    (global as any).WebSocket = vi.fn(() => mockWebSocket);
     
     const wsIntegration = new LayerWebSocketIntegration({
       url: 'ws://localhost:9000/ws/layers'

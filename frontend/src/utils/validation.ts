@@ -6,7 +6,8 @@
  */
 
 import { z } from 'zod';
-import { Result, Ok, Err } from '../types/brand';
+import type { Result} from '../types/brand';
+import { Ok, Err } from '../types/brand';
 
 /**
  * Parse error with detailed context
@@ -330,14 +331,16 @@ export function parseWithMetrics<T>(
 // DOMAIN-SPECIFIC VALIDATORS (QW007, QW008)
 // ============================================================================
 
+import type {
+  LTreePath,
+  UUIDString,
+  ISODateTimeString
+} from '../../types/contracts.generated';
 import {
   isValidLTreePath,
   isValidUUID,
   isValidISODateTime,
-  parseEntityDate,
-  LTreePath,
-  UUIDString,
-  ISODateTimeString
+  parseEntityDate
 } from '../../types/contracts.generated';
 
 /**

@@ -5,8 +5,8 @@
  * Following forecastin patterns for performance and reliability
  */
 
-import { QueryClient } from '@tanstack/react-query';
-import { Entity } from '../types';
+import type { QueryClient } from '@tanstack/react-query';
+import type { Entity } from '../types';
 import { hierarchyKeys } from '../hooks/useHierarchy';
 
 // Cache coordination utilities
@@ -118,7 +118,7 @@ export class CacheCoordinator {
   }
 
   // Batch cache invalidation with debouncing
-  batchInvalidate(queryKeys: string[][], debounceMs: number = 100) {
+  batchInvalidate(queryKeys: string[][], debounceMs = 100) {
     setTimeout(() => {
       queryKeys.forEach(key => {
         this.queryClient.invalidateQueries({ queryKey: key });
@@ -485,7 +485,7 @@ export class PerformanceMonitor {
   }
 
   // Check if performance meets targets
-  checkPerformance(name: string, target: number, tolerance: number = 0.1): boolean {
+  checkPerformance(name: string, target: number, tolerance = 0.1): boolean {
     const stats = this.getStats(name);
     if (!stats) return false;
     

@@ -4,7 +4,8 @@
  * Integrates with error catalog for consistent error handling
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { AppError, fromUnknownError, reportError } from '../../errors/errorCatalog';
 

@@ -6,18 +6,19 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import {
+import type {
   Opportunity,
   Action,
-  Stakeholder,
-  Evidence,
   LensFilters,
   OpportunitiesResponse,
   ActionsResponse,
   StakeholdersResponse,
   EvidenceResponse,
-  outcomesKeys,
-  ActionGenerationRule,
+  ActionGenerationRule} from '../types/outcomes';
+import {
+  Stakeholder,
+  Evidence,
+  outcomesKeys
 } from '../types/outcomes';
 import { API_BASE_URL } from '../config/env';
 
@@ -177,7 +178,7 @@ const generateActionsForOpportunity = (opportunity: Opportunity): Omit<Action, '
 };
 
 // React Query hooks
-export const useOpportunities = (filters: LensFilters, enabled: boolean = true) => {
+export const useOpportunities = (filters: LensFilters, enabled = true) => {
   return useQuery({
     queryKey: outcomesKeys.opportunitiesFiltered(filters),
     queryFn: () => fetchOpportunities(filters),
@@ -187,7 +188,7 @@ export const useOpportunities = (filters: LensFilters, enabled: boolean = true) 
   });
 };
 
-export const useActions = (opportunityId?: string, enabled: boolean = true) => {
+export const useActions = (opportunityId?: string, enabled = true) => {
   const queryClient = useQueryClient();
   
   const query = useQuery({
@@ -225,7 +226,7 @@ export const useActions = (opportunityId?: string, enabled: boolean = true) => {
   };
 };
 
-export const useStakeholders = (opportunityId?: string, enabled: boolean = true) => {
+export const useStakeholders = (opportunityId?: string, enabled = true) => {
   return useQuery({
     queryKey: opportunityId
       ? outcomesKeys.stakeholdersForOpportunity(opportunityId)
@@ -236,7 +237,7 @@ export const useStakeholders = (opportunityId?: string, enabled: boolean = true)
   });
 };
 
-export const useEvidence = (opportunityId?: string, enabled: boolean = true) => {
+export const useEvidence = (opportunityId?: string, enabled = true) => {
   return useQuery({
     queryKey: opportunityId
       ? outcomesKeys.evidenceForOpportunity(opportunityId)

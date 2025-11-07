@@ -11,8 +11,9 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import type {
+  WebSocketMessage} from '../types/ws_messages';
 import {
-  WebSocketMessage,
   safeParseWebSocketJSON,
   logUnknownMessage,
 } from '../types/ws_messages';
