@@ -429,7 +429,8 @@ class CacheService:
                     # Deserialize with orjson (2-5x faster than standard json) and store in L1
                     try:
                         value = orjson.loads(redis_value)
-                    except (orjson.JSONDecodeError, UnicodeDecodeError, ValueError):
+                    except (ValueError, UnicodeDecodeError):
+                        # orjson raises ValueError for decode errors, not JSONDecodeError
                         value = redis_value  # Store as bytes if deserialization fails
                     
                     # Store in memory cache for faster subsequent access
@@ -482,10 +483,8 @@ class CacheService:
                 # Serialize value for Redis with orjson (2-5x faster than standard json)
                 try:
                     # orjson.dumps returns bytes, perfect for Redis
-                    redis_value = orjson.dumps(
-                        value,
-                        option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
-                    )
+                    # No extra options for maximum performance
+                    redis_value = orjson.dumps(value)
                 except (TypeError, ValueError):
                     # Fallback: try converting to string for non-serializable types
                     redis_value = str(value).encode('utf-8')
