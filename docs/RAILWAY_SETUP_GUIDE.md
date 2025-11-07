@@ -157,9 +157,16 @@ The FastAPI backend requires PostgreSQL and Redis to be set up first.
 **Root Directory**: Set to `api`
    - This tells Railway to build from the `api` folder
 
+**Dockerfile Path**: `Dockerfile.railway` (RECOMMENDED)
+   - Uses optimized build without Prophet (~3-5 min build time)
+   - Alternative: `Dockerfile.full` for complete ML functionality (~10-15 min build time)
+   - See [Railway Build Fix Guide](../api/RAILWAY_BUILD_FIX.md) for details
+
 **Build Command**: Leave default (Railway will detect Dockerfile)
 
 **Start Command**: Leave default (uses Dockerfile CMD)
+
+> **⚠️ Build Issues?** If you encounter build failures with `pip install`, see the comprehensive [Railway Build Fix Guide](../api/RAILWAY_BUILD_FIX.md) which explains the Prophet dependency issue and provides three solutions.
 
 #### Set Environment Variables
 
@@ -461,14 +468,28 @@ Look for:
 
 ### Issue: Build Fails
 
-**Symptoms**: Deployment shows "Build failed"
+**Symptoms**: Deployment shows "Build failed" or `pip install` errors
 
-**Solutions**:
-1. Check build logs for specific error
-2. Verify `Root Directory` is set correctly (`api` or `frontend`)
-3. Ensure Dockerfile exists in the root directory
-4. Check Dockerfile syntax and dependencies
-5. Verify requirements.txt (API) or package.json (frontend) are present
+**Common Cause**: Prophet dependency requires extensive C++ compilation (10-15 minutes) and may timeout or fail.
+
+**Quick Solutions**:
+1. **Use Railway-optimized Dockerfile** (RECOMMENDED):
+   - Settings → Build → Dockerfile Path: `Dockerfile.railway`
+   - Builds in 3-5 minutes without Prophet
+   - See [Railway Build Fix Guide](../api/RAILWAY_BUILD_FIX.md) for complete details
+
+2. **Use full build with timeout increase**:
+   - Settings → Build → Dockerfile Path: `Dockerfile.full`
+   - Settings → Advanced → Build Timeout: 20 minutes
+   - Includes all ML dependencies
+
+3. **Check build logs** for other errors:
+   - Verify `Root Directory` is set correctly (`api` or `frontend`)
+   - Ensure Dockerfile exists in the root directory
+   - Check Dockerfile syntax and dependencies
+   - Verify requirements files are present
+
+**Detailed Guide**: See [api/RAILWAY_BUILD_FIX.md](../api/RAILWAY_BUILD_FIX.md) for comprehensive troubleshooting
 
 ---
 
