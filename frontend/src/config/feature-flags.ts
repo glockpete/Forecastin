@@ -344,6 +344,8 @@ export class LayerFeatureFlagManager {
    */
   private generateRolloutId(): string {
     // Generate a hash-based ID for consistent rollout
+    // Note: slice(2, 11) extracts 9 characters, same as deprecated substr(2, 9)
+    // substr(start, length) vs slice(start, end) where end is exclusive
     return `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
   

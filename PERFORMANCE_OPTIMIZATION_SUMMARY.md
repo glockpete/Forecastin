@@ -73,9 +73,12 @@ value = json.loads(redis_value.decode('utf-8'))
 
 # After
 import orjson
-redis_value = orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS)
+# Maximum performance with default options (no extra overhead)
+redis_value = orjson.dumps(value)
 value = orjson.loads(redis_value)
 ```
+
+**Note**: Initial implementation included `OPT_NON_STR_KEYS` option, but this was removed after code review to maximize performance by avoiding unnecessary option processing overhead.
 
 ### 3. Fixed RSS Metrics Tracking
 **File**: `api/services/cache_service.py`
@@ -100,14 +103,16 @@ value = orjson.loads(redis_value)
 **Solution**:
 - Replaced `substr(2, 9)` with `slice(2, 11)`
 - Modern, future-proof API
+- Note: `substr(start, length)` vs `slice(start, end)` where end is exclusive
+- Both extract 9 characters: substr(2, 9) = slice(2, 11)
 
 **Code Changes**:
 ```typescript
-// Before
-Math.random().toString(36).substr(2, 9)
+// Before (deprecated)
+Math.random().toString(36).substr(2, 9)  // Takes 9 characters starting at index 2
 
-// After
-Math.random().toString(36).slice(2, 11)
+// After (modern API)
+Math.random().toString(36).slice(2, 11)  // From index 2 to 11 (exclusive) = 9 characters
 ```
 
 ### 2. React Component Memoization
