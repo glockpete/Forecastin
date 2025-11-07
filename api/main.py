@@ -101,10 +101,15 @@ class ConnectionManager:
     
     def disconnect(self, client_id: str):
         if client_id in self.active_connections:
-            del self.active_connections[client_id]
-            self.connection_stats['active_connections'] -= 1
-            self.connection_stats['last_activity'] = time.time()
-            logger.info(f"WebSocket client {client_id} disconnected. Active: {self.connection_stats['active_connections']}")
+            try:
+                del self.active_connections[client_id]
+                self.connection_stats['active_connections'] -= 1
+                self.connection_stats['last_activity'] = time.time()
+                logger.info(f"WebSocket client {client_id} disconnected. Active: {self.connection_stats['active_connections']}")
+            except KeyError:
+                # This can happen in a race condition where the client disconnects
+                # between the check and the deletion.
+                logger.warning(f"Client {client_id} was already disconnected.")
     
     async def send_personal_message(self, message: Dict[str, Any], client_id: str):
         """Send message to specific client with orjson serialization"""
