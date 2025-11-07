@@ -1,0 +1,45 @@
+diff --git a/api/main.py b/api/main.py
+index abc1234..def5678 100644
+--- a/api/main.py
++++ b/api/main.py
+@@ -437,6 +437,9 @@ async def get_refresh_status():
+         }
+     )
+
++# Performance SLO target for LTREE refresh operations
++SLO_REFRESH_TARGET_MS = 1000
++
+ @app.post("/api/entities/refresh")
+ async def refresh_materialized_views():
+     """
+@@ -451,6 +454,12 @@ async def refresh_materialized_views():
+     refresh_results = hierarchy_resolver.refresh_all_materialized_views()
+     duration_ms = (time.time() - start_time) * 1000
+     
++    # Enforce performance threshold
++    if duration_ms > SLO_REFRESH_TARGET_MS:
++        logger.warning(
++            f"LTREE refresh SLO violation: {duration_ms:.2f}ms > {SLO_REFRESH_TARGET_MS}ms"
++        )
++    
+     # Check for failures
+     failed_views = []
+     for view_name, success in refresh_results.items():
+@@ -460,9 +469,11 @@ async def refresh_materialized_views():
+     if failed_views:
+         return {
+             "status": "partial_success",
+             "message": f"Some views failed to refresh: {', '.join(failed_views)}",
+             "results": refresh_results,
+             "duration_ms": duration_ms,
++            "slo_compliant": duration_ms <= SLO_REFRESH_TARGET_MS,
+             "failed_views": failed_views
+         }
+     
+@@ -471,6 +482,7 @@ async def refresh_materialized_views():
+         "message": "All materialized views refreshed successfully",
+         "results": refresh_results,
+         "duration_ms": duration_ms,
++        "slo_compliant": duration_ms <= SLO_REFRESH_TARGET_MS,
+     }
+ 

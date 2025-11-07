@@ -1,483 +1,546 @@
 # Bug Report - Top 10 Defects
 
-**Generated:** 2024-11-06
-**Repository:** Forecastin
-**Analysis Scope:** End-to-end contract validation, type safety, and runtime behavior
+**Date**: 2025-11-07  
+**Session**: claude/codebase-audit-and-fixes-011CUtPZZvGBYFe9mD7ehTT4  
+**Audit Type**: Static Analysis (No Services Running)
 
 ---
 
-## Summary
+## Defect #1: Feature Flag Name Mismatch
 
-This report identifies the top 10 defects discovered through static analysis, contract validation, and code review. Each defect includes reproduction steps, expected vs. actual behavior, affected files, risk assessment, and fix recommendations.
-
----
-
-## 1. Missing Runtime Type Validation for WebSocket Messages
-
-**Priority:** 🔴 **HIGH**
-**Risk:** Security, Data Integrity
-**Owner:** Frontend Team
-**Files:** `frontend/src/handlers/realtimeHandlers.ts:35-104`
+**Severity**: 🔴 CRITICAL  
+**Component**: Feature Flags (Backend + Frontend)  
+**Impact**: Runtime failures, flags not found  
+**Scope**: 4 files across backend/frontend
 
 ### Description
-The `processEntityUpdate` method processes WebSocket messages without runtime validation against zod schemas. Malformed messages can cause crashes or corrupt state.
+Feature flag names are inconsistent between documentation, database initialization, backend service, and frontend code.
 
 ### Reproduction
-1. Send a WebSocket message with malformed `data` field
-2. Missing required fields like `entityId` or incorrect types
-3. Application crashes or stores invalid data in React Query cache
+1. Backend initializes flags: `ff.geo.layers_enabled` (`init_geospatial_flags.py:58`)
+2. Backend service queries: `ff_geospatial_layers` (`feature_flag_service.py:81`)
+3. Frontend requests: `ff.geospatial_layers` (`useFeatureFlag.ts:263`)
+4. Result: Backend/frontend request flags that don't exist in database
 
-### Expected Behavior
-- All incoming messages validated against zod schemas before processing
-- Invalid messages logged and rejected gracefully
-- Error metrics tracked for monitoring
+### Expected Behaviour
+All code should use documented flag names from `GEOSPATIAL_FEATURE_FLAGS.md`:
+- `ff.geo.layers_enabled`
+- `ff.geo.gpu_rendering_enabled`
+- `ff.geo.point_layer_active`
 
-### Actual Behavior
-- Messages processed without validation
-- Type coercion can mask errors
-- Crashes occur during property access on undefined/null
+### Actual Behaviour
+Four different naming patterns used across codebase:
+- Initialization: `ff.geo.layers_enabled` ✅
+- Backend: `ff_geospatial_layers` ❌
+- Frontend Hook: `ff.geospatial_layers` ❌
+- Frontend Config: `ff_geospatial_enabled` ❌
+
+### Risk Assessment
+- **Likelihood**: 100% (always occurs)
+- **Impact**: HIGH - Features don't work as frontend/backend can't find flags
+- **Detection**: LOW - Silent failures, no error logging
+- **Blast Radius**: All geospatial features affected
 
 ### Fix Sketch
-```typescript
-// Add at top of processEntityUpdate
-import { parseRealtimeMessage } from '../types/ws_messages';
+```python
+# api/services/feature_flag_service.py:81-108
+class GeospatialFeatureFlags:
+    # BEFORE
+    ff_geospatial_layers: bool = False
+    ff_gpu_filtering: bool = False
+    ff_point_layer: bool = False
+    
+    # AFTER
+    ff_geo_layers_enabled: bool = False  # Match docs
+    ff_geo_gpu_rendering_enabled: bool = False
+    ff_geo_point_layer_active: bool = False
+```
 
-async processEntityUpdate(rawMessage: unknown): Promise<void> {
-  const message = parseRealtimeMessage(rawMessage); // Validates with zod
-  // ... rest of processing
-}
+```typescript
+// frontend/src/hooks/useFeatureFlag.ts:263
+// BEFORE
+const flags = await Promise.all([
+  checkFlag('ff.geospatial_layers'),
+  // ...
+]);
+
+// AFTER
+const flags = await Promise.all([
+  checkFlag('ff.geo.layers_enabled'),  // Match docs
+  // ...
+]);
+```
+
+### Database Migration Required
+```sql
+UPDATE feature_flags
+SET flag_name = 'ff.geo.layers_enabled'
+WHERE flag_name = 'ff_geospatial_layers';
+-- Repeat for other flags
+```
+
+### Testing
+```bash
+# 1. Update all 4 locations to use ff.geo.* pattern
+# 2. Run database migration
+# 3. Start backend: python -m api.main
+# 4. Check logs: grep "ff.geo" api.log
+# 5. Test frontend requests hit correct flags
 ```
 
 ---
 
-## 2. Race Condition in Message Sequence Tracking
+## Defect #2: Feature Flag Dependencies Not Enforced
 
-**Priority:** 🟡 **MEDIUM**
-**Risk:** Data Consistency
-**Owner:** Frontend Team
-**Files:** `frontend/src/handlers/realtimeHandlers.ts`, `frontend/src/types/ws_messages.ts:268-304`
+**Severity**: 🔴 CRITICAL  
+**Component**: Feature Flags (Backend)  
+**Impact**: Logical violations of dependency chain  
+**Scope**: 1 file (`feature_flag_service.py`)
 
 ### Description
-The `MessageSequenceTracker` doesn't handle concurrent message processing. Multiple async handlers can race, causing out-of-order updates.
+Feature flag dependency chain (`ff.map_v1 → ff.geo.layers_enabled → child flags`) is defined in database but not enforced at runtime in `get_flag_with_rollout()` method.
 
 ### Reproduction
-1. Send 3 rapid WebSocket messages with sequences 1, 2, 3
-2. Message 3 completes processing before message 2 (async race)
-3. State reflects message 3, then is overwritten by message 2
-4. Final state is stale (message 2 instead of 3)
+1. Set `ff.map_v1 = False`
+2. Set `ff.geo.layers_enabled = True`
+3. Call `GET /api/feature-flags/ff.geo.layers_enabled/enabled`
+4. Expected: Returns `False` (parent disabled)
+5. Actual: Returns `True` (ignores parent)
 
-### Expected Behavior
-- Messages processed in sequence order
-- Later messages never overwrite newer state
-- Sequence tracker synchronized across concurrent handlers
+### Expected Behaviour
+```python
+def get_flag_with_rollout(self, flag_name: str, user_id: Optional[str] = None) -> bool:
+    flag = self.get_flag(flag_name)
+    if not flag or not flag.is_enabled:
+        return False
+    
+    # NEW: Check parent flags
+    for parent_name in flag.dependencies:
+        if not self.get_flag_with_rollout(parent_name, user_id):
+            return False  # Parent disabled, so child must be disabled
+    
+    # Existing rollout logic
+    return self._check_rollout(flag, user_id)
+```
 
-### Actual Behavior
-- Async handlers process concurrently without coordination
-- Last-write-wins can result in stale data
+### Actual Behaviour
+```python
+# feature_flag_service.py:776-805
+def get_flag_with_rollout(self, flag_name: str, user_id: Optional[str] = None) -> bool:
+    # ❌ NO DEPENDENCY CHECKING
+    flag = self.get_flag(flag_name)
+    if not flag or not flag.is_enabled:
+        return False
+    # Rollout logic only - ignores dependencies
+```
+
+### Risk Assessment
+- **Likelihood**: MEDIUM (requires misconfiguration)
+- **Impact**: HIGH - Violates documented contracts
+- **Detection**: LOW - No validation or alerts
+- **Blast Radius**: All dependent features
 
 ### Fix Sketch
-```typescript
-class MessageSequenceTracker {
-  private processingQueue = new Map<string, Promise<void>>();
+```python
+# api/services/feature_flag_service.py:776
+def get_flag_with_rollout(self, flag_name: str, user_id: Optional[str] = None) -> bool:
+    flag = self.get_flag(flag_name)
+    if not flag or not flag.is_enabled:
+        return False
+    
+    # NEW: Enforce dependency chain
+    if flag.dependencies:
+        for parent_flag_name in flag.dependencies:
+            parent_enabled = self.get_flag_with_rollout(parent_flag_name, user_id)
+            if not parent_enabled:
+                logger.warning(
+                    f"Flag {flag_name} disabled: parent {parent_flag_name} is disabled"
+                )
+                return False
+    
+    # Existing rollout logic
+    if user_id is None:
+        return random.randint(1, 100) <= flag.rollout_percentage
+    
+    user_hash = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
+    user_bucket = (user_hash % 100) + 1
+    return user_bucket <= flag.rollout_percentage
+```
 
-  async processInOrder(msg: RealtimeMessage, handler: () => Promise<void>): Promise<void> {
-    const clientId = msg.meta.clientId || 'default';
-    const prev = this.processingQueue.get(clientId) || Promise.resolve();
-
-    const current = prev.then(() => {
-      if (this.shouldProcess(msg)) {
-        return handler();
-      }
-    });
-
-    this.processingQueue.set(clientId, current);
-    return current;
-  }
-}
+### Testing
+```python
+# tests/test_feature_flags.py
+def test_dependency_chain_enforced():
+    # Set up: parent disabled, child enabled
+    service.create_flag("parent", enabled=False, dependencies=[])
+    service.create_flag("child", enabled=True, dependencies=["parent"])
+    
+    # Test: child should be disabled because parent is disabled
+    assert service.get_flag_with_rollout("child", "user123") is False
 ```
 
 ---
 
-## 3. Excess Property Errors in GeoJSON Entity Types
+## Defect #3: WebSocket Message Structure Drift
 
-**Priority:** 🟡 **MEDIUM**
-**Risk:** Type Safety
-**Owner:** Frontend Team
-**Files:** `frontend/src/layers/types/layer-types.ts`
-
-### Description
-GeoJSON entity types don't separate polygon/linestring-specific properties from base `EntityDataPoint`. Causes excess property errors when using zod `.strict()`.
-
-### Reproduction
-1. Create a `PolygonEntityDataPoint` with `fillColor` property
-2. Attempt to validate against base `EntityDataPoint` schema
-3. zod throws "Unrecognized key" error due to `.strict()` mode
-
-### Expected Behavior
-- Separate schemas for each geometry type
-- Discriminated union based on geometry type
-- Each type allows only valid properties
-
-### Actual Behavior
-- Single base type with optional geometry-specific properties
-- Violates "exact schema inference" requirement
-- `.strict()` validation fails
-
-### Fix Sketch
-```typescript
-// Separate base from geometry-specific
-interface BaseEntity {
-  id: string;
-  confidence: number;
-  hierarchy: HierarchyInfo;
-}
-
-interface PointEntity extends BaseEntity {
-  geometryType: 'Point';
-  position: [number, number, number?];
-}
-
-interface PolygonEntity extends BaseEntity {
-  geometryType: 'Polygon';
-  fillColor: Color;
-  strokeColor: Color;
-  // ... polygon-specific only
-}
-
-type EntityDataPoint = PointEntity | PolygonEntity | LinestringEntity;
-```
-
----
-
-## 4. Unbounded Memory Growth in MessageDeduplicator
-
-**Priority:** 🟡 **MEDIUM**
-**Risk:** Performance, Memory Leak
-**Owner:** Frontend Team
-**Files:** `frontend/src/types/ws_messages.ts:368-398`
+**Severity**: 🟡 MEDIUM  
+**Component**: WebSocket Layer (Backend + Frontend)  
+**Impact**: Type definitions don't match actual messages  
+**Scope**: 2 files
 
 ### Description
-The `MessageDeduplicator.cleanup()` method only runs when new messages arrive. In low-traffic scenarios, old entries never expire, causing memory leak.
+Backend emits `{type, data, timestamp}` but frontend types expect `{type, payload, meta: {timestamp}}`.
 
 ### Reproduction
-1. Process 1000 messages in 1 minute (high traffic)
-2. Wait 1 hour with no messages
-3. Map still contains all 1000 entries despite window expiration
-4. Memory usage grows unbounded over time
+1. Backend sends: `{"type": "layer_data_update", "data": {...}, "timestamp": 1699999999}`
+2. Frontend types expect: `{type: "layer_data_update", payload: {...}, meta: {timestamp: ...}}`
+3. Frontend handler works because it uses `data` field (defensive)
+4. But TypeScript types lie about actual shape
 
-### Expected Behavior
-- Periodic cleanup timer runs every window duration
-- Expired entries removed even during idle periods
-- Memory usage bounded by window size * message rate
-
-### Actual Behavior
-- Cleanup only runs inline with message processing
-- Idle periods accumulate stale entries indefinitely
-
-### Fix Sketch
+### Expected Behaviour
+Backend and frontend agree on structure:
 ```typescript
-class MessageDeduplicator {
-  private cleanupTimer: NodeJS.Timeout | null = null;
-
-  constructor(windowMs: number = 5000) {
-    this.windowMs = windowMs;
-    // Periodic cleanup every window duration
-    this.cleanupTimer = setInterval(() => this.cleanup(Date.now()), windowMs);
-  }
-
-  destroy(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-    }
-  }
+{
+  type: "layer_data_update",
+  payload: { layer_id, layer_type, layer_data, bbox, changed_at },
+  meta: { timestamp, clientId?, sequence? }
 }
 ```
 
----
-
-## 5. Missing Error Boundary for WebSocket Reconnection
-
-**Priority:** 🔴 **HIGH**
-**Risk:** Availability
-**Owner:** Frontend Team
-**Files:** `frontend/src/hooks/useWebSocket.ts`
-
-### Description
-Based on docs, the WebSocket fix (PR #5) resolved infinite reconnection loops, but error boundaries aren't present in message processing. A single malformed message can crash the handler, breaking all future updates.
-
-### Reproduction
-1. Send valid messages to establish connection
-2. Send malformed message that throws in handler
-3. Handler crashes, stops processing all future messages
-4. User sees stale data indefinitely
-
-### Expected Behavior
-- Error boundaries catch handler errors
-- Failed messages logged to monitoring
-- Processing continues for subsequent messages
-- Automatic reconnection after N failures
-
-### Actual Behavior
-- Single error can break entire message pipeline
-- No automatic recovery
-
-### Fix Sketch
-```typescript
-async function safeProcessMessage(msg: unknown): Promise<void> {
-  try {
-    const validated = parseRealtimeMessage(msg);
-    await dispatchRealtimeMessage(validated, handlers);
-  } catch (error) {
-    console.error('Message processing failed:', error);
-    errorReporter.captureException(error, { extra: { msg } });
-    // Continue processing - don't crash
-  }
+### Actual Behaviour
+**Backend** (`realtime_service.py:404-414`):
+```python
+message = {
+    "type": "layer_data_update",
+    "data": { ... },  # ❌ Should be "payload"
+    "timestamp": time.time()  # ❌ Should be in "meta"
 }
 ```
 
----
-
-## 6. N+1 Query Problem in Bulk Updates
-
-**Priority:** 🟡 **MEDIUM**
-**Risk:** Performance
-**Owner:** Frontend Team
-**Files:** `frontend/src/handlers/realtimeHandlers.ts:138-150`
-
-### Description
-The `processBulkUpdate` method processes updates sequentially with individual cache operations. For batch of N items, triggers N cache invalidations + N re-renders.
-
-### Reproduction
-1. Send `geometry_batch_update` with 100 items
-2. Each item triggers individual `queryClient.invalidateQueries()`
-3. React renders 100 times
-4. UI freezes for several seconds
-
-### Expected Behavior
-- Batch all cache updates into single operation
-- Single re-render after entire batch processed
-- <100ms for 100 items
-
-### Actual Behavior
-- N individual cache operations
-- N re-renders
-- ~2-5 seconds for 100 items
-
-### Fix Sketch
+**Frontend Types** (`ws_messages.ts:41`):
 ```typescript
-async processBulkUpdate(message: GeometryBatchUpdateMessage): Promise<void> {
-  const { items } = message.payload;
-
-  // Suspend queries during batch
-  queryClient.cancelQueries();
-
-  // Process all updates
-  for (const item of items) {
-    // Update cache without triggering renders
-    queryClient.setQueryData(['layer', item.entityId], item, {
-      updatedAt: Date.now(),
-    });
-  }
-
-  // Single invalidation after batch
-  const affectedLayers = [...new Set(items.map(i => i.layerId))];
-  await queryClient.invalidateQueries({
-    predicate: (query) => affectedLayers.includes(query.queryKey[1])
-  });
-}
-```
-
----
-
-## 7. Missing Idempotency for Duplicate Message Handling
-
-**Priority:** 🟡 **MEDIUM**
-**Risk:** Data Consistency
-**Owner:** Frontend Team
-**Files:** `frontend/src/handlers/realtimeHandlers.ts`
-
-### Description
-While `MessageDeduplicator` detects duplicates, the handler doesn't integrate it. Duplicate messages still process, causing redundant cache updates and renders.
-
-### Reproduction
-1. Send `layer_data_update` for layer-1
-2. Due to network retry, send identical message again
-3. Both messages process
-4. Cache updated twice, React renders twice
-
-### Expected Behavior
-- Duplicate detection integrated into handler
-- Duplicate messages rejected before processing
-- Single render per unique message
-
-### Actual Behavior
-- All messages processed regardless of duplication
-- Performance degradation under retries
-
-### Fix Sketch
-```typescript
-export class RealtimeMessageProcessor {
-  private deduplicator = new MessageDeduplicator();
-
-  async processMessage(rawMessage: unknown): Promise<void> {
-    const message = parseRealtimeMessage(rawMessage);
-
-    // Check for duplicate
-    if (!this.deduplicator.isNew(message)) {
-      console.log('Ignoring duplicate message:', message.type);
-      return;
-    }
-
-    // Process non-duplicate
-    await dispatchRealtimeMessage(message, this.handlers);
-  }
-}
-```
-
----
-
-## 8. Hardcoded Port in WebSocket URL Configuration
-
-**Priority:** 🟢 **LOW**
-**Risk:** Deployment Flexibility
-**Owner:** DevOps Team
-**Files:** `frontend/src/config/env.ts`
-
-### Description
-Per docs, WebSocket URLs use port 9000 by default. While runtime configuration is available, the port is hardcoded and doesn't respect `REACT_APP_WS_PORT` environment variable.
-
-### Reproduction
-1. Deploy to environment requiring port 8080
-2. Set `REACT_APP_WS_PORT=8080`
-3. Connection still attempts port 9000
-4. Connection fails
-
-### Expected Behavior
-- Port configurable via environment variable
-- Fallback to 9000 if not specified
-- Works in all deployment environments
-
-### Actual Behavior
-- Port 9000 hardcoded
-- Environment variable ignored
-
-### Fix Sketch
-```typescript
-// env.ts
-const wsPort = process.env.REACT_APP_WS_PORT || '9000';
-const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-export const WS_URL = `${wsProtocol}//${window.location.hostname}:${wsPort}/ws`;
-```
-
----
-
-## 9. Lack of Test Coverage for Contract Drift Script
-
-**Priority:** 🟢 **LOW**
-**Risk:** CI/CD Reliability
-**Owner:** Frontend Team
-**Files:** `scripts/verify_contract_drift.ts`
-
-### Description
-The contract drift script validates mocks but has no tests itself. If script has bugs, false positives/negatives in CI will go undetected.
-
-### Reproduction
-1. Modify script to always return exit code 0
-2. Commit invalid mock that should fail validation
-3. CI passes despite invalid mock
-4. Bad data reaches production
-
-### Expected Behavior
-- Script has unit tests for validation logic
-- Tests cover all error paths
-- CI fails if script itself is broken
-
-### Actual Behavior
-- No tests for the script
-- Relies on manual verification
-
-### Fix Sketch
-```typescript
-// scripts/__tests__/verify_contract_drift.test.ts
-import { validateWebSocketMock } from '../verify_contract_drift';
-
-describe('verify_contract_drift', () => {
-  it('should reject invalid WebSocket mock', () => {
-    const result = validateWebSocketMock('path/to/invalid.json');
-    expect(result.success).toBe(false);
-    expect(result.errors).toBeDefined();
-  });
-
-  it('should accept valid WebSocket mock', () => {
-    const result = validateWebSocketMock('path/to/valid.json');
-    expect(result.success).toBe(true);
-  });
+export const LayerDataUpdateMessageSchema = z.object({
+  type: z.literal('layer_data_update'),
+  payload: LayerDataUpdatePayloadSchema,  // ✅ Expects "payload"
+  meta: MessageMetaSchema,  // ✅ Expects "meta"
 });
 ```
 
+**Frontend Handler** (`realtimeHandlers.ts:260`):
+```typescript
+// ✅ Defensive - works with actual "data" field
+message: WebSocketMessage & { data?: { ... } }
+```
+
+### Risk Assessment
+- **Likelihood**: 100% (always occurs)
+- **Impact**: MEDIUM - Handler works but types are wrong
+- **Detection**: MEDIUM - TypeScript warns but doesn't block
+- **Blast Radius**: All WebSocket messages
+
+### Fix Sketch (Option A: Fix Backend)
+```python
+# api/services/realtime_service.py:404
+def broadcast_layer_data_update(self, layer_id, layer_type, data, bbox):
+    message = {
+        "type": "layer_data_update",
+        "payload": {  # Changed from "data"
+            "layer_id": layer_id,
+            "layer_type": layer_type,
+            "layer_data": data,
+            "bbox": bbox,
+            "changed_at": time.time()
+        },
+        "meta": {  # New wrapper
+            "timestamp": time.time(),
+            "clientId": None,
+            "sequence": None
+        }
+    }
+```
+
+### Fix Sketch (Option B: Fix Frontend Types)
+```typescript
+// frontend/src/types/ws_messages.ts:41
+export const LayerDataUpdateMessageSchema = z.object({
+  type: z.literal('layer_data_update'),
+  data: LayerDataUpdatePayloadSchema,  // Changed from "payload"
+  timestamp: z.number(),  // Flat instead of meta wrapper
+});
+```
+
+**Recommendation**: Option A (fix backend) aligns with documentation.
+
 ---
 
-## 10. Performance Regression Risk from Strict Schema Validation
+## Defect #4: Performance Threshold Not Enforced
 
-**Priority:** 🟢 **LOW**
-**Risk:** Performance
-**Owner:** Frontend Team
-**Files:** `frontend/src/types/ws_messages.ts:168-178`
+**Severity**: 🟡 MEDIUM  
+**Component**: LTREE Refresh API (Backend)  
+**Impact**: SLO violations not detected or alerted  
+**Scope**: 1 file (`main.py`)
 
 ### Description
-Adding zod validation to every WebSocket message adds ~0.5-2ms overhead per message. At >100 msgs/sec, this could violate <50ms latency SLO.
+Documentation claims "<1000ms" performance target for LTREE refresh, but code only measures duration without comparing to target or alerting on violations.
 
 ### Reproduction
-1. Send 200 messages per second
-2. Each message validated with zod (2ms overhead)
-3. Total overhead: 400ms per second of message processing
-4. Latency P95 exceeds SLO
+1. Trigger slow refresh: `POST /api/entities/refresh`
+2. Response includes: `{"duration_ms": 1500}`
+3. No warning logged
+4. No alert sent
+5. SLO violation silent
 
-### Expected Behavior
-- Validation overhead <0.1ms per message
-- Production mode skips validation for trusted sources
-- Development mode validates all messages
+### Expected Behaviour
+```python
+# api/main.py:449-454
+start_time = time.time()
+refresh_results = hierarchy_resolver.refresh_all_materialized_views()
+duration_ms = (time.time() - start_time) * 1000
 
-### Actual Behavior
-- Validation always enabled
-- No production optimization
+# NEW: Enforce threshold
+if duration_ms > 1000:
+    logger.warning(
+        f"LTREE refresh exceeded 1000ms target: {duration_ms:.2f}ms"
+    )
+    # Optional: Send alert to monitoring system
+    await alert_service.send("LTREE_SLO_VIOLATION", duration_ms)
+
+return {
+    "status": "success" if duration_ms <= 1000 else "degraded",
+    "duration_ms": duration_ms,
+    "slo_compliant": duration_ms <= 1000
+}
+```
+
+### Actual Behaviour
+```python
+# api/main.py:449-454
+start_time = time.time()
+refresh_results = hierarchy_resolver.refresh_all_materialized_views()
+duration_ms = (time.time() - start_time) * 1000
+# ❌ No threshold check
+return {"status": "success", "duration_ms": duration_ms}
+```
+
+### Risk Assessment
+- **Likelihood**: LOW (current performance is 850ms avg)
+- **Impact**: MEDIUM - Gradual degradation undetected
+- **Detection**: LOW - No monitoring or alerts
+- **Blast Radius**: LTREE refresh operations
 
 ### Fix Sketch
-```typescript
-// Use environment flag to disable in production
-const ENABLE_VALIDATION = process.env.NODE_ENV !== 'production' ||
-                         process.env.REACT_APP_VALIDATE_WS === 'true';
+```python
+# api/main.py:449-475
+SLO_REFRESH_TARGET_MS = 1000
 
-export function parseWebSocketData(data: string): RealtimeMessage {
-  const parsed = JSON.parse(data);
+@app.post("/api/entities/refresh")
+async def refresh_materialized_views():
+    start_time = time.time()
+    refresh_results = hierarchy_resolver.refresh_all_materialized_views()
+    duration_ms = (time.time() - start_time) * 1000
+    
+    # Enforce threshold
+    slo_compliant = duration_ms <= SLO_REFRESH_TARGET_MS
+    if not slo_compliant:
+        logger.warning(
+            f"LTREE refresh SLO violation: {duration_ms:.2f}ms > {SLO_REFRESH_TARGET_MS}ms"
+        )
+    
+    status = "success" if not failed_views else "partial_success"
+    if not slo_compliant:
+        status = "degraded"
+    
+    return {
+        "status": status,
+        "message": "...",
+        "results": refresh_results,
+        "duration_ms": duration_ms,
+        "slo_compliant": slo_compliant,
+        "slo_target_ms": SLO_REFRESH_TARGET_MS,
+        "failed_views": failed_views if failed_views else []
+    }
+```
 
-  if (ENABLE_VALIDATION) {
-    return parseRealtimeMessage(parsed);
-  } else {
-    // Type assertion for production (assumes backend is trusted)
-    return parsed as RealtimeMessage;
-  }
-}
+### Testing
+```python
+# tests/test_ltree_refresh.py
+@pytest.mark.asyncio
+async def test_slo_violation_logged(monkeypatch):
+    # Mock slow refresh
+    async def slow_refresh(*args):
+        await asyncio.sleep(1.5)  # 1500ms
+        return {"mv_entity_ancestors": True}
+    
+    monkeypatch.setattr(hierarchy_resolver, "refresh_all_materialized_views", slow_refresh)
+    
+    # Trigger refresh
+    response = await client.post("/api/entities/refresh")
+    
+    # Assert
+    assert response.status_code == 200
+    assert response.json()["status"] == "degraded"
+    assert response.json()["slo_compliant"] is False
+    assert "SLO violation" in caplog.text
 ```
 
 ---
 
-## Priority Summary
+## Defect #5: Entity Type Not Exported
 
-- 🔴 **HIGH (2 defects)**: Missing validation, error boundaries
-- 🟡 **MEDIUM (5 defects)**: Race conditions, memory leaks, N+1 queries
-- 🟢 **LOW (3 defects)**: Configuration, test coverage, performance optimization
+**Severity**: 🟡 MEDIUM  
+**Component**: Frontend Types  
+**Impact**: Compilation error when dependencies installed  
+**Scope**: 1 file (`useHierarchy.ts`)
 
-## Recommended Next Steps
+### Description
+`Entity` type declared in `useHierarchy.ts` but not exported, causing TS2459 error when imported by other files.
 
-1. **Week 1**: Fix HIGH priority defects (#1, #5)
-2. **Week 2**: Address MEDIUM priority defects (#2, #3, #4, #6, #7)
-3. **Week 3**: Resolve LOW priority defects (#8, #9, #10)
-4. **Week 4**: Regression testing and deployment
+### Reproduction
+1. Install dependencies: `cd frontend && npm install`
+2. Compile TypeScript: `npx tsc --noEmit`
+3. Error: `src/components/Entity/EntityDetail.tsx(21,21): error TS2459: Module '"../../hooks/useHierarchy"' declares 'Entity' locally, but it is not exported.`
 
-## Appendix: Analysis Methodology
+### Expected Behaviour
+```typescript
+// frontend/src/hooks/useHierarchy.ts
+export type Entity = {
+  id: string;
+  name: string;
+  // ...
+};
+```
 
-- **Static Analysis**: TypeScript compiler, zod schema validation
-- **Code Review**: Pattern matching against known anti-patterns
-- **Documentation**: Cross-referenced with WEBSOCKET_LAYER_MESSAGES.md, POLYGON_LINESTRING_ARCHITECTURE.md
-- **Performance**: Compared against SLOs in AGENTS.md and performance reports
+### Actual Behaviour
+```typescript
+// frontend/src/hooks/useHierarchy.ts
+type Entity = {  // ❌ Missing 'export' keyword
+  id: string;
+  name: string;
+  // ...
+};
+```
+
+### Risk Assessment
+- **Likelihood**: 100% (blocks compilation)
+- **Impact**: MEDIUM - Prevents builds
+- **Detection**: HIGH - TypeScript compilation error
+- **Blast Radius**: All files importing Entity from useHierarchy
+
+### Fix Sketch
+```typescript
+// frontend/src/hooks/useHierarchy.ts
+// ONE CHARACTER FIX:
+export type Entity = {  // Add 'export' keyword
+  id: string;
+  name: string;
+  type: string;
+  parentId?: string;
+  path: string;
+  pathDepth: number;
+  confidence?: number;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+  hasChildren?: boolean;
+  childrenCount?: number;
+};
+```
+
+### Testing
+```bash
+cd frontend
+npm install
+npx tsc --noEmit
+# Should compile with 0 errors (after dependency install)
+```
+
+---
+
+## Defect #6-10: Lower Priority Issues
+
+### Defect #6: Missing API Endpoints (Documentation Drift)
+**Severity**: 🟢 LOW  
+**Scope**: Feature flags API
+
+Documentation shows dedicated endpoints that don't exist:
+- `PUT /api/feature-flags/{flag_name}/disable`
+- `PUT /api/feature-flags/{flag_name}/rollout`
+- `POST /api/feature-flags/{flag_name}/rollback`
+
+Generic `PUT /api/feature-flags/{flag_name}` can handle these, but specific endpoints missing.
+
+---
+
+### Defect #7: Undocumented LTREE Endpoints
+**Severity**: 🟢 LOW  
+**Scope**: LTREE refresh API
+
+4 automated endpoints implemented but not documented:
+- `POST /api/entities/refresh/automated/start`
+- `POST /api/entities/refresh/automated/stop`
+- `POST /api/entities/refresh/automated/force`
+- `GET /api/entities/refresh/automated/metrics`
+
+---
+
+### Defect #8: Undocumented WebSocket Messages
+**Severity**: 🟢 LOW  
+**Scope**: WebSocket layer
+
+7 message types implemented but not in `WEBSOCKET_LAYER_MESSAGES.md`:
+- `entity_update`
+- `hierarchy_change`
+- `bulk_update`
+- `cache_invalidate`
+- `search_update`
+- `heartbeat`
+- `error`
+
+---
+
+### Defect #9: Hardcoded `is_map_v1_enabled()` Return
+**Severity**: 🟢 LOW  
+**Scope**: Feature flags service
+
+```python
+# feature_flag_service.py:110-113
+def is_map_v1_enabled(self) -> bool:
+    """Check if map_v1 feature flag is enabled."""
+    # TODO: Implement actual check
+    return True  # ❌ Hardcoded
+```
+
+Should query actual `ff.map_v1` flag from database.
+
+---
+
+### Defect #10: Duplicate/Obsolete Files
+**Severity**: 🟢 LOW  
+**Scope**: Repository hygiene
+
+- `requirements_new.txt` (20 bytes - empty?)
+- `README.backup.md`
+- `ts_errors_latest.txt` vs `ts_errors_current.txt`
+
+Should be removed or populated.
+
+---
+
+## Summary Table
+
+| # | Defect | Severity | Impact | Effort | Risk |
+|---|--------|----------|--------|--------|------|
+| 1 | Feature flag name mismatch | 🔴 CRITICAL | HIGH | 2h | Breaking |
+| 2 | Flag dependencies not enforced | 🔴 CRITICAL | HIGH | 1h | Medium |
+| 3 | WebSocket structure drift | 🟡 MEDIUM | MEDIUM | 2h | Breaking |
+| 4 | Performance threshold not enforced | 🟡 MEDIUM | MEDIUM | 30m | None |
+| 5 | Entity type not exported | 🟡 MEDIUM | MEDIUM | 1m | None |
+| 6 | Missing API endpoints | 🟢 LOW | LOW | 1h | None |
+| 7 | Undocumented LTREE endpoints | 🟢 LOW | LOW | 30m | None |
+| 8 | Undocumented WS messages | 🟢 LOW | LOW | 30m | None |
+| 9 | Hardcoded map_v1 check | 🟢 LOW | LOW | 15m | None |
+| 10 | Duplicate files | 🟢 LOW | TRIVIAL | 5m | None |
+
+---
+
+**End of bug_report.md**

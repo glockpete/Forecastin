@@ -1,173 +1,193 @@
-[
-  {
-    "id": "qw-001",
-    "title": "Add zod validation to WebSocket message handler",
-    "description": "Wrap parseRealtimeMessage() around all incoming WebSocket data to catch malformed messages before they corrupt state",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts",
-      "frontend/src/hooks/useWebSocket.ts"
-    ],
-    "eta_hours": 2,
-    "impact": "high",
-    "confidence": 0.95,
-    "rationale": "Prevents crashes from malformed messages. Single function call addition. Already have zod schemas ready.",
-    "dependencies": [],
-    "testing": "Unit test with invalid mock, verify error logged and state unchanged"
-  },
-  {
-    "id": "qw-002",
-    "title": "Integrate MessageDeduplicator into RealtimeMessageProcessor",
-    "description": "Add deduplicator.isNew() check before processing messages to prevent duplicate renders",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts"
-    ],
-    "eta_hours": 1,
-    "impact": "medium",
-    "confidence": 0.9,
-    "rationale": "Reduces redundant cache updates and renders during network retries. Class already implemented, just needs integration.",
-    "dependencies": [],
-    "testing": "Send duplicate message, verify only processed once"
-  },
-  {
-    "id": "qw-003",
-    "title": "Add periodic cleanup timer to MessageDeduplicator",
-    "description": "setInterval cleanup every windowMs to prevent memory leak during idle periods",
-    "files": [
-      "frontend/src/types/ws_messages.ts"
-    ],
-    "eta_hours": 0.5,
-    "impact": "medium",
-    "confidence": 0.95,
-    "rationale": "Fixes memory leak with 3-line change. Critical for long-running sessions.",
-    "dependencies": [],
-    "testing": "Unit test: wait beyond window, verify map cleared"
-  },
-  {
-    "id": "qw-004",
-    "title": "Batch cache updates in processBulkUpdate",
-    "description": "Suspend queries during batch, update all items, then single invalidation",
-    "files": [
-      "frontend/src/handlers/realtimeHandlers.ts"
-    ],
-    "eta_hours": 3,
-    "impact": "high",
-    "confidence": 0.85,
-    "rationale": "Eliminates N+1 query problem. Reduces 100-item batch from ~3s to <100ms. Major UX improvement.",
-    "dependencies": [],
-    "testing": "Benchmark: 100-item batch should complete in <100ms"
-  },
-  {
-    "id": "qw-005",
-    "title": "Separate EntityDataPoint into geometry-specific types",
-    "description": "Create discriminated union with PointEntity | PolygonEntity | LinestringEntity",
-    "files": [
-      "frontend/src/layers/types/layer-types.ts",
-      "frontend/src/types/contracts.generated.ts"
-    ],
-    "eta_hours": 4,
-    "impact": "high",
-    "confidence": 0.8,
-    "rationale": "Enables zod .strict() validation. Catches excess properties at compile time. Improves type safety across codebase.",
-    "dependencies": [],
-    "testing": "TypeScript compilation with strict mode, no errors"
-  },
-  {
-    "id": "qw-006",
-    "title": "Add error boundary to WebSocket message processing",
-    "description": "Wrap message handler in try/catch with structured error logging",
-    "files": [
-      "frontend/src/hooks/useWebSocket.ts"
-    ],
-    "eta_hours": 1.5,
-    "impact": "high",
-    "confidence": 0.9,
-    "rationale": "Prevents single bad message from breaking entire pipeline. Essential resilience pattern.",
-    "dependencies": [],
-    "testing": "Send malformed message, verify handler continues processing subsequent messages"
-  },
-  {
-    "id": "qw-007",
-    "title": "Make WebSocket port configurable via env var",
-    "description": "Read REACT_APP_WS_PORT and fallback to 9000",
-    "files": [
-      "frontend/src/config/env.ts"
-    ],
-    "eta_hours": 0.25,
-    "impact": "low",
-    "confidence": 1.0,
-    "rationale": "One-line change. Improves deployment flexibility. No downside.",
-    "dependencies": [],
-    "testing": "Set env var, verify connection uses correct port"
-  },
-  {
-    "id": "qw-008",
-    "title": "Add CI job for contract drift verification",
-    "description": "Run npm run contracts:check in CI, fail build if any mock invalid",
-    "files": [
-      ".github/workflows/ci.yml"
-    ],
-    "eta_hours": 0.5,
-    "impact": "medium",
-    "confidence": 0.95,
-    "rationale": "Prevents invalid mocks from reaching main. Low effort, high value.",
-    "dependencies": ["qw-001"],
-    "testing": "Commit invalid mock, verify CI fails"
-  },
-  {
-    "id": "qw-009",
-    "title": "Add production mode skip for zod validation",
-    "description": "Check NODE_ENV and skip validation in production for performance",
-    "files": [
-      "frontend/src/types/ws_messages.ts"
-    ],
-    "eta_hours": 0.5,
-    "impact": "low",
-    "confidence": 0.85,
-    "rationale": "Eliminates 0.5-2ms overhead per message in production. Safety in dev, speed in prod.",
-    "dependencies": ["qw-001"],
-    "testing": "Benchmark: 200 msgs/sec, verify latency <50ms"
-  },
-  {
-    "id": "qw-010",
-    "title": "Add feature flag smoke test to CI",
-    "description": "Run smoke_geo.ts in CI to verify ff dependency chain",
-    "files": [
-      ".github/workflows/ci.yml",
-      "scripts/feature_flags/smoke_geo.ts"
-    ],
-    "eta_hours": 1,
-    "impact": "medium",
-    "confidence": 0.9,
-    "rationale": "Catches misconfigurations before deployment. Prevents broken feature rollouts.",
-    "dependencies": [],
-    "testing": "Misconfigure ff, verify CI fails with clear error"
-  },
-  {
-    "id": "qw-011",
-    "title": "Add tests for verify_contract_drift.ts script",
-    "description": "Unit tests covering validation logic for both valid and invalid mocks",
-    "files": [
-      "scripts/__tests__/verify_contract_drift.test.ts"
-    ],
-    "eta_hours": 2,
-    "impact": "low",
-    "confidence": 0.9,
-    "rationale": "Ensures script itself is tested. Meta-testing prevents false positives/negatives.",
-    "dependencies": [],
-    "testing": "Test script against known-good and known-bad mocks"
-  },
-  {
-    "id": "qw-012",
-    "title": "Add performance benchmarks to CI",
-    "description": "Vitest benchmark suite measuring message processing latency",
-    "files": [
-      "frontend/tests/performance.bench.ts"
-    ],
-    "eta_hours": 3,
-    "impact": "medium",
-    "confidence": 0.8,
-    "rationale": "Tracks performance regressions. Validates <10ms render, <50ms latency SLOs.",
-    "dependencies": ["qw-004"],
-    "testing": "Run benchmark, verify all SLOs met"
+{
+  "session_id": "011CUtPZZvGBYFe9mD7ehTT4",
+  "date": "2025-11-07",
+  "total_wins": 10,
+  "quick_wins": [
+    {
+      "rank": 1,
+      "title": "Install Frontend Dependencies",
+      "description": "Run `npm install` in frontend directory to resolve 1,227 of 1,292 TypeScript errors",
+      "type": "code-only",
+      "effort_minutes": 2,
+      "impact": "high",
+      "risk": "none",
+      "files": ["frontend/package.json"],
+      "command": "cd frontend && npm install",
+      "expected_outcome": "Resolves 95% of TypeScript compilation errors",
+      "confidence": 100
+    },
+    {
+      "rank": 2,
+      "title": "Export Entity Type",
+      "description": "Add 'export' keyword to Entity type in useHierarchy.ts to fix TS2459 error",
+      "type": "code-only",
+      "effort_minutes": 1,
+      "impact": "medium",
+      "risk": "none",
+      "files": ["frontend/src/hooks/useHierarchy.ts"],
+      "patch": "patches/01_export_entity_type.patch",
+      "line_number": "~15",
+      "change": "type Entity = { ... } → export type Entity = { ... }",
+      "expected_outcome": "Fixes last remaining TypeScript compilation error",
+      "confidence": 100
+    },
+    {
+      "rank": 3,
+      "title": "Add Performance Threshold Enforcement",
+      "description": "Log warning when LTREE refresh exceeds 1000ms target",
+      "type": "code-only",
+      "effort_minutes": 5,
+      "impact": "medium",
+      "risk": "none",
+      "files": ["api/main.py"],
+      "patch": "patches/02_add_performance_threshold.patch",
+      "line_number": 454,
+      "change": "Add: if duration_ms > 1000: logger.warning(...)",
+      "expected_outcome": "SLO violations logged and detectable",
+      "confidence": 100
+    },
+    {
+      "rank": 4,
+      "title": "Document Automated LTREE Endpoints",
+      "description": "Add documentation for 4 undocumented automated refresh endpoints",
+      "type": "documentation",
+      "effort_minutes": 15,
+      "impact": "medium",
+      "risk": "none",
+      "files": ["docs/LTREE_REFRESH_IMPLEMENTATION.md"],
+      "endpoints": [
+        "POST /api/entities/refresh/automated/start",
+        "POST /api/entities/refresh/automated/stop",
+        "POST /api/entities/refresh/automated/force",
+        "GET /api/entities/refresh/automated/metrics"
+      ],
+      "expected_outcome": "API consumers aware of automated refresh features",
+      "confidence": 100
+    },
+    {
+      "rank": 5,
+      "title": "Document WebSocket Message Types",
+      "description": "Add schemas for 7 undocumented WebSocket message types",
+      "type": "documentation",
+      "effort_minutes": 30,
+      "impact": "medium",
+      "risk": "none",
+      "files": ["docs/WEBSOCKET_LAYER_MESSAGES.md"],
+      "message_types": [
+        "entity_update",
+        "hierarchy_change",
+        "bulk_update",
+        "cache_invalidate",
+        "search_update",
+        "heartbeat",
+        "error"
+      ],
+      "expected_outcome": "Complete WebSocket contract documentation",
+      "confidence": 100
+    },
+    {
+      "rank": 6,
+      "title": "Fix Hardcoded map_v1 Check",
+      "description": "Replace hardcoded 'return True' with actual database flag query",
+      "type": "code-only",
+      "effort_minutes": 15,
+      "impact": "low",
+      "risk": "low",
+      "files": ["api/services/feature_flag_service.py"],
+      "line_number": 113,
+      "change": "return True → return self.get_flag_with_rollout('ff.map_v1', user_id)",
+      "expected_outcome": "Proper map_v1 flag checking",
+      "confidence": 95
+    },
+    {
+      "rank": 7,
+      "title": "Remove Duplicate Files",
+      "description": "Delete obsolete backup and empty files",
+      "type": "code-only",
+      "effort_minutes": 5,
+      "impact": "trivial",
+      "risk": "none",
+      "files": [
+        "requirements_new.txt",
+        "README.backup.md",
+        "ts_errors_latest.txt"
+      ],
+      "command": "git rm requirements_new.txt README.backup.md ts_errors_latest.txt",
+      "expected_outcome": "Cleaner repository",
+      "confidence": 100
+    },
+    {
+      "rank": 8,
+      "title": "Add SLO Response Field",
+      "description": "Include slo_compliant boolean in LTREE refresh API response",
+      "type": "code-only",
+      "effort_minutes": 10,
+      "impact": "low",
+      "risk": "none",
+      "files": ["api/main.py"],
+      "line_number": 468,
+      "change": "Add field: 'slo_compliant': duration_ms <= 1000",
+      "expected_outcome": "Clients can detect SLO violations",
+      "confidence": 100
+    },
+    {
+      "rank": 9,
+      "title": "Create .env.example",
+      "description": "Document required environment variables for local development",
+      "type": "documentation",
+      "effort_minutes": 20,
+      "impact": "medium",
+      "risk": "none",
+      "files": [".env.example"],
+      "required_vars": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "API_PORT",
+        "FRONTEND_URL",
+        "LOG_LEVEL"
+      ],
+      "expected_outcome": "Easier local setup for new developers",
+      "confidence": 100
+    },
+    {
+      "rank": 10,
+      "title": "Add Response Model Validation",
+      "description": "Use Pydantic BaseModel for LTREE refresh endpoint responses",
+      "type": "code-only",
+      "effort_minutes": 30,
+      "impact": "medium",
+      "risk": "low",
+      "files": ["api/main.py"],
+      "line_number": 440,
+      "change": "Add: class RefreshResponse(BaseModel): status: str; duration_ms: float; ...",
+      "expected_outcome": "Type-safe API responses, automatic OpenAPI generation",
+      "confidence": 95
+    }
+  ],
+  "bucket_a_candidates": [
+    {
+      "win_ranks": [1, 2, 3, 6, 7, 8],
+      "total_effort_minutes": 38,
+      "total_impact": "high",
+      "description": "Code-only fixes that compile and pass static checks without services"
+    }
+  ],
+  "bucket_b_candidates": [
+    {
+      "win_ranks": [],
+      "note": "No quick wins require services - all are code-only or documentation"
+    }
+  ],
+  "total_effort_minutes": 133,
+  "estimated_hours": 2.2,
+  "summary": {
+    "code_only_fixes": 7,
+    "documentation_fixes": 3,
+    "high_impact": 2,
+    "medium_impact": 6,
+    "low_impact": 1,
+    "trivial_impact": 1,
+    "zero_risk": 8,
+    "low_risk": 2
   }
-]
+}
