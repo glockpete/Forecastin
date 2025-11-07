@@ -21,8 +21,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Import the FastAPI app
-import sys
-sys.path.insert(0, '/home/user/Forecastin/api')
 from main import app
 
 
