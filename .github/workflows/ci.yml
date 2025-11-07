@@ -291,7 +291,7 @@ jobs:
       - name: Upload compliance evidence
         continue-on-error: true
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: compliance-evidence
           path: deliverables/compliance/evidence/
@@ -331,7 +331,7 @@ jobs:
       - name: Upload performance results
         continue-on-error: true
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-results
           path: performance-reports/
