@@ -1,0 +1,320 @@
+{
+  "version": "1.0.0",
+  "project": "Forecastin Frontend Hardening",
+  "description": "High-value, low-effort improvements discovered during refactoring",
+  "created": "2025-11-06",
+  "quickWins": [
+    {
+      "id": "QW-1",
+      "title": "Add explicit types to React Query callbacks",
+      "description": "Many useQuery hooks have implicit 'any' types in retry and retryDelay callbacks",
+      "impact": "high",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Add explicit types: retry: (failureCount: number, error: Error) => ...",
+      "estimatedTime": "15 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-2",
+      "title": "Remove duplicate Entity type definitions",
+      "description": "Entity interface defined in 3 places: types/index.ts, hooks/useHierarchy.ts, imported in uiStore.ts",
+      "impact": "medium",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/types/index.ts"
+      ],
+      "suggestedFix": "Import Entity from types/index.ts instead of defining locally",
+      "estimatedTime": "10 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-3",
+      "title": "Unify BreadcrumbItem schema",
+      "description": "BreadcrumbItem has different fields in types/index.ts (id, name, type) vs uiStore.ts (label, path, entityId?)",
+      "impact": "medium",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/store/uiStore.ts"
+      ],
+      "suggestedFix": "Choose canonical schema and update all usages",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-4",
+      "title": "Replace 'any' with 'unknown' in type definitions",
+      "description": "Several interfaces use 'any' for data/metadata fields, should use 'unknown' for better type safety",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Replace Record<string, any> with Record<string, unknown>",
+      "estimatedTime": "10 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-5",
+      "title": "Add missing file header comments",
+      "description": "Some files lack descriptive header comments explaining purpose and patterns",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts",
+        "frontend/src/utils/*.ts"
+      ],
+      "suggestedFix": "Add JSDoc-style file headers with description, examples, and patterns",
+      "estimatedTime": "30 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-6",
+      "title": "Use const assertions for query keys",
+      "description": "Query key factories should use 'as const' for better type inference",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Already using 'as const' in hierarchyKeys - good pattern to apply elsewhere",
+      "estimatedTime": "15 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-7",
+      "title": "Extract API_BASE to centralized config",
+      "description": "API base URL duplicated across multiple hooks and utilities",
+      "impact": "medium",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts",
+        "frontend/src/config/env.ts"
+      ],
+      "suggestedFix": "Create getApiBaseUrl() in config/env.ts and import everywhere",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-8",
+      "title": "Add readonly modifier to arrays in interfaces",
+      "description": "Arrays in interfaces should be readonly to prevent accidental mutation",
+      "impact": "medium",
+      "effort": "small",
+      "category": "type-safety",
+      "filesAffected": [
+        "frontend/src/types/index.ts"
+      ],
+      "suggestedFix": "Change string[] to readonly string[], Entity[] to readonly Entity[]",
+      "estimatedTime": "10 minutes",
+      "status": "completed"
+    },
+    {
+      "id": "QW-9",
+      "title": "Use URLSearchParams more consistently",
+      "description": "Some fetch calls manually construct query strings, others use URLSearchParams",
+      "impact": "low",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts"
+      ],
+      "suggestedFix": "Always use URLSearchParams for query string construction",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-10",
+      "title": "Add AbortController to fetch calls",
+      "description": "Fetch calls in React Query don't use AbortController for cancellation",
+      "impact": "medium",
+      "effort": "medium",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts"
+      ],
+      "suggestedFix": "Use queryKey signal parameter and pass to fetch({ signal })",
+      "estimatedTime": "30 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-11",
+      "title": "Consolidate error handling patterns",
+      "description": "Different hooks throw errors differently - some use Error(), some use string messages",
+      "impact": "medium",
+      "effort": "small",
+      "category": "consistency",
+      "filesAffected": [
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/handlers/realtimeHandlers.ts"
+      ],
+      "suggestedFix": "Create custom error classes (NetworkError, ValidationError, etc.)",
+      "estimatedTime": "45 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-12",
+      "title": "Add React.memo to expensive components",
+      "description": "Large components like MillerColumns, OutcomesDashboard lack memoization",
+      "impact": "high",
+      "effort": "small",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/components/MillerColumns/MillerColumns.tsx",
+        "frontend/src/components/Outcomes/OutcomesDashboard.tsx"
+      ],
+      "suggestedFix": "Wrap with React.memo() and add custom comparison if needed",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-13",
+      "title": "Use useCallback for event handlers passed as props",
+      "description": "Event handlers passed to child components aren't wrapped in useCallback",
+      "impact": "medium",
+      "effort": "small",
+      "category": "performance",
+      "filesAffected": [
+        "frontend/src/components/**/*.tsx"
+      ],
+      "suggestedFix": "Wrap onClick, onChange, etc. with useCallback",
+      "estimatedTime": "60 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-14",
+      "title": "Extract magic numbers to named constants",
+      "description": "Magic numbers for staleTime, gcTime, intervals scattered throughout code",
+      "impact": "low",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useHierarchy.ts",
+        "frontend/src/hooks/useWebSocket.ts"
+      ],
+      "suggestedFix": "Create constants.ts with FIVE_MINUTES, TEN_MINUTES, etc.",
+      "estimatedTime": "20 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-15",
+      "title": "Add data-testid to interactive elements",
+      "description": "Components lack data-testid attributes for testing",
+      "impact": "medium",
+      "effort": "small",
+      "category": "testing",
+      "filesAffected": [
+        "frontend/src/components/**/*.tsx"
+      ],
+      "suggestedFix": "Add data-testid to buttons, inputs, clickable elements",
+      "estimatedTime": "45 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-16",
+      "title": "Use barrel exports for cleaner imports",
+      "description": "Imports from types, utils, hooks require full paths",
+      "impact": "low",
+      "effort": "small",
+      "category": "code-quality",
+      "filesAffected": [
+        "frontend/src/types/index.ts",
+        "frontend/src/utils/index.ts",
+        "frontend/src/hooks/index.ts"
+      ],
+      "suggestedFix": "Create index.ts barrel files exporting public APIs",
+      "estimatedTime": "15 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-17",
+      "title": "Add GENERATED header to brand.ts",
+      "description": "brand.ts should have 'GENERATED: Do not edit by hand' header",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Already added in implementation",
+      "estimatedTime": "1 minute",
+      "status": "completed"
+    },
+    {
+      "id": "QW-18",
+      "title": "Validate path format in toPathString",
+      "description": "toPathString should validate LTREE-compatible path format",
+      "impact": "medium",
+      "effort": "small",
+      "category": "validation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Add regex validation for valid path characters and structure",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    },
+    {
+      "id": "QW-19",
+      "title": "Add examples to brand.ts JSDoc",
+      "description": "Brand type constructors should have usage examples in JSDoc",
+      "impact": "low",
+      "effort": "small",
+      "category": "documentation",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Already included in file header, could add to individual functions",
+      "estimatedTime": "20 minutes",
+      "status": "partial"
+    },
+    {
+      "id": "QW-20",
+      "title": "Create Result.match() pattern helper",
+      "description": "Result type could benefit from match() for exhaustive pattern matching",
+      "impact": "low",
+      "effort": "small",
+      "category": "api-improvement",
+      "filesAffected": [
+        "frontend/src/types/brand.ts"
+      ],
+      "suggestedFix": "Add match<T,E,R>(result, { ok: (T) => R, err: (E) => R }): R",
+      "estimatedTime": "15 minutes",
+      "status": "pending"
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "completed": 4,
+    "partial": 3,
+    "pending": 13,
+    "categories": {
+      "type-safety": 4,
+      "code-quality": 6,
+      "consistency": 3,
+      "performance": 3,
+      "documentation": 3,
+      "testing": 1,
+      "validation": 1,
+      "api-improvement": 1
+    },
+    "estimatedTotalTime": "470 minutes (7.8 hours)",
+    "estimatedRemainingTime": "395 minutes (6.6 hours)"
+  }
+}

@@ -6,52 +6,18 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
+import {
+  Entity,
+  HierarchyNode,
+  BreadcrumbItem,
+  HierarchyResponse,
+  EntityType,
+  PathString,
+  fromEntityId,
+} from '../types';
 
 // API base URL
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:9000/api';
-
-// Hierarchy entity types
-export interface Entity {
-  id: string;
-  name: string;
-  type: string;
-  parentId?: string;
-  path: string;
-  pathDepth: number;
-  confidence?: number;
-  metadata?: Record<string, any>;
-  createdAt?: string;
-  updatedAt?: string;
-  hasChildren?: boolean;
-  childrenCount?: number;
-}
-
-export interface HierarchyNode {
-  id: string;
-  name: string;
-  type: string;
-  path: string;
-  pathDepth: number;
-  children: Entity[];
-  hasMore: boolean;
-  totalChildren?: number;
-  confidence?: number;
-}
-
-export interface BreadcrumbItem {
-  id: string;
-  name: string;
-  path: string;
-  type: string;
-}
-
-export interface HierarchyResponse {
-  entities: Entity[];
-  nodes?: Entity[]; // Alias for entities for backward compatibility
-  totalCount?: number;
-  hasMore?: boolean;
-  breadcrumbs?: BreadcrumbItem[];
-}
 
 
 // Query key factory
@@ -80,14 +46,14 @@ export const useRootHierarchy = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: (failureCount, error) => {
+    retry: (failureCount: number, error: Error) => {
       // Implement exponential backoff retry mechanism
       if (failureCount < 3) {
         return true;
       }
       return false;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
