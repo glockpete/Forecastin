@@ -141,22 +141,23 @@
 ## Critical File Paths That Matter
 
 ### Optimization Files
-- [`optimized_hierarchy_resolver.py`](api/navigation_api/database/optimized_hierarchy_resolver.py:44) - Core performance optimization
-- [`003_optimize_hierarchy_performance.sql`](api/navigation_api/migrations/003_optimize_hierarchy_performance.sql:100) - Database optimizations
-- [`WebSocketManager.tsx`](frontend/src/ws/WebSocketManager.tsx:118) - Client-side WS management
-- [`frontend/src/config/env.ts`](frontend/src/config/env.ts:1) - Runtime URL configuration
+- [`optimized_hierarchy_resolver.py`](api/navigation_api/database/optimized_hierarchy_resolver.py) - Core performance optimization
+- [`001_initial_schema.sql`](migrations/001_initial_schema.sql) - Initial schema with LTREE optimization
+- [`004_automated_materialized_view_refresh.sql`](migrations/004_automated_materialized_view_refresh.sql) - Materialized view automation
+- [`WebSocketManager.tsx`](frontend/src/ws/WebSocketManager.tsx) - Client-side WS management
+- [`frontend/src/config/env.ts`](frontend/src/config/env.ts) - Runtime URL configuration
 
 ### Geospatial Layer Files
-- [`BaseLayer.ts`](frontend/src/layers/base/BaseLayer.ts:1) - Core layer architecture
-- [`LayerRegistry.ts`](frontend/src/layers/registry/LayerRegistry.ts:1) - Layer management and performance monitoring
-- [`LayerWebSocketIntegration.ts`](frontend/src/integrations/LayerWebSocketIntegration.ts:1) - Real-time updates
+- [`BaseLayer.ts`](frontend/src/layers/base/BaseLayer.ts) - Core layer architecture
+- [`LayerRegistry.ts`](frontend/src/layers/registry/LayerRegistry.ts) - Layer management and performance monitoring
+- [`LayerWebSocketIntegration.ts`](frontend/src/integrations/LayerWebSocketIntegration.ts) - Real-time updates
 
 ### RSS Ingestion Files
-- [`rss_ingestion_service.py`](api/services/rss/rss_ingestion_service.py:1) - Main RSS ingestion service with route processors
-- [`manager.py`](api/services/rss/anti_crawler/manager.py:1) - Anti-crawler strategies with exponential backoff
-- [`base_processor.py`](api/services/rss/route_processors/base_processor.py:1) - Base RSS route processor with CSS selectors
-- [`RSS_INGESTION_SERVICE_ARCHITECTURE.md`](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md:1) - Complete RSS service architecture specification
-- [`RSS_SERVICE_IMPLEMENTATION_GUIDE.md`](docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md:1) - Detailed RSS service implementation guide
+- [`rss_ingestion_service.py`](api/services/rss/rss_ingestion_service.py) - Main RSS ingestion service with route processors
+- [`manager.py`](api/services/rss/anti_crawler/manager.py) - Anti-crawler strategies with exponential backoff
+- [`base_processor.py`](api/services/rss/route_processors/base_processor.py) - Base RSS route processor with CSS selectors
+- [`RSS_INGESTION_SERVICE_ARCHITECTURE.md`](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md) - Complete RSS service architecture specification
+- [`RSS_SERVICE_IMPLEMENTATION_GUIDE.md`](docs/RSS_SERVICE_IMPLEMENTATION_GUIDE.md) - Detailed RSS service implementation guide
 
 ### Compliance Automation
 - Security checks run via pre-commit hooks and CI/CD pipeline

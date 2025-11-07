@@ -316,9 +316,15 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ## 📚 Documentation
 
+### **Getting Started**
+- [Developer Setup Guide](docs/DEVELOPER_SETUP.md) - Complete local development setup
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to the project
+- [Testing Guide](docs/TESTING_GUIDE.md) - Testing infrastructure and best practices
+- [Environment Variables](docs/ENVIRONMENT_VARIABLES.md) - Configuration reference
+
 ### **Core Architecture**
 - [GOLDEN_SOURCE.md](docs/GOLDEN_SOURCE.md) - Core requirements and specifications
-- [AGENTS.md](docs/AGENTS.md) - Architectural patterns and constraints
+- [AGENTS.md](AGENTS.md) - Architectural patterns and constraints
 
 ### **Feature Documentation**
 - [RSS Ingestion Architecture](docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md)
@@ -328,7 +334,11 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ### **Deployment Guides**
 - [Geospatial Deployment Guide](docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md)
-- [LTREE Refresh Implementation](LTREE_REFRESH_IMPLEMENTATION.md)
+- [LTREE Refresh Implementation](docs/LTREE_REFRESH_IMPLEMENTATION.md)
+
+### **Project Information**
+- [Changelog](CHANGELOG.md) - Release history and changes
+- [Security Policy](SECURITY.md) - Vulnerability reporting and security practices
 
 ---
 
@@ -336,11 +346,18 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 Forecastin is currently in **Phase 9: Open Source Launch and Community Building**. We're preparing to share our tools, components, and expertise with the broader community.
 
+### **Get Involved**
+- 📖 Read our [Contributing Guidelines](CONTRIBUTING.md)
+- 🔧 Set up your [Development Environment](docs/DEVELOPER_SETUP.md)
+- 🐛 Report issues on [GitHub Issues](https://github.com/glockpete/Forecastin/issues)
+- 💬 Join discussions on [GitHub Discussions](https://github.com/glockpete/Forecastin/discussions)
+- 🔒 Report security issues per [Security Policy](SECURITY.md)
+
 ### **Coming Soon**
 - Reusable component packages
-- Community contribution guidelines
 - Plugin architecture for custom analytics
 - Public API documentation
+- Community events and office hours
 
 ---
 
