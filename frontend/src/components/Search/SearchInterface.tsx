@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, 
-  X, 
+import {
+  Search,
+  X,
   ArrowLeft,
   ChevronRight,
   Clock,
@@ -18,6 +18,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useSearchEntities } from '../../hooks/useHierarchy';
 import { cn } from '../../utils/cn';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
+import { getConfidence } from '../../../../types/contracts.generated';
 
 interface SearchInterfaceProps {
   className?: string;
@@ -224,11 +225,11 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                               ))}
                             </div>
                             
-                            {entity.confidence && (
+                            {getConfidence(entity) > 0 && (
                               <div className="flex items-center space-x-1 mt-1">
                                 <TrendingUp className="w-3 h-3 text-green-500" />
                                 <span className="text-xs text-green-600 dark:text-green-400">
-                                  {(entity.confidence * 100).toFixed(0)}% match
+                                  {(getConfidence(entity) * 100).toFixed(0)}% match
                                 </span>
                               </div>
                             )}

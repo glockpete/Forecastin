@@ -39,6 +39,7 @@ import EntityDetail from '../Entity/EntityDetail';
 import GeospatialView from '../Map/GeospatialView';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { ErrorBoundary } from '../UI/ErrorBoundary';
+import { getConfidence, getChildrenCount } from '../../../../types/contracts.generated';
 
 // Entity type icons mapping
 const getEntityIcon = (type: string) => {
@@ -65,15 +66,15 @@ interface EntityItemProps {
   depth: number;
 }
 
-const EntityItem: React.FC<EntityItemProps> = ({ 
-  entity, 
-  isSelected, 
-  onClick, 
-  onHover, 
-  depth 
+const EntityItem: React.FC<EntityItemProps> = ({
+  entity,
+  isSelected,
+  onClick,
+  onHover,
+  depth
 }) => {
   const Icon = getEntityIcon(entity.type);
-  const confidence = entity.confidence || 0;
+  const confidence = getConfidence(entity);
   
   return (
     <div
@@ -108,7 +109,7 @@ const EntityItem: React.FC<EntityItemProps> = ({
           )}
           {entity.hasChildren && (
             <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
-              {entity.childrenCount} children
+              {getChildrenCount(entity)} children
             </span>
           )}
         </div>
