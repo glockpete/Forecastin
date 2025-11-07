@@ -254,8 +254,9 @@ Update migration file references to correct locations.
 1. ✅ **Tests pass**: Run full test suite locally
 2. ✅ **Linting passes**: No linting errors
 3. ✅ **TypeScript compiles**: Zero compilation errors (frontend)
-4. ✅ **Documentation updated**: Update relevant docs
-5. ✅ **CHANGELOG updated**: Add entry to CHANGELOG.md
+4. ✅ **CI checks pass**: Ensure GitHub Actions workflows succeed (see [GitHub Actions Guide](docs/GITHUB_ACTIONS_GUIDE.md))
+5. ✅ **Documentation updated**: Update relevant docs
+6. ✅ **CHANGELOG updated**: Add entry to CHANGELOG.md
 
 ### PR Title Format
 
@@ -295,7 +296,7 @@ Closes #(issue number)
 
 ### Review Process
 
-1. **Automated Checks**: CI/CD pipeline must pass
+1. **Automated Checks**: CI/CD pipeline must pass (see [GitHub Actions Guide](docs/GITHUB_ACTIONS_GUIDE.md))
 2. **Code Review**: At least one maintainer approval required
 3. **Performance Check**: Performance SLOs validated
 4. **Security Check**: Security scans must pass

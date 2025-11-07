@@ -320,6 +320,7 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 - [Developer Setup Guide](docs/DEVELOPER_SETUP.md) - Complete local development setup
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to the project
 - [Testing Guide](docs/TESTING_GUIDE.md) - Testing infrastructure and best practices
+- [GitHub Actions Guide](docs/GITHUB_ACTIONS_GUIDE.md) - Using CI/CD workflows and understanding test results
 - [Environment Variables](docs/ENVIRONMENT_VARIABLES.md) - Configuration reference
 
 ### **Core Architecture**
