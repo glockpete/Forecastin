@@ -540,4 +540,7 @@ export const MillerColumns: React.FC = React.memo(() => {
   );
 });
 
+// Add displayName for better debugging with React DevTools
+MillerColumns.displayName = 'MillerColumns';
+
 export default MillerColumns;

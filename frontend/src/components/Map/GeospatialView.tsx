@@ -533,4 +533,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = React.memo(({
   );
 });
 
+// Add displayName for better debugging with React DevTools
+GeospatialView.displayName = 'GeospatialView';
+
 export default GeospatialView;

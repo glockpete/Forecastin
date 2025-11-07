@@ -276,4 +276,7 @@ const OutcomesDashboard: React.FC = React.memo(() => {
   );
 });
 
+// Add displayName for better debugging with React DevTools
+OutcomesDashboard.displayName = 'OutcomesDashboard';
+
 export default OutcomesDashboard;
