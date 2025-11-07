@@ -67,14 +67,33 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
     debounceMs: 50
   });
 
+  /**
+   * Handle WebSocket layer messages
+   * Uses safe serialization patterns from AGENTS.md
+   * Wrapped in useCallback to prevent infinite reconnection loop
+   * Defined before useWebSocket to avoid forward reference
+   */
+  const handleWebSocketMessage = useCallback((message: any) => {
+    try {
+      // Validate message structure
+      if (!message || typeof message !== 'object') {
+        console.warn('[GeospatialView] Invalid WebSocket message:', message);
+        return;
+      }
+
+      // Note: useHybridState hook automatically handles WebSocket messages internally
+      // through its subscription to the channels specified in config
+      console.log('[GeospatialView] WebSocket message received:', message.type);
+    } catch (error) {
+      console.error('[GeospatialView] Error handling WebSocket message:', error);
+    }
+  }, []);
+
   // WebSocket for real-time layer updates
   const { isConnected, sendMessage, subscribe } = useWebSocket({
     channels: ['layer_updates', 'geospatial_data'],
     onMessage: handleWebSocketMessage
   });
-
-  // UI state
-  const { activeEntity } = useUIStore();
 
   // Component state
   const [isInitialized, setIsInitialized] = useState(false);
@@ -91,6 +110,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
   const wsIntegrationRef = useRef<LayerWebSocketIntegration | null>(null);
   const deckGLContainerRef = useRef<HTMLDivElement>(null);
   const performanceMonitorRef = useRef<NodeJS.Timeout | null>(null);
+  const activeLayersRef = useRef<Map<string, BaseLayer>>(new Map());
 
   /**
    * Initialize LayerRegistry with WebSocket integration
@@ -138,23 +158,47 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
   }, [mapV1Enabled]);
 
   /**
-   * Handle WebSocket layer messages
-   * Uses safe serialization patterns from AGENTS.md
-   * Wrapped in useCallback to prevent infinite reconnection loop
+   * Create layer from configuration
    */
-  const handleWebSocketMessage = useCallback((message: any) => {
-    try {
-      // Validate message structure
-      if (!message || typeof message !== 'object') {
-        console.warn('[GeospatialView] Invalid WebSocket message:', message);
-        return;
-      }
+  const createLayerFromConfig = useCallback(async (config: LayerConfig) => {
+    if (!layerRegistryRef.current) return;
 
-      // Note: useHybridState hook automatically handles WebSocket messages internally
-      // through its subscription to the channels specified in config
-      console.log('[GeospatialView] WebSocket message received:', message.type);
+    try {
+      const layer = await layerRegistryRef.current.createLayer(config);
+
+      setActiveLayers(prev => {
+        const updated = new Map(prev);
+        updated.set(config.id, layer);
+        activeLayersRef.current = updated;
+        return updated;
+      });
+
+      console.log(`[GeospatialView] Layer created: ${config.id}`);
     } catch (error) {
-      console.error('[GeospatialView] Error handling WebSocket message:', error);
+      console.error('[GeospatialView] Failed to create layer:', error);
+      setError(error as Error);
+    }
+  }, []);
+
+  /**
+   * Remove layer and cleanup
+   */
+  const removeLayer = useCallback((layerId: string) => {
+    if (!layerRegistryRef.current) return;
+
+    try {
+      layerRegistryRef.current.removeLayer(layerId);
+
+      setActiveLayers(prev => {
+        const updated = new Map(prev);
+        updated.delete(layerId);
+        activeLayersRef.current = updated;
+        return updated;
+      });
+
+      console.log(`[GeospatialView] Layer removed: ${layerId}`);
+    } catch (error) {
+      console.error('[GeospatialView] Failed to remove layer:', error);
     }
   }, []);
 
@@ -176,15 +220,14 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
       switch (type) {
         case 'data_update':
           // Update layer data via registry
-          const layerId = payload.layerId;
-          if (layerId && payload.data) {
-            const layer = layerRegistryRef.current.getLayer(layerId);
+          if (payload.layerId && payload.data) {
+            const layer = layerRegistryRef.current.getLayer(payload.layerId);
             if (layer) {
               // Use setData instead of updateData (inherited from BaseLayer)
               await layer.setData(payload.data);
-              
+
               // Trigger React Query invalidation
-              queryClient.invalidateQueries({ queryKey: ['layers', layerId] });
+              queryClient.invalidateQueries({ queryKey: ['layers', payload.layerId] });
             }
           }
           break;
@@ -209,7 +252,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
     } catch (error) {
       console.error('[GeospatialView] Error handling layer message:', error);
     }
-  }, [queryClient]);
+  }, [queryClient, createLayerFromConfig, removeLayer]);
 
   /**
    * Handle entity update messages
@@ -234,22 +277,27 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
    * Handle batch entity updates
    * Implements batching strategy from AGENTS.md
    */
-  const handleBatchUpdate = useCallback((entities: EntityDataPoint[]) => {
+  const handleBatchUpdate = useCallback(async (entities: EntityDataPoint[]) => {
     console.log('[GeospatialView] Batch update received:', entities.length, 'entities');
-    
+
     // Batch update all affected layers
+    const updatePromises: Promise<void>[] = [];
+
     activeLayers.forEach((layer) => {
       const config = layer.getConfig();
       const entityIds = new Set(entities.map(e => e.id));
-      
+
       if (config.data?.some((d: any) => entityIds.has(d.id))) {
         const entityMap = new Map(entities.map(e => [e.id, e]));
         const updatedData = config.data.map((d: any) =>
           entityMap.has(d.id) ? { ...d, ...entityMap.get(d.id) } : d
         );
-        layer.setData(updatedData);
+        updatePromises.push(layer.setData(updatedData));
       }
     });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises);
   }, [activeLayers]);
 
   /**
@@ -288,49 +336,6 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
   const handleConnectionError = useCallback((error: any) => {
     console.error('[GeospatialView] Connection error:', error);
     // WebSocket integration handles automatic reconnection
-  }, []);
-
-  /**
-   * Create layer from configuration
-   */
-  const createLayerFromConfig = useCallback(async (config: LayerConfig) => {
-    if (!layerRegistryRef.current) return;
-
-    try {
-      const layer = await layerRegistryRef.current.createLayer(config);
-      
-      setActiveLayers(prev => {
-        const updated = new Map(prev);
-        updated.set(config.id, layer);
-        return updated;
-      });
-
-      console.log(`[GeospatialView] Layer created: ${config.id}`);
-    } catch (error) {
-      console.error('[GeospatialView] Failed to create layer:', error);
-      setError(error as Error);
-    }
-  }, []);
-
-  /**
-   * Remove layer and cleanup
-   */
-  const removeLayer = useCallback((layerId: string) => {
-    if (!layerRegistryRef.current) return;
-
-    try {
-      layerRegistryRef.current.removeLayer(layerId);
-      
-      setActiveLayers(prev => {
-        const updated = new Map(prev);
-        updated.delete(layerId);
-        return updated;
-      });
-
-      console.log(`[GeospatialView] Layer removed: ${layerId}`);
-    } catch (error) {
-      console.error('[GeospatialView] Failed to remove layer:', error);
-    }
   }, []);
 
   /**
@@ -379,8 +384,8 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
         wsIntegrationRef.current = null;
       }
 
-      // Destroy all active layers
-      activeLayers.forEach((layer, layerId) => {
+      // Destroy all active layers using ref to get latest state at unmount
+      activeLayersRef.current.forEach((layer, layerId) => {
         try {
           layer.destroy();
           console.log(`[GeospatialView] Destroyed layer: ${layerId}`);
@@ -403,7 +408,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = ({
 
       console.log('[GeospatialView] Cleanup complete');
     };
-  }, [activeLayers]);
+  }, []); // Empty dependency array - only run on unmount
 
   /**
    * Monitor hybrid state sync status
