@@ -1,14 +1,18 @@
 /**
- * GENERATED: Do not edit by hand
+ * DEPRECATED: This file is deprecated in favor of the unified schema.
  *
- * Zod Runtime Validation Schemas for WebSocket Messages
+ * Please import from '../ws_messages' instead.
+ * This file exists only for backward compatibility.
  *
- * These schemas validate incoming WebSocket messages before processing.
- * Keep in sync with backend message contracts.
+ * All WebSocket message schemas have been consolidated into:
+ * /frontend/src/types/ws_messages.ts (SINGLE SOURCE OF TRUTH)
  */
 
 import { z } from 'zod';
 import { EntitySchema, EntityIdSchema, TimestampSchema } from './entities';
+
+// Re-export from unified schema
+export * from '../ws_messages';
 
 /**
  * Base WebSocket message schema
