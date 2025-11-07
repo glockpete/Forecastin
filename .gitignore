@@ -140,3 +140,22 @@ dmypy.json
 *.tar.gz
 *.tar.bz2
 *.tar.xz
+
+# Test results and reports
+*_report_*.json
+*_test*.json
+**/*_report.json
+**/*_test_report_*.json
+test-results/
+
+# Build logs
+frontend/build-logs/
+ts_errors*.txt
+tsc_output.txt
+
+# System files
+desktop.ini
+*.ini
+
+# Temporary analysis
+.tools/
