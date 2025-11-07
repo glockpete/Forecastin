@@ -284,7 +284,7 @@ jobs:
         run: |
           cd scripts
           python gather_metrics.py --output=../deliverables/compliance/evidence/metrics_$(date +%Y%m%d).json
-          python check_consistency.py --target=../deliverables/compliance/evidence/consistency_check.json
+          python validation/check_consistency.py --target=../deliverables/compliance/evidence/consistency_check.json
           
       - name: Generate compliance report
         run: |

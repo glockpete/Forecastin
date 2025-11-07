@@ -162,13 +162,15 @@ TEST_METRICS_PREFIX = "ab_test:metrics:"
   "test_name": "llm_v2_vs_baseline",
   "champion_variant": "baseline_rule_based",
   "challenger_variant": "llm_v2",
-  "rollout_strategy": "gradual", // or "immediate"
+  "rollout_strategy": "gradual",
   "risk_conditions": {
     "accuracy_threshold": 0.85,
     "latency_threshold_ms": 2.0
   }
 }
 ```
+
+Note: `rollout_strategy` can be either `"gradual"` or `"immediate"`.
 
 **Response**:
 ```json

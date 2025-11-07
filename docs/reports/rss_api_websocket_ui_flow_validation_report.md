@@ -53,10 +53,10 @@ Actual:   RSS Feeds → ❌ NO SERVICE → Database → WebSocket → UI
   "type": "layer_data_update",
   "data": {
     "layer_id": "test-point-layer-001",
-    "layer_type": "point", 
+    "layer_type": "point",
     "layer_data": {
       "type": "FeatureCollection",
-      "features": [/* GeoJSON features */]
+      "features": []
     },
     "bbox": {
       "minLat": 35.0, "maxLat": 38.0,
@@ -67,6 +67,8 @@ Actual:   RSS Feeds → ❌ NO SERVICE → Database → WebSocket → UI
   "timestamp": 1234567890.123
 }
 ```
+
+Note: `features` contains an array of GeoJSON features.
 
 **Required Fields:** ✅ All present
 - `layer_id`: Unique identifier ✅
