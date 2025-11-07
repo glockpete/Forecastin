@@ -136,6 +136,115 @@ That's it! You're ready to explore geopolitical intelligence.
 
 ---
 
+## 🔌 WebSocket Hardening
+
+Forecastin implements robust WebSocket infrastructure to prevent persistent disconnects (especially **close code 1006**) and ensure reliable real-time updates.
+
+### **Dedicated Diagnostic Endpoints**
+
+| Endpoint | Purpose | Use Case |
+|----------|---------|----------|
+| `/ws` | Primary real-time updates | Production WebSocket communication |
+| `/ws/echo` | Echo server for testing | Connection latency testing, debugging |
+| `/ws/health` | Health monitoring | Connection stability validation, heartbeat verification |
+
+### **Server-Side Heartbeat**
+
+The server automatically sends ping messages to keep connections alive and prevent proxy timeouts:
+
+```bash
+# Configure heartbeat intervals via environment variables
+WS_PING_INTERVAL=30  # Send ping every 30 seconds (default)
+WS_PING_TIMEOUT=10   # Wait 10 seconds for pong response (default)
+```
+
+### **Environment Configuration Matrix**
+
+| Variable | Default | Description | Example |
+|----------|---------|-------------|---------|
+| `WS_PING_INTERVAL` | `30` | Seconds between server pings | `WS_PING_INTERVAL=30` |
+| `WS_PING_TIMEOUT` | `10` | Seconds to wait for pong | `WS_PING_TIMEOUT=10` |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,...` | Comma-separated allowed origins | `ALLOWED_ORIGINS=http://localhost:3000,https://app.example.com` |
+| `PUBLIC_BASE_URL` | `http://localhost:9000` | Public base URL for API | `PUBLIC_BASE_URL=https://api.example.com` |
+| `WS_PUBLIC_URL` | `ws://localhost:9000/ws` | Public WebSocket URL for clients | `WS_PUBLIC_URL=wss://api.example.com/ws` |
+
+### **Enhanced Diagnostics Logging**
+
+All WebSocket connections log comprehensive diagnostic information:
+
+```
+[WS_DIAGNOSTICS] Connection attempt - origin, scheme, X-Forwarded headers
+[WS_DIAGNOSTICS] Close code and reason on disconnect
+[WS_DIAGNOSTICS] Heartbeat and latency metrics
+```
+
+This helps identify:
+- **Mixed content issues** (HTTPS page connecting to WS instead of WSS)
+- **Proxy configuration problems** (missing Upgrade headers)
+- **Idle timeout issues** (insufficient heartbeat frequency)
+- **Origin validation failures** (CORS policy mismatches)
+
+### **Testing WebSocket Connections**
+
+```bash
+# Test echo endpoint
+npm install -g wscat
+wscat -c ws://localhost:9000/ws/echo
+
+# Send test message
+> {"type":"test","data":"hello"}
+
+# Expect echo response
+< {"type":"echo","original":{"type":"test","data":"hello"},...}
+
+# Test health endpoint (stays connected with heartbeats)
+wscat -c ws://localhost:9000/ws/health
+
+# Expect periodic heartbeat messages every WS_PING_INTERVAL seconds
+< {"type":"heartbeat","ping_number":1,"timestamp":1699564800,...}
+```
+
+### **Common Issues and Solutions**
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| 1006 after ~60s idle | Proxy timeout, missing heartbeat | Set `WS_PING_INTERVAL=30`, increase nginx `proxy_read_timeout` |
+| 1006 immediately | Proxy missing Upgrade headers | Add `proxy_set_header Upgrade $http_upgrade` to nginx |
+| Mixed content warning | HTTPS + WS (not WSS) | Use `wss://` URL, set `WS_PUBLIC_URL=wss://...` |
+| 403 Forbidden | Origin not allowed | Add origin to `ALLOWED_ORIGINS` env var |
+
+### **Diagnostics Playbook**
+
+For detailed troubleshooting, see [`checks/ws_server_diagnostics.md`](checks/ws_server_diagnostics.md) which includes:
+- Symptoms → Causes matrix for 1006 errors
+- Step-by-step diagnostic procedures
+- Nginx configuration examples
+- Testing tools and scripts
+
+### **Validation Tests**
+
+Run the WebSocket test suite to verify robustness:
+
+```bash
+cd api
+pytest tests/test_ws_echo.py tests/test_ws_health.py -v
+
+# All tests should pass:
+# ✅ test_echo_connection_establishment
+# ✅ test_echo_basic_round_trip
+# ✅ test_health_heartbeat_tracking
+# ✅ test_health_config_validation
+```
+
+Tests validate:
+- Connection establishment without 1006 errors
+- Echo round-trip functionality
+- Heartbeat configuration and delivery
+- Sustained connections >30 seconds
+- Proper close code reporting
+
+---
+
 ## 🌟 Key Features
 
 ### **Real-Time RSS Ingestion**
