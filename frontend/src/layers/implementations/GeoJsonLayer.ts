@@ -262,7 +262,7 @@ export class GeoJsonLayer extends BaseLayer {
   ) {
     // Parse GeoJSON and convert to entity data points
     const entityData = GeoJsonLayer.parseGeoJsonFeatures(geoJsonData, config as GeoJsonLayerConfig);
-    
+
     // Construct full config with parsed entity data
     const fullConfig: LayerConfig = {
       id,
@@ -273,10 +273,10 @@ export class GeoJsonLayer extends BaseLayer {
       name: config.name ?? id,
       cacheEnabled: config.cacheEnabled ?? true,
       cacheTTL: config.cacheTTL ?? 60000,
-      featureFlag: config.featureFlag,
-      rolloutPercentage: config.rolloutPercentage,
+      ...(config.featureFlag !== undefined && { featureFlag: config.featureFlag }),
+      ...(config.rolloutPercentage !== undefined && { rolloutPercentage: config.rolloutPercentage }),
       realTimeEnabled: config.realTimeEnabled ?? false,
-      updateInterval: config.updateInterval,
+      ...(config.updateInterval !== undefined && { updateInterval: config.updateInterval }),
       auditEnabled: config.auditEnabled ?? true,
       dataClassification: config.dataClassification ?? 'internal',
       data: entityData as any[], // Ensure data is always an array
@@ -437,8 +437,8 @@ export class GeoJsonLayer extends BaseLayer {
           feature,
           geometryType: feature.geometry.type,
           properties: feature.properties || {},
-          confidence,
-          metadata
+          ...(confidence !== undefined && { confidence }),
+          ...(metadata !== undefined && { metadata })
         };
         
         entities.push(entity);
@@ -793,7 +793,7 @@ export class GeoJsonLayer extends BaseLayer {
       position: path[0] && path[0].length >= 2 ? [path[0][0], path[0][1]] : [0, 0],
       confidence: entity.confidence || 0.5,
       path: path as any,  // Cast to any to avoid Position[] incompatibility
-      metadata: entity.metadata,
+      ...(entity.metadata !== undefined && { metadata: entity.metadata }),
       pathType: 'custom'
     };
   }
@@ -942,21 +942,21 @@ export class GeoJsonLayer extends BaseLayer {
     this.geoJsonLayer = new DeckGeoJsonLayer<ForecastinFeatureProperties>({
       id: `${this.config.id}-geojson-layer`,
       data: featureData as FeatureCollection<Geometry, ForecastinFeatureProperties>,
-      
+
       // Styling
       filled: true,
       stroked: true,
       lineWidthMinPixels: 2,
-      
+
       // Colors with proper typing - deck.gl passes Feature<Geometry, GeoJsonProperties>
       getFillColor: (f: any) => this.getFeatureFillColor(f as GeoJsonFeature),
       getLineColor: (f: any) => this.getFeatureLineColor(f as GeoJsonFeature),
       getLineWidth: (f: any) => this.getFeatureLineWidth(f as GeoJsonFeature),
       getPointRadius: (f: any) => this.getFeaturePointRadius(f as GeoJsonFeature),
-      
+
       // Interaction
-      pickable: config.pickable,
-      
+      ...(config.pickable !== undefined && { pickable: config.pickable }),
+
       // Update triggers
       updateTriggers: {
         getFillColor: [config.propertyMapping],
@@ -1148,7 +1148,7 @@ export class GeoJsonLayer extends BaseLayer {
   /**
    * Cleanup layer resources
    */
-  public destroy(): void {
+  public override destroy(): void {
     // Clear caches
     this.featureCache.clear();
     

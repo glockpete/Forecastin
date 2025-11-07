@@ -378,7 +378,10 @@ export abstract class BaseLayer<TData extends LayerData = LayerData> extends Eve
       for (const dataPoint of dataPoints) {
         for (const [channelName, channel] of Array.from(this.visualChannels.entries())) {
           const value = this.updateChannelValue(channel, dataPoint);
-          results[channelName].push(value);
+          const channelResults = results[channelName];
+          if (channelResults) {
+            channelResults.push(value);
+          }
         }
       }
 
