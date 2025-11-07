@@ -1,4 +1,4 @@
-h# ========================================
+# ========================================
 # BUILD STAGE - Install dependencies and build artifacts
 # ========================================
 FROM python:3.11-slim as builder
