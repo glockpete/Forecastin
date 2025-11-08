@@ -1,0 +1,2958 @@
+{
+  "version": "1.0.0",
+  "generated": "2025-11-08T17:44:58.049687",
+  "description": "WebSocket message contracts for Forecastin platform",
+  "schemas": {
+    "PingMessage": {
+      "$defs": {
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Ping message for keepalive",
+      "properties": {
+        "type": {
+          "const": "ping",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type",
+        "timestamp"
+      ],
+      "title": "PingMessage",
+      "type": "object"
+    },
+    "PongMessage": {
+      "$defs": {
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Pong response message",
+      "properties": {
+        "type": {
+          "const": "pong",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type",
+        "timestamp"
+      ],
+      "title": "PongMessage",
+      "type": "object"
+    },
+    "LayerDataUpdateMessage": {
+      "$defs": {
+        "BoundingBox": {
+          "additionalProperties": false,
+          "description": "Bounding box for spatial queries",
+          "properties": {
+            "minLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Minlat",
+              "type": "number"
+            },
+            "maxLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Maxlat",
+              "type": "number"
+            },
+            "minLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Minlng",
+              "type": "number"
+            },
+            "maxLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Maxlng",
+              "type": "number"
+            }
+          },
+          "required": [
+            "minLat",
+            "maxLat",
+            "minLng",
+            "maxLng"
+          ],
+          "title": "BoundingBox",
+          "type": "object"
+        },
+        "FeatureCollection": {
+          "additionalProperties": false,
+          "description": "GeoJSON FeatureCollection",
+          "properties": {
+            "type": {
+              "const": "FeatureCollection",
+              "title": "Type",
+              "type": "string"
+            },
+            "features": {
+              "items": {
+                "$ref": "#/$defs/GeoJSONFeature"
+              },
+              "title": "Features",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "features"
+          ],
+          "title": "FeatureCollection",
+          "type": "object"
+        },
+        "GeoJSONFeature": {
+          "additionalProperties": false,
+          "description": "GeoJSON Feature",
+          "properties": {
+            "type": {
+              "const": "Feature",
+              "title": "Type",
+              "type": "string"
+            },
+            "geometry": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PointGeometry"
+                },
+                {
+                  "$ref": "#/$defs/LineStringGeometry"
+                },
+                {
+                  "$ref": "#/$defs/PolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiPolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiLineStringGeometry"
+                }
+              ],
+              "title": "Geometry"
+            },
+            "properties": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Properties"
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Id"
+            }
+          },
+          "required": [
+            "type",
+            "geometry"
+          ],
+          "title": "GeoJSONFeature",
+          "type": "object"
+        },
+        "LayerDataUpdatePayload": {
+          "additionalProperties": false,
+          "description": "Payload for LAYER_DATA_UPDATE message",
+          "properties": {
+            "layer_id": {
+              "minLength": 1,
+              "title": "Layer Id",
+              "type": "string"
+            },
+            "layer_type": {
+              "$ref": "#/$defs/LayerType"
+            },
+            "layer_data": {
+              "$ref": "#/$defs/FeatureCollection"
+            },
+            "bbox": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/BoundingBox"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "changed_at": {
+              "title": "Changed At",
+              "type": "number"
+            }
+          },
+          "required": [
+            "layer_id",
+            "layer_type",
+            "layer_data",
+            "changed_at"
+          ],
+          "title": "LayerDataUpdatePayload",
+          "type": "object"
+        },
+        "LayerType": {
+          "description": "Supported layer types",
+          "enum": [
+            "point",
+            "polygon",
+            "line",
+            "linestring",
+            "heatmap",
+            "cluster",
+            "geojson"
+          ],
+          "title": "LayerType",
+          "type": "string"
+        },
+        "LineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON LineString geometry",
+          "properties": {
+            "type": {
+              "const": "LineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "anyOf": [
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  {
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "LineStringGeometry",
+          "type": "object"
+        },
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        },
+        "MultiLineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiLineString geometry",
+          "properties": {
+            "type": {
+              "const": "MultiLineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiLineStringGeometry",
+          "type": "object"
+        },
+        "MultiPolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiPolygon geometry",
+          "properties": {
+            "type": {
+              "const": "MultiPolygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      },
+                      {
+                        "maxItems": 3,
+                        "minItems": 3,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiPolygonGeometry",
+          "type": "object"
+        },
+        "PointGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Point geometry",
+          "properties": {
+            "type": {
+              "const": "Point",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ],
+              "title": "Coordinates"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PointGeometry",
+          "type": "object"
+        },
+        "PolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Polygon geometry",
+          "properties": {
+            "type": {
+              "const": "Polygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PolygonGeometry",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Layer data update message",
+      "properties": {
+        "type": {
+          "const": "layer_data_update",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "data": {
+          "$ref": "#/$defs/LayerDataUpdatePayload"
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "title": "LayerDataUpdateMessage",
+      "type": "object"
+    },
+    "GPUFilterSyncMessage": {
+      "$defs": {
+        "BoundingBox": {
+          "additionalProperties": false,
+          "description": "Bounding box for spatial queries",
+          "properties": {
+            "minLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Minlat",
+              "type": "number"
+            },
+            "maxLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Maxlat",
+              "type": "number"
+            },
+            "minLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Minlng",
+              "type": "number"
+            },
+            "maxLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Maxlng",
+              "type": "number"
+            }
+          },
+          "required": [
+            "minLat",
+            "maxLat",
+            "minLng",
+            "maxLng"
+          ],
+          "title": "BoundingBox",
+          "type": "object"
+        },
+        "FilterParams": {
+          "additionalProperties": false,
+          "description": "Parameters for GPU filtering",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/BoundingBox"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "temporal": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TemporalFilter"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "attributes": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Attributes"
+            }
+          },
+          "title": "FilterParams",
+          "type": "object"
+        },
+        "FilterStatus": {
+          "description": "Filter status",
+          "enum": [
+            "applied",
+            "pending",
+            "error",
+            "cleared"
+          ],
+          "title": "FilterStatus",
+          "type": "string"
+        },
+        "FilterType": {
+          "description": "Filter types",
+          "enum": [
+            "spatial",
+            "temporal",
+            "attribute",
+            "composite"
+          ],
+          "title": "FilterType",
+          "type": "string"
+        },
+        "GPUFilterSyncPayload": {
+          "additionalProperties": false,
+          "description": "Payload for GPU_FILTER_SYNC message",
+          "properties": {
+            "filter_id": {
+              "minLength": 1,
+              "title": "Filter Id",
+              "type": "string"
+            },
+            "filter_type": {
+              "$ref": "#/$defs/FilterType"
+            },
+            "filter_params": {
+              "$ref": "#/$defs/FilterParams"
+            },
+            "affected_layers": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Affected Layers",
+              "type": "array"
+            },
+            "status": {
+              "$ref": "#/$defs/FilterStatus"
+            },
+            "changed_at": {
+              "title": "Changed At",
+              "type": "number"
+            }
+          },
+          "required": [
+            "filter_id",
+            "filter_type",
+            "filter_params",
+            "status",
+            "changed_at"
+          ],
+          "title": "GPUFilterSyncPayload",
+          "type": "object"
+        },
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        },
+        "TemporalFilter": {
+          "additionalProperties": false,
+          "description": "Temporal filter with ISO8601 timestamps",
+          "properties": {
+            "start": {
+              "title": "Start",
+              "type": "string"
+            },
+            "end": {
+              "title": "End",
+              "type": "string"
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "title": "TemporalFilter",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "GPU filter sync message",
+      "properties": {
+        "type": {
+          "const": "gpu_filter_sync",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "data": {
+          "$ref": "#/$defs/GPUFilterSyncPayload"
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "title": "GPUFilterSyncMessage",
+      "type": "object"
+    },
+    "ErrorMessage": {
+      "$defs": {
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Error message",
+      "properties": {
+        "type": {
+          "const": "error",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error": {
+          "title": "Error",
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Details"
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "error"
+      ],
+      "title": "ErrorMessage",
+      "type": "object"
+    },
+    "EchoMessage": {
+      "$defs": {
+        "MessageMeta": {
+          "additionalProperties": false,
+          "description": "Metadata for WebSocket messages",
+          "properties": {
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "number"
+            },
+            "sequence": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sequence"
+            },
+            "clientId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Clientid"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "timestamp"
+          ],
+          "title": "MessageMeta",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Echo message for testing",
+      "properties": {
+        "type": {
+          "const": "echo",
+          "title": "Type",
+          "type": "string"
+        },
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "number"
+        },
+        "clientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clientid"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "data": {
+          "title": "Data"
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "title": "EchoMessage",
+      "type": "object"
+    },
+    "LayerDataUpdatePayload": {
+      "$defs": {
+        "BoundingBox": {
+          "additionalProperties": false,
+          "description": "Bounding box for spatial queries",
+          "properties": {
+            "minLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Minlat",
+              "type": "number"
+            },
+            "maxLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Maxlat",
+              "type": "number"
+            },
+            "minLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Minlng",
+              "type": "number"
+            },
+            "maxLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Maxlng",
+              "type": "number"
+            }
+          },
+          "required": [
+            "minLat",
+            "maxLat",
+            "minLng",
+            "maxLng"
+          ],
+          "title": "BoundingBox",
+          "type": "object"
+        },
+        "FeatureCollection": {
+          "additionalProperties": false,
+          "description": "GeoJSON FeatureCollection",
+          "properties": {
+            "type": {
+              "const": "FeatureCollection",
+              "title": "Type",
+              "type": "string"
+            },
+            "features": {
+              "items": {
+                "$ref": "#/$defs/GeoJSONFeature"
+              },
+              "title": "Features",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "features"
+          ],
+          "title": "FeatureCollection",
+          "type": "object"
+        },
+        "GeoJSONFeature": {
+          "additionalProperties": false,
+          "description": "GeoJSON Feature",
+          "properties": {
+            "type": {
+              "const": "Feature",
+              "title": "Type",
+              "type": "string"
+            },
+            "geometry": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PointGeometry"
+                },
+                {
+                  "$ref": "#/$defs/LineStringGeometry"
+                },
+                {
+                  "$ref": "#/$defs/PolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiPolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiLineStringGeometry"
+                }
+              ],
+              "title": "Geometry"
+            },
+            "properties": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Properties"
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Id"
+            }
+          },
+          "required": [
+            "type",
+            "geometry"
+          ],
+          "title": "GeoJSONFeature",
+          "type": "object"
+        },
+        "LayerType": {
+          "description": "Supported layer types",
+          "enum": [
+            "point",
+            "polygon",
+            "line",
+            "linestring",
+            "heatmap",
+            "cluster",
+            "geojson"
+          ],
+          "title": "LayerType",
+          "type": "string"
+        },
+        "LineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON LineString geometry",
+          "properties": {
+            "type": {
+              "const": "LineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "anyOf": [
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  {
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "LineStringGeometry",
+          "type": "object"
+        },
+        "MultiLineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiLineString geometry",
+          "properties": {
+            "type": {
+              "const": "MultiLineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiLineStringGeometry",
+          "type": "object"
+        },
+        "MultiPolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiPolygon geometry",
+          "properties": {
+            "type": {
+              "const": "MultiPolygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      },
+                      {
+                        "maxItems": 3,
+                        "minItems": 3,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiPolygonGeometry",
+          "type": "object"
+        },
+        "PointGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Point geometry",
+          "properties": {
+            "type": {
+              "const": "Point",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ],
+              "title": "Coordinates"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PointGeometry",
+          "type": "object"
+        },
+        "PolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Polygon geometry",
+          "properties": {
+            "type": {
+              "const": "Polygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PolygonGeometry",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Payload for LAYER_DATA_UPDATE message",
+      "properties": {
+        "layer_id": {
+          "minLength": 1,
+          "title": "Layer Id",
+          "type": "string"
+        },
+        "layer_type": {
+          "$ref": "#/$defs/LayerType"
+        },
+        "layer_data": {
+          "$ref": "#/$defs/FeatureCollection"
+        },
+        "bbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoundingBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "changed_at": {
+          "title": "Changed At",
+          "type": "number"
+        }
+      },
+      "required": [
+        "layer_id",
+        "layer_type",
+        "layer_data",
+        "changed_at"
+      ],
+      "title": "LayerDataUpdatePayload",
+      "type": "object"
+    },
+    "GPUFilterSyncPayload": {
+      "$defs": {
+        "BoundingBox": {
+          "additionalProperties": false,
+          "description": "Bounding box for spatial queries",
+          "properties": {
+            "minLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Minlat",
+              "type": "number"
+            },
+            "maxLat": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Maxlat",
+              "type": "number"
+            },
+            "minLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Minlng",
+              "type": "number"
+            },
+            "maxLng": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Maxlng",
+              "type": "number"
+            }
+          },
+          "required": [
+            "minLat",
+            "maxLat",
+            "minLng",
+            "maxLng"
+          ],
+          "title": "BoundingBox",
+          "type": "object"
+        },
+        "FilterParams": {
+          "additionalProperties": false,
+          "description": "Parameters for GPU filtering",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/BoundingBox"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "temporal": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TemporalFilter"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "attributes": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Attributes"
+            }
+          },
+          "title": "FilterParams",
+          "type": "object"
+        },
+        "FilterStatus": {
+          "description": "Filter status",
+          "enum": [
+            "applied",
+            "pending",
+            "error",
+            "cleared"
+          ],
+          "title": "FilterStatus",
+          "type": "string"
+        },
+        "FilterType": {
+          "description": "Filter types",
+          "enum": [
+            "spatial",
+            "temporal",
+            "attribute",
+            "composite"
+          ],
+          "title": "FilterType",
+          "type": "string"
+        },
+        "TemporalFilter": {
+          "additionalProperties": false,
+          "description": "Temporal filter with ISO8601 timestamps",
+          "properties": {
+            "start": {
+              "title": "Start",
+              "type": "string"
+            },
+            "end": {
+              "title": "End",
+              "type": "string"
+            }
+          },
+          "required": [
+            "start",
+            "end"
+          ],
+          "title": "TemporalFilter",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Payload for GPU_FILTER_SYNC message",
+      "properties": {
+        "filter_id": {
+          "minLength": 1,
+          "title": "Filter Id",
+          "type": "string"
+        },
+        "filter_type": {
+          "$ref": "#/$defs/FilterType"
+        },
+        "filter_params": {
+          "$ref": "#/$defs/FilterParams"
+        },
+        "affected_layers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Affected Layers",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/FilterStatus"
+        },
+        "changed_at": {
+          "title": "Changed At",
+          "type": "number"
+        }
+      },
+      "required": [
+        "filter_id",
+        "filter_type",
+        "filter_params",
+        "status",
+        "changed_at"
+      ],
+      "title": "GPUFilterSyncPayload",
+      "type": "object"
+    },
+    "PointGeometry": {
+      "additionalProperties": false,
+      "description": "GeoJSON Point geometry",
+      "properties": {
+        "type": {
+          "const": "Point",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "title": "Coordinates"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "PointGeometry",
+      "type": "object"
+    },
+    "LineStringGeometry": {
+      "additionalProperties": false,
+      "description": "GeoJSON LineString geometry",
+      "properties": {
+        "type": {
+          "const": "LineString",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "items": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "maxItems": 3,
+                "minItems": 3,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              }
+            ]
+          },
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "LineStringGeometry",
+      "type": "object"
+    },
+    "PolygonGeometry": {
+      "additionalProperties": false,
+      "description": "GeoJSON Polygon geometry",
+      "properties": {
+        "type": {
+          "const": "Polygon",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "PolygonGeometry",
+      "type": "object"
+    },
+    "MultiPolygonGeometry": {
+      "additionalProperties": false,
+      "description": "GeoJSON MultiPolygon geometry",
+      "properties": {
+        "type": {
+          "const": "MultiPolygon",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "items": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  {
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "MultiPolygonGeometry",
+      "type": "object"
+    },
+    "MultiLineStringGeometry": {
+      "additionalProperties": false,
+      "description": "GeoJSON MultiLineString geometry",
+      "properties": {
+        "type": {
+          "const": "MultiLineString",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "coordinates"
+      ],
+      "title": "MultiLineStringGeometry",
+      "type": "object"
+    },
+    "GeoJSONFeature": {
+      "$defs": {
+        "LineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON LineString geometry",
+          "properties": {
+            "type": {
+              "const": "LineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "anyOf": [
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  {
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "LineStringGeometry",
+          "type": "object"
+        },
+        "MultiLineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiLineString geometry",
+          "properties": {
+            "type": {
+              "const": "MultiLineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiLineStringGeometry",
+          "type": "object"
+        },
+        "MultiPolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiPolygon geometry",
+          "properties": {
+            "type": {
+              "const": "MultiPolygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      },
+                      {
+                        "maxItems": 3,
+                        "minItems": 3,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiPolygonGeometry",
+          "type": "object"
+        },
+        "PointGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Point geometry",
+          "properties": {
+            "type": {
+              "const": "Point",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ],
+              "title": "Coordinates"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PointGeometry",
+          "type": "object"
+        },
+        "PolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Polygon geometry",
+          "properties": {
+            "type": {
+              "const": "Polygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PolygonGeometry",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "GeoJSON Feature",
+      "properties": {
+        "type": {
+          "const": "Feature",
+          "title": "Type",
+          "type": "string"
+        },
+        "geometry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointGeometry"
+            },
+            {
+              "$ref": "#/$defs/LineStringGeometry"
+            },
+            {
+              "$ref": "#/$defs/PolygonGeometry"
+            },
+            {
+              "$ref": "#/$defs/MultiPolygonGeometry"
+            },
+            {
+              "$ref": "#/$defs/MultiLineStringGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "properties": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Properties"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        }
+      },
+      "required": [
+        "type",
+        "geometry"
+      ],
+      "title": "GeoJSONFeature",
+      "type": "object"
+    },
+    "FeatureCollection": {
+      "$defs": {
+        "GeoJSONFeature": {
+          "additionalProperties": false,
+          "description": "GeoJSON Feature",
+          "properties": {
+            "type": {
+              "const": "Feature",
+              "title": "Type",
+              "type": "string"
+            },
+            "geometry": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PointGeometry"
+                },
+                {
+                  "$ref": "#/$defs/LineStringGeometry"
+                },
+                {
+                  "$ref": "#/$defs/PolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiPolygonGeometry"
+                },
+                {
+                  "$ref": "#/$defs/MultiLineStringGeometry"
+                }
+              ],
+              "title": "Geometry"
+            },
+            "properties": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Properties"
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Id"
+            }
+          },
+          "required": [
+            "type",
+            "geometry"
+          ],
+          "title": "GeoJSONFeature",
+          "type": "object"
+        },
+        "LineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON LineString geometry",
+          "properties": {
+            "type": {
+              "const": "LineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "anyOf": [
+                  {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  {
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "type": "array"
+                  }
+                ]
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "LineStringGeometry",
+          "type": "object"
+        },
+        "MultiLineStringGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiLineString geometry",
+          "properties": {
+            "type": {
+              "const": "MultiLineString",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiLineStringGeometry",
+          "type": "object"
+        },
+        "MultiPolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON MultiPolygon geometry",
+          "properties": {
+            "type": {
+              "const": "MultiPolygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      },
+                      {
+                        "maxItems": 3,
+                        "minItems": 3,
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "MultiPolygonGeometry",
+          "type": "object"
+        },
+        "PointGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Point geometry",
+          "properties": {
+            "type": {
+              "const": "Point",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "anyOf": [
+                {
+                  "maxItems": 2,
+                  "minItems": 2,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                },
+                {
+                  "maxItems": 3,
+                  "minItems": 3,
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array"
+                }
+              ],
+              "title": "Coordinates"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PointGeometry",
+          "type": "object"
+        },
+        "PolygonGeometry": {
+          "additionalProperties": false,
+          "description": "GeoJSON Polygon geometry",
+          "properties": {
+            "type": {
+              "const": "Polygon",
+              "title": "Type",
+              "type": "string"
+            },
+            "coordinates": {
+              "items": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    },
+                    {
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "prefixItems": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "title": "Coordinates",
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "title": "PolygonGeometry",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "GeoJSON FeatureCollection",
+      "properties": {
+        "type": {
+          "const": "FeatureCollection",
+          "title": "Type",
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "$ref": "#/$defs/GeoJSONFeature"
+          },
+          "title": "Features",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "features"
+      ],
+      "title": "FeatureCollection",
+      "type": "object"
+    },
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Bounding box for spatial queries",
+      "properties": {
+        "minLat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Minlat",
+          "type": "number"
+        },
+        "maxLat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Maxlat",
+          "type": "number"
+        },
+        "minLng": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Minlng",
+          "type": "number"
+        },
+        "maxLng": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Maxlng",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minLat",
+        "maxLat",
+        "minLng",
+        "maxLng"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    }
+  },
+  "enums": {
+    "MessageType": {
+      "type": "string",
+      "enum": [
+        "ping",
+        "pong",
+        "layer_data_update",
+        "gpu_filter_sync",
+        "polygon_update",
+        "linestring_update",
+        "search_update",
+        "error",
+        "echo"
+      ],
+      "description": "WebSocket message types"
+    },
+    "LayerType": {
+      "type": "string",
+      "enum": [
+        "point",
+        "polygon",
+        "line",
+        "linestring",
+        "heatmap",
+        "cluster",
+        "geojson"
+      ],
+      "description": "Supported layer types"
+    },
+    "FilterType": {
+      "type": "string",
+      "enum": [
+        "spatial",
+        "temporal",
+        "attribute",
+        "composite"
+      ],
+      "description": "Filter types"
+    },
+    "FilterStatus": {
+      "type": "string",
+      "enum": [
+        "applied",
+        "pending",
+        "error",
+        "cleared"
+      ],
+      "description": "Filter status values"
+    }
+  }
+}

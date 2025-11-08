@@ -39,7 +39,11 @@ jobs:
 
       - name: Generate OpenAPI schema
         run: |
-          python3 scripts/generate_openapi.py
+          python3 scripts/generate_openapi_minimal.py
+
+      - name: Generate WebSocket contract schema
+        run: |
+          python3 scripts/generate_ws_contract.py
 
       - name: Regenerate TypeScript contracts
         run: |
