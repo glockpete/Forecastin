@@ -1,0 +1,47 @@
+[
+  {
+    "id": "qw-001",
+    "title": "Add missing lint script to package.json",
+    "file": "frontend/package.json",
+    "line": 35,
+    "severity": "low",
+    "effort": "trivial",
+    "description": "ESLint config exists but no 'lint' script in package.json. Should add: \"lint\": \"eslint src --ext .ts,.tsx\"",
+    "category": "tooling"
+  },
+  {
+    "id": "qw-002",
+    "title": "Replace relative imports with path aliases",
+    "files": [
+      "frontend/src/components/MillerColumns/MillerColumns.tsx",
+      "frontend/src/components/Outcomes/*.tsx",
+      "frontend/src/components/Search/SearchInterface.tsx",
+      "frontend/src/components/Entity/EntityDetail.tsx"
+    ],
+    "severity": "low",
+    "effort": "medium",
+    "description": "Many files use relative imports like '../../types/contracts.generated' when tsconfig paths are configured. Should use '@types/contracts.generated' instead.",
+    "category": "code-style"
+  },
+  {
+    "id": "qw-003",
+    "title": "Enable exactOptionalPropertyTypes in tsconfig",
+    "file": "frontend/tsconfig.json",
+    "line": 15,
+    "severity": "low",
+    "effort": "trivial",
+    "description": "Currently set to false. Enabling would provide stricter type safety for optional properties.",
+    "category": "type-safety"
+  },
+  {
+    "id": "qw-004",
+    "title": "Enable noUncheckedIndexedAccess in tsconfig",
+    "file": "frontend/tsconfig.json",
+    "line": 16,
+    "severity": "medium",
+    "effort": "medium",
+    "description": "Currently disabled with TODO comment. Enabling prevents undefined access bugs on array/object indexing.",
+    "category": "type-safety",
+    "blockedBy": "May require fixing existing code that assumes indexed access is safe"
+  }
+]

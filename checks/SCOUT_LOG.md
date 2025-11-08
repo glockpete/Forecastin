@@ -9,6 +9,102 @@
 
 ## Session Log
 
+### 2025-11-08 - Phase 0: Inventory and Baselines
+
+#### Objective
+
+Establish checks/ scaffolding, inventory all console.* usage, verify import paths, and create baseline documentation for the refactoring project.
+
+#### Discoveries
+
+1. **Frontend Build Scripts** (`frontend/package.json:35-44`)
+   - ✅ `typecheck`: `tsc --noEmit`
+   - ✅ `build`: `tsc && vite build`
+   - ✅ `test`: `vitest run`
+   - ❌ **Missing**: `lint` script (ESLint config exists but no package.json script)
+   - **Action Required:** Add `lint` and `lint:fix` scripts
+
+2. **TypeScript Configuration** (`frontend/tsconfig.json`)
+   - ✅ `strict: true`
+   - ✅ `baseUrl: "src"`
+   - ✅ Path aliases configured: `@types/*`, `@components/*`, `@lib/*`, `@hooks/*`, `@utils/*`, `@layers/*`
+   - ⚠️ `exactOptionalPropertyTypes: false` (should enable)
+   - ⚠️ `noUncheckedIndexedAccess: false` (should enable, currently has TODO comment)
+
+3. **ESLint Configuration** (`frontend/.eslintrc.js:52`)
+   - Rule: `'no-console': ['warn', { allow: ['warn', 'error'] }]`
+   - **Prohibits:** `console.log`, `console.debug`, `console.info`
+   - **Allows:** `console.warn`, `console.error`
+
+4. **Console Usage Audit**
+   - **Total occurrences found:** 95+ (including README.md examples and tests)
+   - **Code files with violations:** 34+ prohibited console.* calls
+   - **Primary offenders:**
+     - `utils/stateManager.ts` — 19 instances
+     - `utils/errorRecovery.ts` — 8 instances
+     - `handlers/realtimeHandlers.ts` — 8 instances
+     - `integrations/LayerWebSocketIntegration.ts` — 5 instances
+     - `hooks/useHybridState.ts` — 4 instances
+   - **See:** `checks/BUGLOG.md` for complete file-line citations
+
+5. **Import Path Analysis**
+   - ✅ **No imports escaping src/** — `contracts.generated.ts` is located at `frontend/src/types/contracts.generated.ts`
+   - ⚠️ **Inconsistent import style** — Most files use relative imports (`../../types/...`) instead of configured aliases (`@types/...`)
+   - **Affected files:** All component files in `frontend/src/components/*`
+
+6. **Contracts Location**
+   - Root `/contracts/` directory contains OpenAPI and WebSocket JSON schemas
+   - Generated TypeScript types are properly located at `frontend/src/types/contracts.generated.ts`
+   - No import path drift detected
+
+#### Changes Made
+
+1. **Created Checks Scaffolding**
+   - `checks/BUGLOG.md` — Console error and defect tracking log
+   - `checks/quick_wins.json` — Machine-readable trivial fixes
+   - `checks/DEFECTS.md` — Prioritised defect registry
+   - `checks/PR_QUEUE.md` — Planned PR pipeline with scope and acceptance criteria
+
+2. **Updated SCOUT_LOG.md**
+   - Added Phase 0 findings (this section)
+
+#### Defects Identified
+
+See `checks/DEFECTS.md` for complete details. Summary:
+
+- **DEF-001 [P1]:** Console noise violates ESLint rules (34+ violations)
+- **DEF-002 [P2]:** Missing lint script in package.json
+- **DEF-003 [P2]:** Inconsistent import styles (relative vs. aliases)
+- **DEF-004 [P1]:** No dark theme background enforcement (user-reported)
+
+#### Quick Wins Identified
+
+See `checks/quick_wins.json` for complete details. Summary:
+
+- **QW-001:** Add lint script (5 minutes)
+- **QW-002:** Replace relative imports with aliases (2-3 hours)
+- **QW-003:** Enable exactOptionalPropertyTypes (trivial)
+- **QW-004:** Enable noUncheckedIndexedAccess (blocked by existing code)
+
+#### Next Steps
+
+1. **PR-001 [Phase 0]:** Commit this scaffolding as baseline
+2. **PR-002 [Phase 1]:** Implement logger utility and eradicate console noise
+3. **PR-003 [Phase 2]:** Enforce dark theme background and tokens
+4. **PR-004 [Phase 3]:** Normalise import paths to use aliases
+5. **PR-005 [Phase 4]:** Enable strict TypeScript flags
+
+#### Metrics
+
+- Files audited: 95+ (via grep)
+- Console violations found: 34+ in code files
+- Defects catalogued: 4 (2 x P1, 2 x P2)
+- Quick wins identified: 4
+- Checks files created: 4
+- Time elapsed: ~45 minutes
+
+---
+
 ### 2025-11-06 - Phase TS: Type Safety Hardening
 
 #### Discoveries
