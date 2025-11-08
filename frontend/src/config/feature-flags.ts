@@ -1,11 +1,13 @@
 /**
  * Feature Flag Configuration for Geospatial Layer System
- * 
+ *
  * Implements gradual rollout strategy following forecastin's existing patterns:
  * - Gradual rollout: 10% → 25% → 50% → 100%
  * - Integration with ff.map_v1 for map/geospatial features
  * - Rollback capability with flag disabling
  */
+
+import { logger } from '@lib/logger';
 
 export interface FeatureFlagConfig {
   // Core geospatial layer flags (standardized dot notation)
@@ -196,10 +198,10 @@ export class LayerFeatureFlagManager {
     }
     
     this.config.rollout_percentages[component] = percentage;
-    
+
     // Log rollout change for compliance audit
-    console.log(`[LayerFeatureFlag] Rollout enabled: ${component} at ${percentage}%`);
-    
+    logger.info(`[LayerFeatureFlag] Rollout enabled: ${component} at ${percentage}%`);
+
     // Auto-enable related feature flags when rollout reaches 100%
     if (percentage === 100) {
       this.autoEnableRelatedFlags(component);
@@ -245,8 +247,8 @@ export class LayerFeatureFlagManager {
     
     // Disable A/B testing
     this.config.ab_testing.enabled = false;
-    
-    console.warn('[LayerFeatureFlag] Emergency rollback executed - all geospatial features disabled');
+
+    logger.warn('[LayerFeatureFlag] Emergency rollback executed - all geospatial features disabled');
   }
   
   /**
@@ -313,12 +315,12 @@ export class LayerFeatureFlagManager {
     
     // Validate performance targets are reasonable
     if (this.config.performance_targets.render_time_ms > 50) {
-      console.warn('Performance target for render time is very high:', this.config.performance_targets.render_time_ms);
+      logger.warn('Performance target for render time is very high:', this.config.performance_targets.render_time_ms);
     }
-    
+
     // Check compliance requirements
     if (!this.config.compliance.audit_logging && this.config.compliance.performance_metrics_collection) {
-      console.warn('Performance metrics collection enabled without audit logging');
+      logger.warn('Performance metrics collection enabled without audit logging');
     }
   }
   

@@ -9,6 +9,7 @@
 import { useWebSocket } from '../hooks/useWebSocket';
 import { layerFeatureFlags } from '../config/feature-flags';
 import { safe_serialize_message } from '../layers/utils/layer-ws-utilities';
+import { logger } from '@lib/logger';
 import type {
   EntityDataPoint,
   WebSocketLayerMessage,
@@ -213,8 +214,8 @@ export class LayerWebSocketIntegration {
         featureFlags: layerFeatureFlags.getStatusSummary()
       }
     });
-    
-    console.log('[LayerWebSocket] Connected successfully');
+
+    logger.info('[LayerWebSocket] Connected successfully');
   }
 
   /**
@@ -239,9 +240,9 @@ export class LayerWebSocketIntegration {
         wasClean: event.wasClean
       }
     });
-    
-    console.warn('[LayerWebSocket] Connection closed:', event.code, event.reason);
-    
+
+    logger.warn('[LayerWebSocket] Connection closed:', event.code, event.reason);
+
     // Attempt reconnection if conditions allow
     this.attemptReconnection();
   }
@@ -258,10 +259,10 @@ export class LayerWebSocketIntegration {
       event: 'websocket_error',
       details: { error: error.message || error.toString() }
     });
-    
+
     this.config.onConnectionError?.(error);
-    console.error('[LayerWebSocket] Connection error:', error);
-    
+    logger.error('[LayerWebSocket] Connection error:', error);
+
     // Attempt reconnection
     this.attemptReconnection();
   }
@@ -556,9 +557,9 @@ export class LayerWebSocketIntegration {
 
     this.state.reconnectAttempts++;
     const delay = this.config.reconnectInterval! * Math.pow(2, this.state.reconnectAttempts - 1);
-    
+
     this.reconnectTimer = setTimeout(() => {
-      console.log(`[LayerWebSocket] Attempting reconnection ${this.state.reconnectAttempts}/${this.config.reconnectAttempts}`);
+      logger.info(`[LayerWebSocket] Attempting reconnection ${this.state.reconnectAttempts}/${this.config.reconnectAttempts}`);
       this.connect();
     }, delay);
   }
@@ -568,8 +569,8 @@ export class LayerWebSocketIntegration {
    */
   private flushMessageQueue(): void {
     if (this.messageQueue.length > 0) {
-      console.log(`[LayerWebSocket] Flushing ${this.messageQueue.length} queued messages`);
-      
+      logger.info(`[LayerWebSocket] Flushing ${this.messageQueue.length} queued messages`);
+
       while (this.messageQueue.length > 0) {
         const message = this.messageQueue.shift()!;
         this.sendMessage(message);
@@ -663,10 +664,11 @@ export class LayerWebSocketIntegration {
     if (this.state.auditLog.length > 1000) {
       this.state.auditLog = this.state.auditLog.slice(-500);
     }
-    
+
+
     // Output to console for development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[LayerAudit] ${auditEntry.event}:`, auditEntry.details);
+      logger.debug(`[LayerAudit] ${auditEntry.event}:`, auditEntry.details);
     }
   }
 
@@ -714,8 +716,8 @@ export class LayerWebSocketIntegration {
       event: 'websocket_disconnected_manual',
       details: { finalMetrics: this.state.performanceMetrics }
     });
-    
-    console.log('[LayerWebSocket] Disconnected manually');
+
+    logger.info('[LayerWebSocket] Disconnected manually');
   }
 
   /**

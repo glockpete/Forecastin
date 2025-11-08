@@ -5,6 +5,7 @@
  */
 
 import { PerformanceMonitor } from './stateManager';
+import { logger } from '@lib/logger';
 
 // Circuit breaker states
 export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
@@ -193,14 +194,14 @@ export class ExponentialBackoff {
 
         // Calculate delay with exponential backoff
         const delay = this.calculateDelay(attempt);
-        
-        console.log(`Retry ${attempt + 1}/${this.maxRetries} for ${operationKey} in ${delay}ms`);
-        
+
+        logger.debug(`Retry ${attempt + 1}/${this.maxRetries} for ${operationKey} in ${delay}ms`);
+
         await this.sleep(delay);
       }
     }
 
-    console.error(`All retries exhausted for ${operationKey}:`, lastError);
+    logger.error(`All retries exhausted for ${operationKey}:`, lastError);
     return null;
   }
 
@@ -414,16 +415,16 @@ export class ErrorMonitor {
     // Log error based on severity
     switch (severity) {
       case 'critical':
-        console.error('CRITICAL ERROR:', error, context);
+        logger.error('CRITICAL ERROR:', error, context);
         break;
       case 'high':
-        console.error('HIGH SEVERITY ERROR:', error, context);
+        logger.error('HIGH SEVERITY ERROR:', error, context);
         break;
       case 'medium':
-        console.warn('MEDIUM SEVERITY ERROR:', error, context);
+        logger.warn('MEDIUM SEVERITY ERROR:', error, context);
         break;
       case 'low':
-        console.info('LOW SEVERITY ERROR:', error, context);
+        logger.info('LOW SEVERITY ERROR:', error, context);
         break;
     }
   }
@@ -435,7 +436,7 @@ export class ErrorMonitor {
     );
 
     if (recentErrors.length >= this.alertThresholds[severity as keyof typeof this.alertThresholds]) {
-      console.warn(`Alert: ${severity} error threshold exceeded (${recentErrors.length} in last minute)`);
+      logger.warn(`Alert: ${severity} error threshold exceeded (${recentErrors.length} in last minute)`);
       // Here you could trigger actual alerts/notifications
     }
   }
@@ -512,10 +513,10 @@ export class GlobalErrorRecovery {
       return await operation();
     } catch (error) {
       this.errorMonitor.recordError(error as Error, { operationKey }, 'medium');
-      
+
       if (options.fallback) {
         try {
-          console.warn(`Using fallback for ${operationKey}`);
+          logger.warn(`Using fallback for ${operationKey}`);
           return options.fallback();
         } catch (fallbackError) {
           this.errorMonitor.recordError(fallbackError as Error, { 

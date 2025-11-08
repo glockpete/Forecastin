@@ -8,6 +8,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { Entity } from '../types';
 import { hierarchyKeys } from '../hooks/useHierarchy';
+import { logger } from '@lib/logger';
 
 // Cache coordination utilities
 export class CacheCoordinator {
@@ -60,20 +61,20 @@ export class CacheCoordinator {
       
       // Apply optimistic update
       this.queryClient.setQueryData(queryKey, optimisticData);
-      
-      console.log('Optimistic update applied for:', queryKey);
+
+      logger.debug('Optimistic update applied for:', queryKey);
       return { success: true };
       
     } catch (error) {
-      console.error('Optimistic update failed:', error);
-      
+      logger.error('Optimistic update failed:', error);
+
       // Rollback if function provided
       if (rollbackFn) {
         try {
           rollbackFn();
-          console.log('Rollback completed for:', queryKey);
+          logger.debug('Rollback completed for:', queryKey);
         } catch (rollbackError) {
-          console.error('Rollback failed:', rollbackError);
+          logger.error('Rollback failed:', rollbackError);
         }
       }
       
@@ -124,8 +125,8 @@ export class CacheCoordinator {
         this.queryClient.invalidateQueries({ queryKey: key });
         this.trackCacheAccess(key, false); // Track invalidation
       });
-      
-      console.log(`Batch invalidated ${queryKeys.length} cache entries`);
+
+      logger.debug(`Batch invalidated ${queryKeys.length} cache entries`);
     }, debounceMs);
   }
 
@@ -167,7 +168,7 @@ export class CacheCoordinator {
     // Preload siblings if they exist
     if (entity.parentId) {
       // This would require additional API calls to get sibling data
-      console.log('Preloading siblings for entity:', entity.id);
+      logger.debug('Preloading siblings for entity:', entity.id);
     }
     
     // Preload children if entity has children
@@ -203,8 +204,8 @@ export class CacheCoordinator {
         });
       }
     });
-    
-    console.log(`Warmed cache for ${entities.length} entities`);
+
+    logger.debug(`Warmed cache for ${entities.length} entities`);
   }
 }
 
@@ -238,9 +239,9 @@ export class StateSynchronizer {
 
     try {
       await processor(updates);
-      console.log(`Processed ${updates.size} queued updates`);
+      logger.debug(`Processed ${updates.size} queued updates`);
     } catch (error) {
-      console.error('Error processing queued updates:', error);
+      logger.error('Error processing queued updates:', error);
       // Re-queue failed updates
       updates.forEach((value, key) => {
         this.updateQueue.set(key, value);
@@ -278,9 +279,9 @@ export class ErrorRecovery {
     context?: any
   ): Promise<T | null> {
     const attempts = this.retryAttempts.get(key) || 0;
-    
+
     if (attempts >= this.maxRetries) {
-      console.warn(`Max retries exceeded for operation: ${key}`);
+      logger.warn(`Max retries exceeded for operation: ${key}`);
       this.retryAttempts.delete(key);
       return null;
     }
@@ -291,9 +292,9 @@ export class ErrorRecovery {
       return result;
     } catch (error) {
       this.retryAttempts.set(key, attempts + 1);
-      
+
       const delay = this.baseDelay * Math.pow(2, attempts);
-      console.log(`Retry ${attempts + 1}/${this.maxRetries} for ${key} in ${delay}ms`);
+      logger.debug(`Retry ${attempts + 1}/${this.maxRetries} for ${key} in ${delay}ms`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
       return this.retryOperation(operation, key, context);
@@ -374,11 +375,11 @@ export class StatePersistence {
         timestamp: Date.now(),
         version: '1.0'
       };
-      
+
       localStorage.setItem(this.PREFIX + key, JSON.stringify(item));
-      console.log('State saved:', key);
+      logger.debug('State saved:', key);
     } catch (error) {
-      console.error('Failed to save state:', error);
+      logger.error('Failed to save state:', error);
     }
   }
 
@@ -404,7 +405,7 @@ export class StatePersistence {
 
       return defaultValue;
     } catch (error) {
-      console.error('Failed to load state:', error);
+      logger.error('Failed to load state:', error);
       this.removeState(key);
       return defaultValue;
     }
@@ -415,7 +416,7 @@ export class StatePersistence {
     try {
       localStorage.removeItem(this.PREFIX + key);
     } catch (error) {
-      console.error('Failed to remove state:', error);
+      logger.error('Failed to remove state:', error);
     }
   }
 
@@ -428,9 +429,9 @@ export class StatePersistence {
           localStorage.removeItem(key);
         }
       });
-      console.log('All application state cleared');
+      logger.debug('All application state cleared');
     } catch (error) {
-      console.error('Failed to clear state:', error);
+      logger.error('Failed to clear state:', error);
     }
   }
 
@@ -494,12 +495,12 @@ export class PerformanceMonitor {
 
   // Log performance summary
   logPerformanceSummary() {
-    console.group('Performance Summary');
-    
+    logger.group('Performance Summary');
+
     this.metrics.forEach((values, name) => {
       const stats = this.getStats(name);
       if (stats) {
-        console.log(`${name}:`, {
+        logger.debug(`${name}:`, {
           avg: `${stats.avg.toFixed(2)}ms`,
           p95: `${stats.p95.toFixed(2)}ms`,
           p99: `${stats.p99.toFixed(2)}ms`,
@@ -507,8 +508,8 @@ export class PerformanceMonitor {
         });
       }
     });
-    
-    console.groupEnd();
+
+    logger.groupEnd();
   }
 }
 

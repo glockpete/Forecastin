@@ -13,6 +13,7 @@ import { hierarchyKeys } from './useHierarchy';
 import type { Entity } from '../types';
 import { globalErrorRecovery } from '../utils/errorRecovery';
 import { PerformanceMonitor } from '../utils/stateManager';
+import { logger } from '@lib/logger';
 
 // Message types for WebSocket-React Query coordination
 export interface StateSyncMessage {
@@ -219,18 +220,18 @@ export const useHybridState = (
           circuitBreaker: true,
           retry: true,
           fallback: () => {
-            console.warn('Cache coordination fallback activated for:', message.type);
+            logger.warn('Cache coordination fallback activated for:', message.type);
             return false;
           }
         }
       );
-      
+
       const duration = performance.now() - startTime;
       performanceMonitor.current.recordMetric('cache_coordination', duration);
-      
+
       if (result) {
         setLastSync(Date.now());
-        console.log(`Cache coordinated for message: ${message.type} (${duration.toFixed(2)}ms)`,
+        logger.debug(`Cache coordinated for message: ${message.type} (${duration.toFixed(2)}ms)`,
                    message.data?.id || message.entityId);
       } else {
         throw new Error('Cache coordination failed');
@@ -247,9 +248,9 @@ export const useHybridState = (
         errorCount: prev.errorCount + 1,
         circuitBreakerStates: globalErrorRecovery.getCircuitBreakerStates()
       }));
-      
-      console.error(`Cache coordination error (${duration.toFixed(2)}ms):`, error);
-      
+
+      logger.error(`Cache coordination error (${duration.toFixed(2)}ms):`, error);
+
       // Implement fallback retry mechanism with exponential backoff
       scheduleRetry(message);
     }
@@ -267,8 +268,8 @@ export const useHybridState = (
     messages.forEach(message => {
       coordinateCacheUpdate(message);
     });
-    
-    console.log(`Processed ${messages.length} batched updates`);
+
+    logger.debug(`Processed ${messages.length} batched updates`);
   }, [coordinateCacheUpdate]);
 
   // Debounced batch processing
@@ -305,7 +306,7 @@ export const useHybridState = (
       const result = await globalErrorRecovery.executeWithRecovery(
         operationKey,
         async () => {
-          console.log(`Retrying failed sync for: ${retryKey}`);
+          logger.info(`Retrying failed sync for: ${retryKey}`);
           await coordinateCacheUpdate(message);
           return true;
         },
@@ -313,19 +314,19 @@ export const useHybridState = (
           circuitBreaker: true,
           retry: true,
           fallback: () => {
-            console.warn(`Retry failed for ${retryKey}, giving up`);
+            logger.warn(`Retry failed for ${retryKey}, giving up`);
             return false;
           }
         }
       );
-      
+
       if (result) {
-        console.log(`Retry successful for: ${retryKey}`);
+        logger.info(`Retry successful for: ${retryKey}`);
       }
-      
+
     } catch (error) {
-      console.error(`Retry failed for ${retryKey}:`, error);
-      
+      logger.error(`Retry failed for ${retryKey}:`, error);
+
       // Record retry failure in error state
       setErrorState(prev => ({
         ...prev,
@@ -387,9 +388,9 @@ export const useHybridState = (
           mergeStrategy: 'replace'
         });
       }
-      
+
     } catch (error) {
-      console.error('Error processing WebSocket message:', error);
+      logger.error('Error processing WebSocket message:', error);
       // Send structured error message instead of crashing
       sendMessage({
         type: 'serialization_error',
@@ -554,7 +555,7 @@ export const useHybridState = (
         syncStatus: getSyncStatus()
       };
     } catch (error) {
-      console.error('Failed to get system health:', error);
+      logger.error('Failed to get system health:', error);
       return {
         overall: 'unhealthy',
         checks: {},

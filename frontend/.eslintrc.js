@@ -49,7 +49,7 @@ module.exports = {
     'react-hooks/exhaustive-deps': 'warn',
 
     // General rules
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-console': ['error', { allow: [] }], // Enforce no console.* calls - use lib/logger instead
     'prefer-const': 'warn',
     'no-var': 'error',
   },
@@ -66,5 +66,14 @@ module.exports = {
     '*.config.ts',
     'coverage/',
     '.eslintrc.js',
+  ],
+  overrides: [
+    {
+      // Allow console.* in logger.ts itself (with eslint-disable comments)
+      files: ['src/lib/logger.ts'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
   ],
 };

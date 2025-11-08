@@ -18,6 +18,7 @@ import {
   getMessageId,
 } from '../utils/idempotencyGuard';
 import { AppError, reportError } from '../errors/errorCatalog';
+import { logger } from '@lib/logger';
 
 /**
  * Message handler function type
@@ -79,7 +80,7 @@ export function createValidatedHandler<T>(
       const parseResult = parseOrReport(schema, data, schemaName);
 
       if (!parseResult.success) {
-        console.error(`[${schemaName}] Validation failed:`, parseResult.error.toDebugString());
+        logger.error(`[${schemaName}] Validation failed:`, parseResult.error.toDebugString());
         reportError(new AppError('ERR_303', {
           schemaName,
           error: parseResult.error.toStructured(),
@@ -97,7 +98,7 @@ export function createValidatedHandler<T>(
         if (!isNewMessage) {
           // Duplicate message - skip processing
           wsIdempotencyMetrics.recordDuplicate(messageId);
-          console.debug(`[${schemaName}] Duplicate message ignored: ${messageId}`);
+          logger.debug(`[${schemaName}] Duplicate message ignored: ${messageId}`);
           reportError(new AppError('ERR_304', {
             schemaName,
             messageId,
@@ -116,13 +117,13 @@ export function createValidatedHandler<T>(
       await handler(validatedMessage);
 
       const duration = performance.now() - startTime;
-      console.debug(`[${schemaName}] Processed in ${duration.toFixed(2)}ms`);
+      logger.debug(`[${schemaName}] Processed in ${duration.toFixed(2)}ms`);
 
       return { success: true };
 
     } catch (error) {
       const duration = performance.now() - startTime;
-      console.error(`[${schemaName}] Handler failed after ${duration.toFixed(2)}ms:`, error);
+      logger.error(`[${schemaName}] Handler failed after ${duration.toFixed(2)}ms:`, error);
 
       const appError = error instanceof AppError
         ? error

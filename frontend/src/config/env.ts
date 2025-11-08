@@ -1,14 +1,16 @@
 /**
  * Runtime Environment Configuration
- * 
+ *
  * CRITICAL: This replaces compile-time environment variables for WebSocket URLs
  * The browser needs to connect to the real host, not Docker-internal hostnames like "api:9000"
- * 
+ *
  * Pattern:
  * - Derive API/WS URLs from window.location at runtime
  * - Support both HTTP/WS and HTTPS/WSS protocols
  * - Allow override via environment variables for development
  */
+
+import { logger } from '@lib/logger';
 
 export const RUNTIME = (() => {
   // Detect if running in browser (vs SSR/build time)
@@ -57,7 +59,7 @@ export const RUNTIME = (() => {
 
   // Log configuration for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
-    console.debug('[RUNTIME CONFIG] Environment configuration:', {
+    logger.debug('[RUNTIME CONFIG] Environment configuration:', {
       protocol: window.location.protocol,
       host: window.location.hostname,
       port: window.location.port,
@@ -90,12 +92,12 @@ export const API_BASE_URL = RUNTIME.apiBase;
  */
 export function getWebSocketUrl(): string {
   const url = `${RUNTIME.wsBase}${RUNTIME.wsPath}`;
-  
+
   // Log constructed URL for diagnostics
   if (process.env.NODE_ENV === 'development') {
-    console.debug(`[WS URL] Constructed WebSocket URL: ${url}`);
+    logger.debug(`[WS URL] Constructed WebSocket URL: ${url}`);
   }
-  
+
   return url;
 }
 

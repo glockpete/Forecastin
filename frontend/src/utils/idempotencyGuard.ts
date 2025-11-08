@@ -5,6 +5,8 @@
  * Uses a sliding window to limit memory usage.
  */
 
+import { logger } from '@lib/logger';
+
 /**
  * Idempotency guard with sliding window
  */
@@ -160,7 +162,7 @@ export class IdempotencyMetrics {
   recordDuplicate(messageId: string): void {
     this.duplicateCount++;
     this.lastDuplicateTime = new Date();
-    console.debug(`[Idempotency] Duplicate message detected: ${messageId}`);
+    logger.debug(`[Idempotency] Duplicate message detected: ${messageId}`);
   }
 
   recordProcessed(messageId: string): void {

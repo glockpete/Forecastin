@@ -14,6 +14,7 @@ import { useUIStore } from '../store/uiStore';
 import { hierarchyKeys } from '../hooks/useHierarchy';
 import type { Entity, WebSocketMessage } from '../types';
 import { CacheCoordinator, ErrorRecovery, PerformanceMonitor } from '../utils/stateManager';
+import { logger } from '@lib/logger';
 import {
   parseRealtimeMessage,
   validateRealtimeMessage,
@@ -59,13 +60,13 @@ export class RealtimeMessageProcessor {
       const { entityId, entity } = message.data;
 
       if (!entity && !entityId) {
-        console.warn('Entity update message missing entity data');
+        logger.warn('Entity update message missing entity data');
         return;
       }
 
       const targetEntity = entity || await this.getEntityById(entityId);
       if (!targetEntity) {
-        console.warn('Target entity not found:', entityId);
+        logger.warn('Target entity not found:', entityId);
         return;
       }
 
@@ -109,11 +110,11 @@ export class RealtimeMessageProcessor {
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('entity_update_processing', duration);
-      
-      console.log(`Entity update processed in ${duration.toFixed(2)}ms:`, targetEntity.id);
-      
+
+      logger.debug(`Entity update processed in ${duration.toFixed(2)}ms:`, targetEntity.id);
+
     } catch (error) {
-      console.error('Error processing entity update:', error);
+      logger.error('Error processing entity update:', error);
       
       // Record failure for circuit breaker
       this.errorRecovery.recordFailure(`entity_update_${message.data?.entityId || message.data?.entity?.id || 'unknown'}`);
@@ -144,11 +145,11 @@ export class RealtimeMessageProcessor {
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('hierarchy_change_processing', duration);
-      
-      console.log(`Hierarchy change processed in ${duration.toFixed(2)}ms`);
-      
+
+      logger.debug(`Hierarchy change processed in ${duration.toFixed(2)}ms`);
+
     } catch (error) {
-      console.error('Error processing hierarchy change:', error);
+      logger.error('Error processing hierarchy change:', error);
       this.errorRecovery.recordFailure('hierarchy_change');
       throw error;
     }
@@ -162,7 +163,7 @@ export class RealtimeMessageProcessor {
       const updates = (message.data as any).updates || [];
 
       if (updates.length === 0) {
-        console.warn('Bulk update message contains no updates');
+        logger.warn('Bulk update message contains no updates');
         return;
       }
 
@@ -180,7 +181,7 @@ export class RealtimeMessageProcessor {
                 await this.processHierarchyChange(update as unknown as HierarchyChangeMessage);
               }
             } catch (error) {
-              console.error('Error processing batch update:', error);
+              logger.error('Error processing batch update:', error);
               // Continue with other updates even if one fails
             }
           })
@@ -194,11 +195,11 @@ export class RealtimeMessageProcessor {
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('bulk_update_processing', duration);
-      
-      console.log(`Bulk update processed ${updates.length} items in ${duration.toFixed(2)}ms`);
-      
+
+      logger.debug(`Bulk update processed ${updates.length} items in ${duration.toFixed(2)}ms`);
+
     } catch (error) {
-      console.error('Error processing bulk update:', error);
+      logger.error('Error processing bulk update:', error);
       this.errorRecovery.recordFailure('bulk_update');
       throw error;
     }
@@ -221,10 +222,10 @@ export class RealtimeMessageProcessor {
         });
       }
 
-      console.log('Cache invalidation processed:', { strategy, queryKeysCount: queryKeys.length });
+      logger.debug('Cache invalidation processed:', { strategy, queryKeysCount: queryKeys.length });
 
     } catch (error) {
-      console.error('Error processing cache invalidation:', error);
+      logger.error('Error processing cache invalidation:', error);
       this.errorRecovery.recordFailure('cache_invalidate');
     }
   }
@@ -236,7 +237,7 @@ export class RealtimeMessageProcessor {
       const results = (message as any).payload?.results;
 
       if (!query || !results) {
-        console.warn('Search update message missing query or results');
+        logger.warn('Search update message missing query or results');
         return;
       }
 
@@ -251,10 +252,10 @@ export class RealtimeMessageProcessor {
         }
       );
 
-      console.log(`Search results updated for query "${query}": ${results.length} results`);
+      logger.debug(`Search results updated for query "${query}": ${results.length} results`);
 
     } catch (error) {
-      console.error('Error processing search update:', error);
+      logger.error('Error processing search update:', error);
       this.errorRecovery.recordFailure('search_update');
     }
   }
@@ -272,9 +273,9 @@ export class RealtimeMessageProcessor {
     
     try {
       const { layer_id, layer_type, layer_data, bbox } = message.data || {};
-      
+
       if (!layer_id || !layer_type || !layer_data) {
-        console.warn('Layer data update message missing required fields');
+        logger.warn('Layer data update message missing required fields');
         return;
       }
 
@@ -307,11 +308,11 @@ export class RealtimeMessageProcessor {
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('layer_data_update_processing', duration);
-      
-      console.log(`Layer data update processed in ${duration.toFixed(2)}ms:`, layer_id);
-      
+
+      logger.debug(`Layer data update processed in ${duration.toFixed(2)}ms:`, layer_id);
+
     } catch (error) {
-      console.error('Error processing layer data update:', error);
+      logger.error('Error processing layer data update:', error);
       this.errorRecovery.recordFailure(`layer_data_update_${message.data?.layer_id}`);
       throw error;
     }
@@ -331,9 +332,9 @@ export class RealtimeMessageProcessor {
     
     try {
       const { filter_id, filter_type, filter_params, affected_layers, status } = message.data || {};
-      
+
       if (!filter_id || !filter_type || !affected_layers) {
-        console.warn('GPU filter sync message missing required fields');
+        logger.warn('GPU filter sync message missing required fields');
         return;
       }
 
@@ -368,11 +369,11 @@ export class RealtimeMessageProcessor {
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('gpu_filter_sync_processing', duration);
-      
-      console.log(`GPU filter sync processed in ${duration.toFixed(2)}ms:`, filter_id, `(status: ${status})`);
-      
+
+      logger.debug(`GPU filter sync processed in ${duration.toFixed(2)}ms:`, filter_id, `(status: ${status})`);
+
     } catch (error) {
-      console.error('Error processing GPU filter sync:', error);
+      logger.error('Error processing GPU filter sync:', error);
       this.errorRecovery.recordFailure(`gpu_filter_sync_${message.data?.filter_id}`);
       throw error;
     }
@@ -396,7 +397,7 @@ export class RealtimeMessageProcessor {
       
       return entity;
     } catch (error) {
-      console.error('Error fetching entity:', error);
+      logger.error('Error fetching entity:', error);
       return null;
     }
   }
@@ -451,7 +452,7 @@ export const routeRealtimeMessage = (
 
     if (!validationResult.valid) {
       // Log validation errors but don't crash
-      console.error('WebSocket message validation failed:', {
+      logger.error('WebSocket message validation failed:', {
         errors: validationResult.errors,
         rawMessage,
         timestamp: new Date().toISOString(),
@@ -460,7 +461,7 @@ export const routeRealtimeMessage = (
       // Track validation failure for monitoring
       if (typeof rawMessage === 'object' && rawMessage !== null) {
         const type = (rawMessage as any).type || 'unknown';
-        console.error(`Invalid message type: ${type}`, validationResult.errors);
+        logger.error(`Invalid message type: ${type}`, validationResult.errors);
       }
 
       // Reject invalid messages gracefully
@@ -482,12 +483,12 @@ export const routeRealtimeMessage = (
     } else if (isSearchUpdate(message)) {
       return processor.processSearchUpdate(message);
     } else {
-      console.warn('Unknown message type:', message.type);
+      logger.warn('Unknown message type:', message.type);
       return Promise.resolve();
     }
   } catch (error) {
     const duration = performance.now() - startTime;
-    console.error(`Error routing message (${duration.toFixed(2)}ms):`, error);
+    logger.error(`Error routing message (${duration.toFixed(2)}ms):`, error);
     throw error;
   }
 };
@@ -498,7 +499,7 @@ export const handleRealtimeError = (
   originalMessage: WebSocketMessage,
   retryHandler?: (message: WebSocketMessage) => void
 ) => {
-  console.error('Realtime message processing error:', {
+  logger.error('Realtime message processing error:', {
     error: error.message,
     messageType: originalMessage.type,
     timestamp: new Date().toISOString()
@@ -511,7 +512,7 @@ export const handleRealtimeError = (
       try {
         retryHandler(originalMessage);
       } catch (retryError) {
-        console.error('Retry also failed:', retryError);
+        logger.error('Retry also failed:', retryError);
       }
     }, 2000);
   }

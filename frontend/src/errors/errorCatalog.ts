@@ -11,6 +11,8 @@
  * - Recovery suggestions
  */
 
+import { logger } from '@lib/logger';
+
 /**
  * Error severity levels
  */
@@ -524,7 +526,7 @@ export class ConsoleErrorReporter implements ErrorReporter {
       return;
     }
 
-    console.error('[AppError]', error.toStructured());
+    logger.error('[AppError]', error.toStructured());
   }
 }
 
