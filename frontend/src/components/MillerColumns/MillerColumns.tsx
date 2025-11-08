@@ -81,12 +81,20 @@ const EntityItem: React.FC<EntityItemProps> = ({
       className={cn(
         'flex items-center px-3 py-2 cursor-pointer transition-colors duration-200',
         'hover:bg-blue-50 dark:hover:bg-blue-900/20',
-        isSelected 
-          ? 'bg-blue-100 dark:bg-blue-900/40 border-r-2 border-blue-500' 
+        isSelected
+          ? 'bg-blue-100 dark:bg-blue-900/40 border-r-2 border-blue-500'
           : 'border-r-2 border-transparent',
         depth > 0 && 'ml-4'
       )}
+      role="button"
+      tabIndex={0}
       onClick={() => onClick(entity)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(entity);
+        }
+      }}
       onMouseEnter={() => onHover && onHover(entity)}
       onMouseLeave={() => onHover && onHover(null)}
     >

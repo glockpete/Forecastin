@@ -123,13 +123,13 @@ const EvidencePanel: React.FC<EvidencePanelProps> = ({
       if (!acc[item.sourceType]) {
         acc[item.sourceType] = [];
       }
-      acc[item.sourceType].push(item);
+      acc[item.sourceType]!.push(item);
       return acc;
     }, {} as Record<string, typeof evidence>);
 
     // Sort each group by confidence
     Object.keys(grouped).forEach((type) => {
-      grouped[type].sort((a, b) => b.confidence - a.confidence);
+      grouped[type]!.sort((a, b) => b.confidence - a.confidence);
     });
 
     return grouped;
@@ -176,7 +176,7 @@ const EvidencePanel: React.FC<EvidencePanelProps> = ({
             <EvidenceItem
               key={item.id}
               evidence={item}
-              onClick={onEvidenceClick ? () => onEvidenceClick(item) : undefined}
+              {...(onEvidenceClick && { onClick: () => onEvidenceClick(item) })}
             />
           ))}
         </div>

@@ -331,17 +331,42 @@ export function parseWithMetrics<T>(
 // DOMAIN-SPECIFIC VALIDATORS (QW007, QW008)
 // ============================================================================
 
-import type {
-  LTreePath,
-  UUIDString,
-  ISODateTimeString
-} from '../../types/contracts.generated';
-import {
-  isValidLTreePath,
-  isValidUUID,
-  isValidISODateTime,
-  parseEntityDate
-} from '../../types/contracts.generated';
+// Domain-specific validators and branded types
+export type LTreePath = string & { readonly __brand: 'LTreePath' };
+export type UUIDString = string & { readonly __brand: 'UUIDString' };
+export type ISODateTimeString = string & { readonly __brand: 'ISODateTimeString' };
+
+/**
+ * Validate LTREE path format
+ */
+export function isValidLTreePath(path: string): boolean {
+  // Basic ltree validation - labels separated by dots, no leading/trailing dots
+  return /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)*$/.test(path);
+}
+
+/**
+ * Validate UUID format
+ */
+export function isValidUUID(uuid: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
+}
+
+/**
+ * Validate ISO 8601 date-time format
+ */
+export function isValidISODateTime(dateTime: string): boolean {
+  const date = new Date(dateTime);
+  return !isNaN(date.getTime()) && dateTime === date.toISOString();
+}
+
+/**
+ * Parse entity date
+ */
+export function parseEntityDate(dateStr?: string | null): Date | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? null : date;
+}
 
 /**
  * Validate LTREE path and return Result

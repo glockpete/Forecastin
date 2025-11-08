@@ -242,7 +242,7 @@ export function useFeatureFlags(
   return useMemo(() => {
     const result: Record<string, boolean> = {};
     flagNames.forEach((name, index) => {
-      result[name] = flags[index].isEnabled;
+      result[name] = flags[index]!.isEnabled;
     });
     return result;
   }, [flagNames, flags]);

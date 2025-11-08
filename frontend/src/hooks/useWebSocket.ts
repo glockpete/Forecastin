@@ -119,10 +119,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       case 'batch':
         console.debug(`[WebSocket] Received ${message.type}`);
         break;
-      default:
+      default: {
         // This will cause a TypeScript error if we miss any message types
         const _exhaustiveCheck: never = message;
         console.warn('[WebSocket] Unhandled message type:', _exhaustiveCheck);
+      }
     }
   }, [onMessage]);
 

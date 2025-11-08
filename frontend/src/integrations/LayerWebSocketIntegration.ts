@@ -68,7 +68,7 @@ export class LayerWebSocketIntegration {
       reconnectAttempts: 3,
       reconnectInterval: 5000,
       heartbeatInterval: 30000,
-      featureFlagCheck: () => layerFeatureFlags.isEnabled('ff_websocket_layers_enabled'),
+      featureFlagCheck: () => layerFeatureFlags.isEnabled('ff.geo.websocket_layers_enabled'),
       ...config
     };
     
