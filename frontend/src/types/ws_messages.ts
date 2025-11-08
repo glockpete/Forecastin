@@ -705,11 +705,14 @@ export async function dispatchMessage(
   message: WebSocketMessage,
   handlers: Partial<MessageHandlers>
 ): Promise<void> {
-  const handler = handlers[message.type];
+  const messageType = message.type;
+  const handler = handlers[messageType] as ((msg: WebSocketMessage) => void | Promise<void>) | undefined;
+
   if (handler) {
-    await handler(message as any);
+    // Type narrowing: handler expects the correct message type via MessageHandlers definition
+    await handler(message);
   } else {
-    console.warn(`No handler registered for message type: ${message.type}`, message);
+    console.warn(`No handler registered for message type: ${messageType}`, message);
   }
 }
 
