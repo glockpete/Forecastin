@@ -116,6 +116,17 @@ def get_entities(path: str, limit: Optional[int] = None) -> List[dict]:
   - Components: PascalCase (`UserProfile.tsx`)
   - Hooks: camelCase with 'use' prefix (`useEntityHierarchy.ts`)
   - Utilities: camelCase (`formatDate.ts`)
+- **Import Rules**:
+  - **CRITICAL:** Never import from outside `frontend/src/`. React Scripts will reject these.
+  - Use path aliases defined in `tsconfig.json`:
+    - `@types/*` → `src/types/*`
+    - `@components/*` → `src/components/*`
+    - `@layers/*` → `src/layers/*`
+    - `@lib/*` → `src/lib/*`
+    - `@hooks/*` → `src/hooks/*`
+    - `@utils/*` → `src/utils/*`
+  - Generated contracts must live in `frontend/src/types/contracts.generated.ts`
+  - Example: `import { WSMessage } from '@types/ws_messages';` NOT `import { WSMessage } from '../../../../types/ws_messages';`
 
 **TypeScript Strict Mode Patterns:**
 
