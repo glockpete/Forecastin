@@ -1,12 +1,18 @@
 -- Migration: Standardize Feature Flag Names
 -- Date: 2025-11-07
--- Breaking Change: Yes - renames existing feature flags to match documentation
+-- Updated: 2025-11-08
+-- Breaking Change: Yes - renames existing feature flags to match standardized naming convention
 --
--- This migration standardizes all feature flag names to the documented pattern
--- from GEOSPATIAL_FEATURE_FLAGS.md (ff.geo.* namespace)
+-- This migration standardizes all feature flag names to use consistent dot notation
+-- with namespace prefixes:
+-- - ff.geo.* for geospatial features
+-- - ff.ml.* for machine learning features
+-- - ff.ws.* for WebSocket features
+-- - ff.hierarchy.* for hierarchy/navigation features
+-- - ff.data.* for data management features
 --
--- BEFORE: ff_geospatial_layers, ff.geospatial_layers, ff_geospatial_enabled
--- AFTER:  ff.geo.layers_enabled (consistent everywhere)
+-- BEFORE: ff_geospatial_layers, ff.map_v1, ff.hierarchy_optimized
+-- AFTER:  ff.geo.layers_enabled, ff.geo.map, ff.hierarchy.optimized
 
 -- Start transaction for atomic migration
 BEGIN;
@@ -99,23 +105,72 @@ WHERE flag_name IN (
     'ff.layer_audit_logging'
 );
 
+-- Linestring layer flag
+UPDATE feature_flags
+SET flag_name = 'ff.geo.linestring_layer_active'
+WHERE flag_name IN (
+    'ff_linestring_layer',
+    'ff.linestring_layer'
+);
+
+-- === Core System Flags Standardization ===
+
+-- Map/Geospatial core flag
+UPDATE feature_flags
+SET flag_name = 'ff.geo.map'
+WHERE flag_name = 'ff.map_v1';
+
+-- Hierarchy navigation flag
+UPDATE feature_flags
+SET flag_name = 'ff.hierarchy.optimized'
+WHERE flag_name = 'ff.hierarchy_optimized';
+
+-- WebSocket realtime flag
+UPDATE feature_flags
+SET flag_name = 'ff.ws.realtime'
+WHERE flag_name = 'ff.ws_v1';
+
+-- === Machine Learning Flags ===
+
+-- Prophet forecasting flag
+UPDATE feature_flags
+SET flag_name = 'ff.ml.prophet_forecasting'
+WHERE flag_name = 'ff.prophet_forecasting';
+
+-- A/B testing routing flag
+UPDATE feature_flags
+SET flag_name = 'ff.ml.ab_routing'
+WHERE flag_name = 'ff.ab_routing';
+
+-- === Data Management Flags ===
+
+-- Cursor pagination flag
+UPDATE feature_flags
+SET flag_name = 'ff.data.cursor_pagination'
+WHERE flag_name = 'ff.cursor_pagination';
+
+-- Scenario construction flag
+UPDATE feature_flags
+SET flag_name = 'ff.scenario.construction'
+WHERE flag_name = 'ff.scenario_construction';
+
 -- Verify migration success
 DO $$
 DECLARE
     old_pattern_count INTEGER;
 BEGIN
-    -- Check for any remaining old-style flag names
+    -- Check for any remaining old-style flag names (underscore notation)
     SELECT COUNT(*) INTO old_pattern_count
     FROM feature_flags
     WHERE flag_name LIKE 'ff_%'
-      AND flag_name NOT LIKE 'ff.%'
-      AND flag_name != 'ff.map_v1';  -- Keep existing parent flag
+      AND flag_name NOT LIKE 'ff.%';
 
     IF old_pattern_count > 0 THEN
-        RAISE EXCEPTION 'Migration incomplete: % flags still using old naming pattern', old_pattern_count;
+        RAISE EXCEPTION 'Migration incomplete: % flags still using underscore naming pattern', old_pattern_count;
     END IF;
 
-    RAISE NOTICE 'Migration successful: All feature flags standardized to ff.geo.* pattern';
+    RAISE NOTICE 'Migration successful: All feature flags standardized to namespaced dot notation';
+    RAISE NOTICE 'Namespaces: ff.geo.*, ff.ml.*, ff.ws.*, ff.hierarchy.*, ff.data.*, ff.scenario.*';
 END $$;
 
 COMMIT;

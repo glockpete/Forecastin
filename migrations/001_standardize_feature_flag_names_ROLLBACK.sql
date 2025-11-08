@@ -1,8 +1,11 @@
 -- Rollback Migration: Standardize Feature Flag Names
 -- Date: 2025-11-07
+-- Updated: 2025-11-08
 --
--- This script rolls back the feature flag name standardization
+-- This script rolls back the comprehensive feature flag name standardization
 -- by restoring from the backup table created during migration
+--
+-- Reverts namespaced flags (ff.geo.*, ff.ml.*, ff.ws.*, etc.) back to original names
 --
 -- CAUTION: Only use if migration causes issues. This will lose any
 -- flag changes made AFTER the migration was applied.

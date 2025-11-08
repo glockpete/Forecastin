@@ -8,15 +8,15 @@
  */
 
 export interface FeatureFlagConfig {
-  // Core geospatial layer flags
-  ff_geospatial_enabled: boolean;
-  ff_point_layer_enabled: boolean;
-  ff_clustering_enabled: boolean;
-  ff_websocket_layers_enabled: boolean;
-  
+  // Core geospatial layer flags (standardized dot notation)
+  'ff.geo.layers_enabled': boolean;
+  'ff.geo.point_layer_active': boolean;
+  'ff.geo.clustering_enabled': boolean;
+  'ff.geo.websocket_layers_enabled': boolean;
+
   // Performance and monitoring flags
-  ff_layer_performance_monitoring: boolean;
-  ff_layer_audit_logging: boolean;
+  'ff.geo.performance_monitoring_enabled': boolean;
+  'ff.geo.audit_logging_enabled': boolean;
   
   // Gradual rollout percentages for each component
   rollout_percentages: {
@@ -56,14 +56,14 @@ export interface FeatureFlagConfig {
 // Default configuration following forecastin patterns
 const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   // Core geospatial flags - start disabled for safe rollout
-  ff_geospatial_enabled: false,
-  ff_point_layer_enabled: false,
-  ff_clustering_enabled: false,
-  ff_websocket_layers_enabled: false,
-  
+  'ff.geo.layers_enabled': false,
+  'ff.geo.point_layer_active': false,
+  'ff.geo.clustering_enabled': false,
+  'ff.geo.websocket_layers_enabled': false,
+
   // Performance monitoring flags
-  ff_layer_performance_monitoring: true,
-  ff_layer_audit_logging: true,
+  'ff.geo.performance_monitoring_enabled': true,
+  'ff.geo.audit_logging_enabled': true,
   
   // Gradual rollout percentages (start at 0%, gradually increase)
   rollout_percentages: {
@@ -102,10 +102,10 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
 
 // Environment variable overrides (for deployment configuration)
 const ENV_OVERRIDES: Partial<FeatureFlagConfig> = {
-  ff_geospatial_enabled: process.env.REACT_APP_FF_GEOSPATIAL === 'true',
-  ff_point_layer_enabled: process.env.REACT_APP_FF_POINT_LAYER === 'true',
-  ff_clustering_enabled: process.env.REACT_APP_FF_CLUSTERING === 'true',
-  ff_websocket_layers_enabled: process.env.REACT_APP_FF_WS_LAYERS === 'true',
+  'ff.geo.layers_enabled': process.env.REACT_APP_FF_GEOSPATIAL === 'true',
+  'ff.geo.point_layer_active': process.env.REACT_APP_FF_POINT_LAYER === 'true',
+  'ff.geo.clustering_enabled': process.env.REACT_APP_FF_CLUSTERING === 'true',
+  'ff.geo.websocket_layers_enabled': process.env.REACT_APP_FF_WS_LAYERS === 'true',
   
   rollout_percentages: {
     core_layers: parseInt(process.env.REACT_APP_FF_CORE_ROLLOUT || '0'),
@@ -161,18 +161,18 @@ export class LayerFeatureFlagManager {
     let rolloutPercentage = 0;
     
     switch (flagName) {
-      case 'ff_geospatial_enabled':
+      case 'ff.geo.layers_enabled':
         rolloutPercentage = this.config.rollout_percentages.core_layers;
         break;
-      case 'ff_point_layer_enabled':
+      case 'ff.geo.point_layer_active':
         rolloutPercentage = this.config.rollout_percentages.point_layers;
         break;
-      case 'ff_websocket_layers_enabled':
+      case 'ff.geo.websocket_layers_enabled':
         rolloutPercentage = this.config.rollout_percentages.websocket_integration;
         break;
-      case 'ff_clustering_enabled':
-      case 'ff_layer_performance_monitoring':
-      case 'ff_layer_audit_logging':
+      case 'ff.geo.clustering_enabled':
+      case 'ff.geo.performance_monitoring_enabled':
+      case 'ff.geo.audit_logging_enabled':
         // These features use the visual_channels rollout percentage
         rolloutPercentage = this.config.rollout_percentages.visual_channels;
         break;
@@ -212,18 +212,18 @@ export class LayerFeatureFlagManager {
   private autoEnableRelatedFlags(component: keyof FeatureFlagConfig['rollout_percentages']): void {
     switch (component) {
       case 'core_layers':
-        this.config.ff_geospatial_enabled = true;
+        this.config['ff.geo.layers_enabled'] = true;
         break;
       case 'point_layers':
-        this.config.ff_point_layer_enabled = true;
+        this.config['ff.geo.point_layer_active'] = true;
         break;
       case 'websocket_integration':
-        this.config.ff_websocket_layers_enabled = true;
+        this.config['ff.geo.websocket_layers_enabled'] = true;
         break;
       case 'visual_channels':
-        this.config.ff_clustering_enabled = true;
-        this.config.ff_layer_performance_monitoring = true;
-        this.config.ff_layer_audit_logging = true;
+        this.config['ff.geo.clustering_enabled'] = true;
+        this.config['ff.geo.performance_monitoring_enabled'] = true;
+        this.config['ff.geo.audit_logging_enabled'] = true;
         break;
     }
   }
@@ -233,10 +233,10 @@ export class LayerFeatureFlagManager {
    */
   emergencyRollback(): void {
     // Disable all core feature flags
-    this.config.ff_geospatial_enabled = false;
-    this.config.ff_point_layer_enabled = false;
-    this.config.ff_clustering_enabled = false;
-    this.config.ff_websocket_layers_enabled = false;
+    this.config['ff.geo.layers_enabled'] = false;
+    this.config['ff.geo.point_layer_active'] = false;
+    this.config['ff.geo.clustering_enabled'] = false;
+    this.config['ff.geo.websocket_layers_enabled'] = false;
     
     // Reset all rollout percentages to 0%
     Object.keys(this.config.rollout_percentages).forEach(key => {
@@ -369,10 +369,10 @@ export class LayerFeatureFlagManager {
     return {
       userRolloutId: this.userRolloutId,
       coreFlags: {
-        geospatialEnabled: this.isEnabled('ff_geospatial_enabled'),
-        pointLayerEnabled: this.isEnabled('ff_point_layer_enabled'),
-        clusteringEnabled: this.isEnabled('ff_clustering_enabled'),
-        wsEnabled: this.isEnabled('ff_websocket_layers_enabled')
+        geospatialEnabled: this.isEnabled('ff.geo.layers_enabled'),
+        pointLayerEnabled: this.isEnabled('ff.geo.point_layer_active'),
+        clusteringEnabled: this.isEnabled('ff.geo.clustering_enabled'),
+        wsEnabled: this.isEnabled('ff.geo.websocket_layers_enabled')
       },
       rolloutPercentages: this.config.rollout_percentages,
       abTesting: this.config.ab_testing,

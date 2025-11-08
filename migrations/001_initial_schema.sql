@@ -49,12 +49,12 @@ CREATE TABLE feature_flags (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert initial feature flags
+-- Insert initial feature flags (using standardized naming convention)
 INSERT INTO feature_flags (flag_name, description, is_enabled, rollout_percentage) VALUES
-('ff.hierarchy_optimized', 'Enable LTREE optimized hierarchy performance', true, 100),
-('ff.ws_v1', 'Enable WebSocket v1 real-time features', true, 100),
-('ff.map_v1', 'Enable PostGIS geospatial mapping', true, 100),
-('ff.ab_routing', 'Enable A/B testing routing', false, 0);
+('ff.hierarchy.optimized', 'Enable LTREE optimized hierarchy performance', true, 100),
+('ff.ws.realtime', 'Enable WebSocket real-time features', true, 100),
+('ff.geo.map', 'Enable PostGIS geospatial mapping', true, 100),
+('ff.ml.ab_routing', 'Enable A/B testing routing', false, 0);
 
 -- Performance optimized indexes for LTREE operations
 CREATE INDEX idx_entity_path ON entities USING GIST (path); -- GiST required for LTREE operators
