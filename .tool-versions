@@ -1,0 +1,4 @@
+# Tool versions for asdf/mise compatibility
+# Pin exact versions to ensure reproducible builds
+nodejs 20.18.1
+python 3.11.9

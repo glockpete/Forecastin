@@ -1,0 +1,127 @@
+# CODEOWNERS file for Forecastin
+# This file defines code ownership and review requirements
+# Lines starting with '#' are comments
+# Each line is a file pattern followed by one or more owners
+# Owners can be @usernames, @org/team-names, or email addresses
+
+# ==============================================================================
+# DEFAULT OWNERSHIP
+# ==============================================================================
+# Default owners for everything in the repo (unless a later match takes precedence)
+# * @your-org/core-team
+
+# ==============================================================================
+# BACKEND / API
+# ==============================================================================
+# All backend code requires backend team review
+/api/**                             @your-org/backend-team
+/api/main.py                        @your-org/backend-leads
+/api/routers/**                     @your-org/backend-team
+/api/services/**                    @your-org/backend-team
+/api/models/**                      @your-org/backend-team
+/api/tests/**                       @your-org/backend-team
+
+# Database migrations require extra scrutiny
+/migrations/**                      @your-org/backend-leads
+/api/db/**                          @your-org/backend-leads
+
+# Backend requirements and dependencies
+/api/requirements*.txt              @your-org/backend-leads
+/pyproject.toml                     @your-org/backend-leads
+
+# ==============================================================================
+# FRONTEND
+# ==============================================================================
+# All frontend code requires frontend team review
+/frontend/**                        @your-org/frontend-team
+/frontend/src/components/**         @your-org/frontend-team
+/frontend/src/services/**           @your-org/frontend-team
+/frontend/src/stores/**             @your-org/frontend-team
+/frontend/src/types/**              @your-org/frontend-team
+
+# Frontend configuration and dependencies
+/frontend/package*.json             @your-org/frontend-leads
+/frontend/tsconfig*.json            @your-org/frontend-leads
+/frontend/vite.config.*             @your-org/frontend-leads
+
+# ==============================================================================
+# INFRASTRUCTURE & DEVOPS
+# ==============================================================================
+# CI/CD workflows and automation
+/.github/workflows/**               @your-org/devops-team
+/.github/CODEOWNERS                 @your-org/devops-team @your-org/backend-leads @your-org/frontend-leads
+
+# Docker and deployment
+/docker-compose*.yml                @your-org/devops-team
+/Dockerfile*                        @your-org/devops-team
+/frontend/Dockerfile*               @your-org/devops-team
+/.dockerignore                      @your-org/devops-team
+
+# Infrastructure as code
+/ops/**                             @your-org/devops-team
+/monitoring/**                      @your-org/devops-team
+
+# ==============================================================================
+# CONTRACTS & TYPES
+# ==============================================================================
+# Cross-boundary contracts require both backend and frontend review
+/contracts/**                       @your-org/backend-team @your-org/frontend-team
+/types/**                           @your-org/backend-team @your-org/frontend-team
+/api/contracts/**                   @your-org/backend-team @your-org/frontend-team
+
+# ==============================================================================
+# CONFIGURATION & ENVIRONMENT
+# ==============================================================================
+# Environment and configuration files
+/.env.example                       @your-org/devops-team
+/.nvmrc                             @your-org/frontend-leads @your-org/devops-team
+/.tool-versions                     @your-org/devops-team
+/Makefile                           @your-org/devops-team
+
+# ==============================================================================
+# SECURITY & COMPLIANCE
+# ==============================================================================
+# Security-sensitive files require security team review
+/SECURITY.md                        @your-org/security-team
+/.pre-commit-config.yaml            @your-org/security-team @your-org/devops-team
+
+# ==============================================================================
+# DOCUMENTATION
+# ==============================================================================
+# Documentation requires technical writing review
+/docs/**                            @your-org/tech-writing
+/README.md                          @your-org/tech-writing @your-org/backend-leads
+/CONTRIBUTING.md                    @your-org/tech-writing
+/ARCHITECTURE_DECISIONS.md          @your-org/backend-leads @your-org/frontend-leads
+
+# ==============================================================================
+# SCRIPTS & TOOLING
+# ==============================================================================
+# Development and operational scripts
+/scripts/**                         @your-org/devops-team
+/scripts/dev/**                     @your-org/backend-team @your-org/frontend-team
+/scripts/audit/**                   @your-org/devops-team
+
+# ==============================================================================
+# TESTS
+# ==============================================================================
+# Test infrastructure and fixtures
+/tests/**                           @your-org/backend-team
+/fixtures/**                        @your-org/backend-team @your-org/frontend-team
+
+# ==============================================================================
+# NOTES FOR IMPLEMENTATION
+# ==============================================================================
+# TODO: Replace @your-org/team-name with actual GitHub team names or usernames
+#
+# Example team structure:
+#   @your-org/backend-team → @glockpete @backend-dev1 @backend-dev2
+#   @your-org/frontend-team → @glockpete @frontend-dev1 @frontend-dev2
+#   @your-org/devops-team → @glockpete @devops1
+#   @your-org/backend-leads → @glockpete
+#   @your-org/frontend-leads → @glockpete
+#   @your-org/security-team → @glockpete @security1
+#   @your-org/tech-writing → @glockpete
+#
+# If you're a solo developer or small team, you can use:
+# * @glockpete
