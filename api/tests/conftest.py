@@ -17,7 +17,8 @@ if str(api_dir) not in sys.path:
 
 # Mock service modules that may not be available during test runs
 # This allows tests to import main.py without database/redis dependencies
-sys.modules['asyncpg'] = MagicMock()
+# Note: asyncpg is now installed, so we don't mock it
+# sys.modules['asyncpg'] = MagicMock()
 sys.modules['redis'] = MagicMock()
 sys.modules['redis.asyncio'] = MagicMock()
 
