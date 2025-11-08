@@ -8,7 +8,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { LensFilters, Opportunity, TimeHorizon, LensFilterOption } from '../../types/outcomes';
+import type { LensFilters, Opportunity, TimeHorizon, LensFilterOption } from '../../types/outcomes';
 import { useOpportunities, useActions, useStakeholders, useEvidence } from '../../hooks/useOutcomes';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import LensBar from './LensBar';

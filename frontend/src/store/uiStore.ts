@@ -7,7 +7,7 @@
 import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Entity } from '../types';
+import type { Entity } from '../types';
 
 export interface BreadcrumbItem {
   label: string;

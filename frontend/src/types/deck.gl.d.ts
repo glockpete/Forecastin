@@ -56,7 +56,8 @@ declare module '@deck.gl/core' {
 }
 
 declare module '@deck.gl/layers' {
-  import { Layer, LayerProps, RGBAColor, Position, Accessor } from '@deck.gl/core';
+  import type { LayerProps, RGBAColor, Position, Accessor } from '@deck.gl/core';
+import { Layer } from '@deck.gl/core';
 
   export interface ScatterplotLayerProps<DataT = any> extends LayerProps {
     data: DataT[];
@@ -123,8 +124,10 @@ declare module '@deck.gl/layers' {
 }
 
 declare module '@deck.gl/geo-layers' {
-  import { Layer, LayerProps, RGBAColor, Position, Accessor } from '@deck.gl/core';
-  import { Feature, FeatureCollection, Geometry } from 'geojson';
+  import type { LayerProps, RGBAColor, Accessor } from '@deck.gl/core';
+import { Layer, Position } from '@deck.gl/core';
+  import type { Feature, FeatureCollection} from 'geojson';
+import { Geometry } from 'geojson';
 
   export interface GeoJsonLayerProps<DataT = Feature | FeatureCollection> extends LayerProps {
     data: DataT;
@@ -179,7 +182,7 @@ declare module 'h3-js' {
 }
 
 declare module 'react-map-gl' {
-  import { ReactNode, CSSProperties, RefObject } from 'react';
+  import type { ReactNode, CSSProperties, RefObject } from 'react';
   import { MapboxMap, MapboxEvent } from 'mapbox-gl';
 
   export interface ViewState {

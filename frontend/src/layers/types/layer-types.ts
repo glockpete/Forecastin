@@ -4,7 +4,8 @@
  * Implements strict TypeScript type safety for GPU filtering and hybrid state management
  */
 
-import { Feature, Geometry, Point, LineString, Polygon, MultiPolygon, Position } from 'geojson';
+import type { Geometry, Point, LineString, Polygon, MultiPolygon, Position } from 'geojson';
+import { Feature } from 'geojson';
 
 // Forward declare BaseLayer to avoid circular dependency
 export type { BaseLayer } from '../base/BaseLayer';
@@ -1270,4 +1271,63 @@ export interface PolygonEntityDataPointFixed extends BaseEntityDataPoint<Polygon
     elevation?: number;
     fillOpacity?: number; // Opacity for fill color
   };
+}
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Type guard to check if a value is LayerData
+ */
+export function isLayerData(value: unknown): value is LayerData {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const data = value as Record<string, unknown>;
+
+  return (
+    typeof data.id === 'string' &&
+    (data.geometry === null || typeof data.geometry === 'object') &&
+    typeof data.properties === 'object' &&
+    data.properties !== null
+  );
+}
+
+/**
+ * Type guard to check if a value is VisualChannel
+ */
+export function isVisualChannel(value: unknown): value is VisualChannel {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const channel = value as Record<string, unknown>;
+
+  return (
+    typeof channel.name === 'string' &&
+    typeof channel.property === 'string' &&
+    (channel.type === 'categorical' || channel.type === 'quantitative' || channel.type === 'ordinal')
+  );
+}
+
+/**
+ * Type guard to check if a value is GPUFilterConfig
+ */
+export function isGPUFilterConfig(value: unknown): value is GPUFilterConfig {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const config = value as Record<string, unknown>;
+
+  return (
+    typeof config.enabled === 'boolean' &&
+    Array.isArray(config.filters) &&
+    typeof config.performance === 'object' &&
+    config.performance !== null &&
+    typeof config.ui === 'object' &&
+    config.ui !== null
+  );
 }

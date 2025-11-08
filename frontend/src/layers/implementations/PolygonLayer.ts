@@ -906,7 +906,7 @@ export class PolygonLayer extends BaseLayer<PolygonEntityDataPoint> {
    * Schedule render with debouncing
    */
   private renderTimeout: NodeJS.Timeout | null = null;
-  private scheduleRender(debounceMs: number = 100): void {
+  private scheduleRender(debounceMs = 100): void {
     if (this.renderTimeout) {
       clearTimeout(this.renderTimeout);
     }

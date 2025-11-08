@@ -24,23 +24,24 @@ function createLayerDataUpdateMessage(
   clientId: string = 'test-client',
   changedAt: number = Date.now()
 ): LayerDataUpdateMessage {
-  return {
+  const msg: any = {
     type: 'layer_data_update',
-    payload: {
-      layer_id: layerId,
-      layer_type: 'point',
-      layer_data: {
-        type: 'FeatureCollection',
-        features: [],
-      },
-      changed_at: changedAt,
+    data: {
+      layerId: layerId,
+      layerType: 'point',
+      entities: [],
+      operation: 'update',
+      affectedBounds: undefined,
     },
+    timestamp: changedAt,
+    channels: undefined,
     meta: {
-      timestamp: Date.now(),
+      timestamp: changedAt,
       sequence,
       clientId,
     },
   };
+  return msg;
 }
 
 function createGPUFilterSyncMessage(
@@ -49,29 +50,29 @@ function createGPUFilterSyncMessage(
   clientId: string = 'test-client',
   changedAt: number = Date.now()
 ): GPUFilterSyncMessage {
-  return {
+  const msg: any = {
     type: 'gpu_filter_sync',
-    payload: {
-      filter_id: filterId,
-      filter_type: 'spatial',
-      filter_params: {
-        bounds: {
-          minLat: 0,
-          maxLat: 10,
-          minLng: 0,
-          maxLng: 10,
+    data: {
+      layerId: filterId,
+      filters: [
+        {
+          field: 'confidence',
+          operator: 'gt',
+          value: 0.5,
         },
-      },
-      affected_layers: ['layer-1'],
-      status: 'applied',
-      changed_at: changedAt,
+      ],
+      filteredCount: 0,
+      totalCount: 0,
     },
+    timestamp: changedAt,
+    channels: undefined,
     meta: {
-      timestamp: Date.now(),
+      timestamp: changedAt,
       sequence,
       clientId,
     },
   };
+  return msg;
 }
 
 // ============================================================================
@@ -131,19 +132,15 @@ describe('MessageSequenceTracker', () => {
   it('should process messages without sequence numbers', () => {
     const msg: LayerDataUpdateMessage = {
       type: 'layer_data_update',
-      payload: {
-        layer_id: 'layer-1',
-        layer_type: 'point',
-        layer_data: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-        changed_at: Date.now(),
+      data: {
+        layerId: 'layer-1',
+        layerType: 'point',
+        entities: [],
+        operation: 'update',
+        affectedBounds: undefined,
       },
-      meta: {
-        timestamp: Date.now(),
-        // No sequence or clientId
-      },
+      timestamp: Date.now(),
+      channels: undefined,
     };
 
     expect(tracker.shouldProcess(msg)).toBe(true);
@@ -247,10 +244,12 @@ describe('MessageDeduplicator', () => {
     expect(deduplicator.isNew(msg1)).toBe(true);
     expect(deduplicator.isNew(msg2)).toBe(false);
 
-    deduplicator.clear();
+    // Destroy and recreate to clear state
+    deduplicator.destroy();
+    deduplicator = new MessageDeduplicator(1000);
 
     const msg3 = createLayerDataUpdateMessage('layer-1', 1, 'client-1', timestamp);
-    expect(deduplicator.isNew(msg3)).toBe(true); // After clear, should be new
+    expect(deduplicator.isNew(msg3)).toBe(true); // After recreate, should be new
   });
 });
 

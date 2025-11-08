@@ -10,6 +10,46 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
+ * Enum for risk levels
+ * Corresponds to backend Pydantic enum
+ */
+export enum RiskLevel {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
+
+/**
+ * Enum for validation status
+ * Corresponds to backend Pydantic enum
+ */
+export enum ValidationStatus {
+  PENDING = 'pending',
+  VALID = 'valid',
+  INVALID = 'invalid',
+  REQUIRES_REVIEW = 'requires_review'
+}
+
+/**
+ * Utility function to get confidence score from an entity
+ * @param entity - Entity object with optional confidence property
+ * @returns Confidence score (0-1) or 0 if not set
+ */
+export function getConfidence(entity: { confidence?: number }): number {
+  return entity.confidence ?? 0;
+}
+
+/**
+ * Utility function to get children count from an entity
+ * @param entity - Entity object with optional childrenCount property
+ * @returns Children count or 0 if not set
+ */
+export function getChildrenCount(entity: { childrenCount?: number; hasChildren?: boolean }): number {
+  return entity.childrenCount ?? (entity.hasChildren ? 1 : 0);
+}
+
+/**
  * Generated from: api/services/feature_flag_service.py
  * Python class: FeatureFlag
  */

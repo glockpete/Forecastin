@@ -4,15 +4,17 @@
  * Implements visual channels system with performance optimization
  */
 
-import {
+import type {
   LayerConfig,
   LayerData,
   VisualChannel,
-  LayerEvent,
   LayerPerformanceMetrics,
-  FeatureFlagConfig,
   VisualChannelScale,
   VisualChannelValue
+} from '../types/layer-types';
+import {
+  LayerEvent,
+  FeatureFlagConfig
 } from '../types/layer-types';
 import { EventEmitter } from 'events';
 

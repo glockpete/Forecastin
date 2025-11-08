@@ -10,7 +10,7 @@
  * @param prefix Optional prefix for the client ID (default: 'client')
  * @returns Unique client ID string
  */
-export const generateClientId = (prefix: string = 'client'): string => {
+export const generateClientId = (prefix = 'client'): string => {
   const timestamp = Date.now();
   const randomComponent = Math.random().toString(36).substr(2, 9);
   return `${prefix}_${timestamp}_${randomComponent}`;
@@ -21,7 +21,7 @@ export const generateClientId = (prefix: string = 'client'): string => {
  * @param prefix Optional prefix for the client ID (default: 'c')
  * @returns Short unique client ID string
  */
-export const generateShortClientId = (prefix: string = 'c'): string => {
+export const generateShortClientId = (prefix = 'c'): string => {
   const timestamp = Date.now().toString(36);
   const randomComponent = Math.random().toString(36).substr(2, 4);
   return `${prefix}_${timestamp}${randomComponent}`;

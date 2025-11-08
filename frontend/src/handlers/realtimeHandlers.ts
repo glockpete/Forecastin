@@ -8,10 +8,11 @@
  * to prevent malformed data from corrupting application state.
  */
 
-import { useQueryClient, QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
 import { hierarchyKeys } from '../hooks/useHierarchy';
-import { Entity, WebSocketMessage } from '../types';
+import type { Entity, WebSocketMessage } from '../types';
 import { CacheCoordinator, ErrorRecovery, PerformanceMonitor } from '../utils/stateManager';
 import {
   parseRealtimeMessage,

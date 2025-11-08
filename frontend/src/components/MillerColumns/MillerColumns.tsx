@@ -31,7 +31,7 @@ import {
   useBreadcrumbs,
   hierarchyKeys
 } from '../../hooks/useHierarchy';
-import { Entity } from '../../types';
+import type { Entity } from '../../types';
 import { cn } from '../../utils/cn';
 import { RealtimePerformanceMonitor } from '../../utils/stateManager';
 import SearchInterface from '../Search/SearchInterface';
