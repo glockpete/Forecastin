@@ -18,7 +18,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useSearchEntities } from '../../hooks/useHierarchy';
 import { cn } from '../../utils/cn';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
-import { getConfidence } from '../../../../types/contracts.generated';
+import { getConfidence } from '../../types/contracts.generated';
 
 interface SearchInterfaceProps {
   className?: string;
@@ -78,8 +78,10 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
     if (searchResults && searchResults.entities && searchResults.entities.length > 0) {
       // Navigate to the first result if available
       const firstResult = searchResults.entities[0];
-      navigateToEntity(firstResult, 0); // Use column index 0 for search results
-      setIsOpen(false);
+      if (firstResult) {
+        navigateToEntity(firstResult, 0); // Use column index 0 for search results
+        setIsOpen(false);
+      }
     }
   };
 

@@ -651,35 +651,6 @@ export interface LayerValidationSchema {
   };
 }
 
-// Type guards for runtime type checking
-export const isLayerData = (value: any): value is LayerData => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof value.id === 'string' &&
-    typeof value.geometry === 'object'
-  );
-};
-
-export const isVisualChannel = (value: any): value is VisualChannel => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof value.name === 'string' &&
-    typeof value.property === 'string' &&
-    typeof value.type === 'string'
-  );
-};
-
-export const isGPUFilterConfig = (value: any): value is GPUFilterConfig => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof value.enabled === 'boolean' &&
-    Array.isArray(value.filters)
-  );
-};
-
 // Utility types for strict type safety
 export type RequiredLayerConfig = Pick<LayerConfig, 'id' | 'type' | 'data' | 'visible' | 'opacity' | 'zIndex' | 'name'>;
 
