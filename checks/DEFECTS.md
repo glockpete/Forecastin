@@ -17,81 +17,8 @@
 
 ## Active Defects
 
-### DEF-001: Console noise violates ESLint rules
+_(No active P1/P2 defects — Phase 1 complete)_
 
-- **Priority:** P1 (High)
-- **Severity:** Medium
-- **Confidence:** Very High (100% — verified via grep)
-- **Effort:** Medium (2-4 hours)
-- **Category:** Code Quality
-
-**Description:**
-
-34+ violations of the `no-console` ESLint rule across the codebase. Raw `console.log` and `console.debug` calls are used for debugging and operational logging, creating noise and preventing clean production builds.
-
-**Impact:**
-
-- ESLint warnings on every build
-- Console noise in production
-- No environment-based log level control
-- Difficult to debug issues in production
-
-**Affected Files:**
-
-- `frontend/src/utils/idempotencyGuard.ts`
-- `frontend/src/hooks/useHybridState.ts`
-- `frontend/src/integrations/LayerWebSocketIntegration.ts`
-- `frontend/src/config/env.ts`
-- `frontend/src/handlers/validatedHandlers.ts`
-- `frontend/src/config/feature-flags.ts`
-- `frontend/src/utils/stateManager.ts`
-- `frontend/src/utils/errorRecovery.ts`
-- `frontend/src/handlers/realtimeHandlers.ts`
-
-**Proposed Solution:**
-
-Phase 1: Console Noise Elimination (see BUGLOG.md)
-
-**Acceptance Criteria:**
-
-- [ ] Logger utility created at `frontend/src/lib/logger.ts`
-- [ ] All prohibited console.* calls replaced with logger
-- [ ] ESLint shows zero no-console warnings
-- [ ] `npm run lint` passes cleanly
-- [ ] Logger respects NODE_ENV (no debug logs in production)
-
----
-
-### DEF-002: Missing ESLint lint script in package.json
-
-- **Priority:** P2 (Medium)
-- **Severity:** Low
-- **Confidence:** Very High (100% — verified)
-- **Effort:** Trivial (5 minutes)
-- **Category:** Tooling
-
-**Description:**
-
-ESLint configuration exists at `frontend/.eslintrc.js`, but there's no `lint` script in `frontend/package.json` to run it. This means developers must manually run eslint or rely on IDE integration.
-
-**Impact:**
-
-- Inconsistent linting across development environments
-- Cannot run lint in CI/CD without custom commands
-- Harder to enforce code quality standards
-
-**Proposed Solution:**
-
-Add to `frontend/package.json` scripts:
-```json
-"lint": "eslint src --ext .ts,.tsx",
-"lint:fix": "eslint src --ext .ts,.tsx --fix"
-```
-
-**Acceptance Criteria:**
-
-- [ ] `npm run lint` executes successfully
-- [ ] `npm run lint:fix` auto-fixes fixable issues
 
 ---
 
@@ -170,4 +97,24 @@ _(Empty — issues requiring runtime environment or blocked by dependencies)_
 
 ## Resolved Defects
 
-_(Empty — will be populated as defects are fixed)_
+### ✅ DEF-001: Console noise violates ESLint rules
+
+- **Resolved:** 2025-11-08 (Phase 1)
+- **Commit:** 119659c
+- **Priority:** P1 (High)
+
+**Resolution:**
+
+Created `lib/logger.ts` with environment-gated logging and replaced all 85 console.* calls. Updated ESLint to enforce no-console at error level. Added ErrorBoundary for React error handling.
+
+---
+
+### ✅ DEF-002: Missing ESLint lint script in package.json
+
+- **Resolved:** 2025-11-08 (Phase 1)
+- **Commit:** 119659c
+- **Priority:** P2 (Medium)
+
+**Resolution:**
+
+Added `lint` and `lint:fix` scripts to `frontend/package.json`.
