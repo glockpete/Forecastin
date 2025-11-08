@@ -284,6 +284,12 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - T-2025-11-08-environment-variables-documentation: Document RSS, WebSocket, database pool, and Redis configuration (✅)
 - T-2025-11-08-feature-flag-dependencies: Document feature flag dependencies and hierarchies (✅)
 - T-2025-11-08-documentation-consolidation: Remove redundant documentation files and consolidate RSS docs (✅)
+- T-2025-11-08-dependency-resolution: Update @types/node (^16→^20.19.0) and pytest (7.4.4→8.3.3) to resolve dependency conflicts (✅)
+- T-2025-11-08-race-condition-fix: Fix WebSocket ConnectionManager TOCTOU vulnerability with atomic pop() operation (✅)
+- T-2025-11-08-exception-handling: Replace bare exception handlers with proper logging in 3 critical locations (✅)
+- T-2025-11-08-env-configuration: Create comprehensive .env.example files for frontend and backend (✅)
+- T-2025-11-08-type-safety-improvement: Fix unsafe 'as any' type assertion in dispatchMessage function (✅)
+- T-2025-11-08-documentation-corrections: Correct outdated RSS service gap claims in 3 documentation files (✅)
 
 ### Blocked
 *No tasks currently blocked*
@@ -314,6 +320,10 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 | 2025-11-06 | Implement 5-W entity extraction with confidence scoring | Extends existing entity extraction framework for RSS content | RSS ingestion | Data/ML |
 | 2025-11-06 | Create RSS deduplication with 0.8 similarity threshold | Prevents duplicate RSS content with canonical key assignment | RSS ingestion | Data/ML |
 | 2025-11-06 | Design RSS WebSocket real-time notifications | Extends existing WebSocket infrastructure for RSS updates | RSS ingestion | Backend |
+| 2025-11-08 | Fix WebSocket ConnectionManager race condition with atomic pop() | Eliminates TOCTOU vulnerability, improves connection state reliability | WebSocket reliability | Backend |
+| 2025-11-08 | Update dependency versions to resolve conflicts | Enables successful npm/pip installation, unblocks development | Infrastructure | DevOps |
+| 2025-11-08 | Create .env.example files for environment configuration | Provides clear reference for required environment variables, improves developer onboarding | Developer experience | DevOps |
+| 2025-11-08 | Correct outdated documentation about RSS service | Ensures documentation accurately reflects implemented functionality | Documentation quality | Documentation |
 
 ---
 
