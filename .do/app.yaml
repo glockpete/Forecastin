@@ -1,0 +1,215 @@
+# Digital Ocean App Platform Configuration
+# This file defines the complete deployment specification for Forecastin
+# Deploy this app by running: doctl apps create --spec .do/app.yaml
+# Or import this file in the Digital Ocean web console
+
+name: forecastin
+region: nyc
+
+# =============================================================================
+# SERVICES - Web applications and APIs
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # API Service (FastAPI Backend)
+  # ---------------------------------------------------------------------------
+  - name: api
+    # Use Dockerfile for deployment
+    dockerfile_path: api/Dockerfile
+    source_dir: /
+    github:
+      # Replace with your repo details
+      repo: glockpete/Forecastin
+      branch: main
+      deploy_on_push: true
+
+    # Health check configuration
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+
+    # HTTP configuration
+    http_port: 9000
+
+    # Instance configuration
+    instance_count: 1
+    instance_size_slug: basic-xs  # Start small, can scale up
+
+    # Environment variables
+    envs:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_PORT
+        value: "9000"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_HOST
+        value: ${db.HOSTNAME}
+      - key: DATABASE_PORT
+        value: ${db.PORT}
+      - key: DATABASE_NAME
+        value: ${db.DATABASE}
+      - key: DATABASE_USER
+        value: ${db.USERNAME}
+      - key: DATABASE_PASSWORD
+        value: ${db.PASSWORD}
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+      - key: REDIS_HOST
+        value: ${redis.HOSTNAME}
+      - key: REDIS_PORT
+        value: ${redis.PORT}
+      - key: REDIS_URL
+        value: ${redis.DATABASE_URL}
+
+    # Auto-scaling (optional, requires higher tier)
+    # autoscaling:
+    #   min_instance_count: 1
+    #   max_instance_count: 3
+    #   metrics:
+    #     cpu:
+    #       percent: 80
+
+  # ---------------------------------------------------------------------------
+  # Frontend Service (React App with nginx)
+  # ---------------------------------------------------------------------------
+  - name: frontend
+    # Use Dockerfile for deployment
+    dockerfile_path: frontend/Dockerfile
+    source_dir: /
+    github:
+      repo: glockpete/Forecastin
+      branch: main
+      deploy_on_push: true
+
+    # Build arguments for React app
+    build_command: |
+      cd frontend && npm ci && npm run build
+
+    # Health check
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 3
+      success_threshold: 1
+      failure_threshold: 3
+
+    # HTTP configuration
+    http_port: 80
+
+    # Instance configuration
+    instance_count: 1
+    instance_size_slug: basic-xs
+
+    # Environment variables for build-time configuration
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        value: ${api.PUBLIC_URL}
+      - key: REACT_APP_WS_URL
+        value: ${api.PUBLIC_URL}
+
+    # Routes and domains
+    routes:
+      - path: /
+
+# =============================================================================
+# DATABASES - Managed database services
+# =============================================================================
+
+databases:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database (with PostGIS support)
+  # ---------------------------------------------------------------------------
+  - name: db
+    engine: PG
+    version: "13"
+    production: false  # Set to true for production
+    cluster_name: forecastin-db
+    db_name: forecastin
+    db_user: forecastin
+
+    # Instance size
+    # Options: db-s-1vcpu-1gb, db-s-1vcpu-2gb, db-s-2vcpu-4gb, etc.
+    size: db-s-dev-database  # Development tier (free/low-cost)
+    # For production: db-s-1vcpu-1gb or higher
+
+    # Number of nodes (1 for dev, 2+ for production HA)
+    num_nodes: 1
+
+  # ---------------------------------------------------------------------------
+  # Redis Cache
+  # ---------------------------------------------------------------------------
+  - name: redis
+    engine: REDIS
+    version: "7"
+    production: false  # Set to true for production
+
+    # Instance size
+    size: db-s-dev-database  # Development tier
+    # For production: db-s-1vcpu-1gb or higher
+
+    # Number of nodes
+    num_nodes: 1
+
+# =============================================================================
+# ADDITIONAL CONFIGURATION
+# =============================================================================
+
+# Static sites (if you want to serve frontend as static site instead)
+# static_sites:
+#   - name: frontend-static
+#     github:
+#       repo: glockpete/Forecastin
+#       branch: main
+#       deploy_on_push: true
+#     source_dir: frontend
+#     build_command: npm ci && npm run build
+#     output_dir: build
+#     routes:
+#       - path: /
+#     envs:
+#       - key: REACT_APP_API_URL
+#         value: ${api.PUBLIC_URL}
+#       - key: REACT_APP_WS_URL
+#         value: ${api.PUBLIC_URL}
+
+# Jobs (for migrations, cron jobs, etc.)
+# jobs:
+#   - name: db-migrate
+#     kind: PRE_DEPLOY
+#     github:
+#       repo: glockpete/Forecastin
+#       branch: main
+#       deploy_on_push: true
+#     dockerfile_path: api/Dockerfile
+#     source_dir: /
+#     run_command: |
+#       cd /app && python -m alembic upgrade head
+#     envs:
+#       - key: DATABASE_URL
+#         value: ${db.DATABASE_URL}
+
+# Workers (for background processing)
+# workers:
+#   - name: background-worker
+#     dockerfile_path: api/Dockerfile
+#     source_dir: /
+#     github:
+#       repo: glockpete/Forecastin
+#       branch: main
+#     run_command: python worker.py
+#     instance_count: 1
+#     instance_size_slug: basic-xs
+#     envs:
+#       - key: DATABASE_URL
+#         value: ${db.DATABASE_URL}
+#       - key: REDIS_URL
+#         value: ${redis.DATABASE_URL}

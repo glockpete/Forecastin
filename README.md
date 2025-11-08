@@ -116,7 +116,24 @@ Watch intelligence unfold in real-time with WebSocket-powered live updates. No r
 
 ## 🚀 Quick Start
 
-### **Get Running in 60 Seconds**
+### **Deploy to Production (5 minutes)**
+
+Deploy Forecastin to Digital Ocean with one command:
+
+```bash
+# Install Digital Ocean CLI
+brew install doctl  # macOS/Linux
+
+# Authenticate
+doctl auth init
+
+# Deploy the entire stack
+doctl apps create --spec .do/app.yaml
+```
+
+See the [Digital Ocean Quick Start Guide](.do/QUICKSTART.md) for detailed instructions.
+
+### **Run Locally (60 seconds)**
 
 ```bash
 # Clone the repository
@@ -337,6 +354,8 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 - [Performance Optimization Report](docs/PERFORMANCE_OPTIMIZATION_REPORT.md)
 
 ### **Deployment Guides**
+- [**Digital Ocean Quick Start**](.do/QUICKSTART.md) - Deploy to Digital Ocean in 5 minutes ⚡
+- [Digital Ocean Full Guide](.do/DEPLOY.md) - Complete Digital Ocean App Platform setup
 - [Railway Setup Guide](docs/RAILWAY_SETUP_GUIDE.md) - Deploy Forecastin to Railway platform
 - [Geospatial Deployment Guide](docs/GEOSPATIAL_DEPLOYMENT_GUIDE.md)
 - [LTREE Refresh Implementation](docs/LTREE_REFRESH_IMPLEMENTATION.md)
