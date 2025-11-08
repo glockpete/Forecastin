@@ -24,10 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # Copy requirements first for better layer caching
-COPY requirements_mini.txt .
+COPY requirements_minimal.txt .
 # Install Python dependencies with specific optimizations
 RUN pip install --upgrade pip setuptools wheel && \
-pip install --no-cache-dir -r requirements_mini.txt
+pip install --no-cache-dir -r requirements_minimal.txt
 # Copy source code for any post-install tasks
 COPY . .
 
