@@ -76,11 +76,16 @@ export default defineConfig({
     // Chunk splitting strategy
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'map-vendor': ['maplibre-gl', 'deck.gl'],
-          'ui-vendor': ['@headlessui/react', '@heroicons/react'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('deck.gl') || id.includes('maplibre-gl')) {
+              return 'map-vendor';
+            }
+            return 'vendor';
+          }
         },
       },
     },
