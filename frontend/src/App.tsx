@@ -14,10 +14,10 @@ import { useUIStore } from './store/uiStore';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useHybridState } from './hooks/useHybridState';
 import OutcomesDashboard from './components/Outcomes/OutcomesDashboard';
-// import { MillerColumns } from './components/MillerColumns/MillerColumns';
-// import { NavigationPanel } from './components/Navigation/NavigationPanel';
-// import { EntityDetail } from './components/Entity/EntityDetail';
-// import { SearchInterface } from './components/Search/SearchInterface';
+import { MillerColumns } from './components/MillerColumns/MillerColumns';
+import { NavigationPanel } from './components/Navigation/NavigationPanel';
+import { EntityDetail } from './components/Entity/EntityDetail';
+import { SearchInterface } from './components/Search/SearchInterface';
 import { LoadingSpinner } from './components/UI/LoadingSpinner';
 import { ErrorBoundary } from './components/UI/ErrorBoundary';
 import { CacheCoordinator, RealtimePerformanceMonitor } from './utils/stateManager';
@@ -59,7 +59,17 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
-      <OutcomesDashboard />
+      <div className="flex flex-col h-screen">
+        {/* Header with navigation */}
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <NavigationPanel />
+        </header>
+
+        {/* Main content area with Miller's Columns */}
+        <main className="flex-1 overflow-hidden">
+          <MillerColumns />
+        </main>
+      </div>
     </div>
   );
 }

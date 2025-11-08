@@ -513,10 +513,11 @@ class OptimizedHierarchyResolver:
                                 e.path_depth,
                                 e.path_hash,
                                 e.confidence_score,
-                                COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
-                                COALESCE(mv.descendant_count, 0) as descendants
+                                COALESCE(mva.ancestors, ARRAY[]::text[]) as ancestors,
+                                COALESCE(mvd.descendant_count, 0) as descendants
                             FROM entities e
-                            LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                            LEFT JOIN mv_entity_ancestors mva ON e.id = mva.entity_id
+                            LEFT JOIN mv_descendant_counts mvd ON e.id = mvd.entity_id
                             WHERE e.id = %s
                             LIMIT 1
                         """, (entity_id,))
@@ -568,23 +569,41 @@ class OptimizedHierarchyResolver:
             try:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     # Query materialized view for pre-computed hierarchy
-                    cur.execute("""
-                        SELECT
-                            mv.entity_id,
-                            e.path,
-                            e.path_depth,
-                            e.path_hash,
-                            e.confidence_score,
-                            mv.ancestors,
-                            mv.descendant_count as descendants
-                        FROM mv_entity_ancestors mv
-                        JOIN entities e ON mv.entity_id = e.id
-                        WHERE mv.entity_id = %s
-                        LIMIT 1
-                    """, (entity_id,))
-                    
+                    try:
+                        cur.execute("""
+                            SELECT
+                                mva.entity_id,
+                                e.path,
+                                e.path_depth,
+                                e.path_hash,
+                                e.confidence_score,
+                                mva.ancestors,
+                                COALESCE(mvd.descendant_count, 0) as descendants
+                            FROM mv_entity_ancestors mva
+                            JOIN entities e ON mva.entity_id = e.id
+                            LEFT JOIN mv_descendant_counts mvd ON mva.entity_id = mvd.entity_id
+                            WHERE mva.entity_id = %s
+                            LIMIT 1
+                        """, (entity_id,))
+                    except psycopg2.ProgrammingError as e:
+                        # Explicit handling for JOIN failures (schema mismatches, missing columns)
+                        self.logger.error(f"JOIN operation failed for entity {entity_id}: {e}")
+                        self.logger.error("Possible causes: schema mismatch, missing materialized views, or incorrect column names")
+                        return None
+                    except psycopg2.DataError as e:
+                        # Data type mismatches in JOIN conditions
+                        self.logger.error(f"Data type mismatch in JOIN for entity {entity_id}: {e}")
+                        return None
+
                     row = cur.fetchone()
                     if row:
+                        # Validate JOIN results - ensure all required fields are present
+                        required_fields = ['entity_id', 'path', 'path_depth', 'path_hash', 'confidence_score', 'ancestors', 'descendants']
+                        missing_fields = [field for field in required_fields if field not in row]
+                        if missing_fields:
+                            self.logger.error(f"JOIN returned incomplete data for entity {entity_id}, missing fields: {missing_fields}")
+                            return None
+
                         return HierarchyNode(
                             entity_id=row['entity_id'],
                             path=row['path'],
@@ -594,6 +613,9 @@ class OptimizedHierarchyResolver:
                             descendants=row['descendants'],
                             confidence_score=row['confidence_score']
                         )
+                    else:
+                        # No row returned - could be JOIN failure or entity not found
+                        self.logger.warning(f"No data returned for entity {entity_id} from materialized view query - possible JOIN failure or missing entity")
                     return None
             
             finally:
@@ -907,15 +929,16 @@ class OptimizedHierarchyResolver:
                                 e.path_depth,
                                 e.path_hash,
                                 e.confidence_score,
-                                COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
-                                COALESCE(mv.descendant_count, 0) as descendants,
+                                COALESCE(mva.ancestors, ARRAY[]::text[]) as ancestors,
+                                COALESCE(mvd.descendant_count, 0) as descendants,
                                 ST_Distance(
-                                    e.geom::geography,
+                                    e.location::geography,
                                     ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography
                                 ) as distance
                             FROM entities e
-                            LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
-                            WHERE e.geom IS NOT NULL
+                            LEFT JOIN mv_entity_ancestors mva ON e.id = mva.entity_id
+                            LEFT JOIN mv_descendant_counts mvd ON e.id = mvd.entity_id
+                            WHERE e.location IS NOT NULL
                             ORDER BY distance ASC
                             LIMIT 1
                         """, (lon, lat))
@@ -940,11 +963,12 @@ class OptimizedHierarchyResolver:
                             e.path_depth,
                             e.path_hash,
                             e.confidence_score,
-                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
-                            COALESCE(mv.descendant_count, 0) as descendants,
+                            COALESCE(mva.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mvd.descendant_count, 0) as descendants,
                             similarity(e.name, %s) as name_similarity
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                        LEFT JOIN mv_entity_ancestors mva ON e.id = mva.entity_id
+                        LEFT JOIN mv_descendant_counts mvd ON e.id = mvd.entity_id
                         WHERE similarity(e.name, %s) > 0.3
                         ORDER BY name_similarity DESC
                         LIMIT 1
@@ -1031,13 +1055,13 @@ class OptimizedHierarchyResolver:
                             e.path_hash,
                             e.confidence_score,
                             e.entity_type,
-                            e.rss_entity_id,
-                            e.location_lat,
-                            e.location_lon,
-                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
-                            COALESCE(mv.descendant_count, 0) as descendants
+                            ST_X(e.location) as location_lon,
+                            ST_Y(e.location) as location_lat,
+                            COALESCE(mva.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mvd.descendant_count, 0) as descendants
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                        LEFT JOIN mv_entity_ancestors mva ON e.id = mva.entity_id
+                        LEFT JOIN mv_descendant_counts mvd ON e.id = mvd.entity_id
                         ORDER BY e.path_depth ASC, e.id
                         LIMIT %s
                     """, (limit,))
@@ -1105,13 +1129,13 @@ class OptimizedHierarchyResolver:
                             e.path_hash,
                             e.confidence_score,
                             e.entity_type,
-                            e.rss_entity_id,
-                            e.location_lat,
-                            e.location_lon,
-                            COALESCE(mv.ancestors, ARRAY[]::text[]) as ancestors,
-                            COALESCE(mv.descendant_count, 0) as descendants
+                            ST_X(e.location) as location_lon,
+                            ST_Y(e.location) as location_lat,
+                            COALESCE(mva.ancestors, ARRAY[]::text[]) as ancestors,
+                            COALESCE(mvd.descendant_count, 0) as descendants
                         FROM entities e
-                        LEFT JOIN mv_entity_ancestors mv ON e.id = mv.entity_id
+                        LEFT JOIN mv_entity_ancestors mva ON e.id = mva.entity_id
+                        LEFT JOIN mv_descendant_counts mvd ON e.id = mvd.entity_id
                         WHERE e.entity_type LIKE 'rss_%'
                         AND e.confidence_score >= %s
                     """
