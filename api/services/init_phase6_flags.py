@@ -11,6 +11,7 @@ Usage:
 
 import asyncio
 import logging
+import os
 from typing import List, Dict, Any
 
 from api.services.feature_flag_service import (
@@ -138,9 +139,21 @@ async def initialize_phase6_feature_flags():
     logger.info("=" * 80)
     logger.info("Phase 6 Feature Flag Initialization")
     logger.info("=" * 80)
-    
-    # Initialize services
-    database_url = "postgresql://forecastin_user:forecastin_password@localhost:5432/forecastin"
+
+    # Initialize services with environment variables
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        database_host = os.getenv('DATABASE_HOST', 'localhost')
+        database_user = os.getenv('DATABASE_USER', 'forecastin')
+        database_password = os.getenv('DATABASE_PASSWORD', '')
+        database_name = os.getenv('DATABASE_NAME', 'forecastin')
+        database_port = os.getenv('DATABASE_PORT', '5432')
+
+        if not database_password:
+            logger.warning("DATABASE_PASSWORD not set - using empty password (development only!)")
+
+        database_url = f"postgresql://{database_user}:{database_password}@{database_host}:{database_port}/{database_name}"
+
     database_manager = DatabaseManager(database_url)
     await database_manager.initialize()
     
@@ -268,9 +281,21 @@ async def verify_phase6_flags():
     Verify Phase 6 feature flags are initialized correctly
     """
     logger.info("Verifying Phase 6 feature flags...")
-    
-    # Initialize services
-    database_url = "postgresql://forecastin_user:forecastin_password@localhost:5432/forecastin"
+
+    # Initialize services with environment variables
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        database_host = os.getenv('DATABASE_HOST', 'localhost')
+        database_user = os.getenv('DATABASE_USER', 'forecastin')
+        database_password = os.getenv('DATABASE_PASSWORD', '')
+        database_name = os.getenv('DATABASE_NAME', 'forecastin')
+        database_port = os.getenv('DATABASE_PORT', '5432')
+
+        if not database_password:
+            logger.warning("DATABASE_PASSWORD not set - using empty password (development only!)")
+
+        database_url = f"postgresql://{database_user}:{database_password}@{database_host}:{database_port}/{database_name}"
+
     database_manager = DatabaseManager(database_url)
     await database_manager.initialize()
     

@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
 # Import custom modules (absolute imports)
+from config_validation import validate_environment_variables, print_config_summary, ConfigValidationError
 from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
 from services.cache_service import CacheService
 from services.database_manager import DatabaseManager
@@ -177,17 +178,23 @@ async def lifespan(app: FastAPI):
     """Application lifespan management"""
     global hierarchy_resolver, cache_service, database_manager, realtime_service, feature_flag_service
     global forecast_manager, scenario_collaboration_service, analysis_engine, cursor_paginator, rss_ingestion_service
-    
+
     # Startup
     logger.info("Starting Forecastin API - Phase 0 initialization")
-    
+
     try:
-        # Initialize database manager with proper configuration
+        # STEP 1: Validate environment variables (fail fast if misconfigured)
         import os
-        database_url = os.getenv('DATABASE_URL')
-        if not database_url:
-            database_host = os.getenv('DATABASE_HOST', 'localhost')
-            database_url = f"postgresql://forecastin:forecastin_password@{database_host}:5432/forecastin"
+        try:
+            config = validate_environment_variables(strict=False)
+            print_config_summary(config, mask_secrets=True)
+        except ConfigValidationError as e:
+            logger.error(f"Configuration validation failed: {e}")
+            logger.error("Fix your environment variables and restart the application")
+            raise
+
+        # STEP 2: Initialize database manager with validated configuration
+        database_url = config['DATABASE_URL']
         
         # Try to initialize database manager with graceful degradation
         try:

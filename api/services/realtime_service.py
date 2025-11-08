@@ -575,9 +575,20 @@ class RealtimeService:
                     f"CRITICAL: Layer {layer_id} SLO compliance at {overall_compliance:.1f}% "
                     f"- Feature flag rollback may be required"
                 )
-                
-                # TODO: Trigger feature flag rollback via feature flag service
-                # This would integrate with the ML A/B testing framework
+
+                # FUTURE INTEGRATION: Trigger feature flag rollback via feature flag service
+                # This requires integration with:
+                # - Feature Flag Service (feature_flag_service.py)
+                # - ML A/B Testing Framework
+                # - Rollback criteria configuration
+                # - Notification system for admins
+                #
+                # Implementation would call:
+                # await self.feature_flag_service.trigger_rollback(
+                #     layer_id=layer_id,
+                #     reason=f"SLO compliance below threshold: {overall_compliance:.1f}%",
+                #     compliance_score=overall_compliance
+                # )
             
             # Optionally broadcast performance report to monitoring clients
             if report.get('broadcastToMonitoring', False):

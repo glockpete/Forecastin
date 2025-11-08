@@ -13,7 +13,9 @@ import asyncio
 
 async def test_direct_ltree_performance():
     """Test direct LTREE query performance"""
-    conn = await asyncpg.connect("postgresql://forecastin:forecastin_password@localhost:5432/forecastin")
+    import os
+    database_url = os.getenv('DATABASE_URL', 'postgresql://forecastin:@localhost:5432/forecastin')
+    conn = await asyncpg.connect(database_url)
     
     latencies = []
     for _ in range(100):

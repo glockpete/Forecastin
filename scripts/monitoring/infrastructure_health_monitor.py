@@ -7,6 +7,7 @@ Implements the health monitoring patterns specified in AGENTS.md
 
 import asyncio
 import logging
+import os
 import sys
 import time
 from typing import Dict, Any, List
@@ -25,10 +26,10 @@ class InfrastructureHealthMonitor:
     """Comprehensive health monitoring for all infrastructure components"""
     
     def __init__(self):
-        self.database_url = "postgresql://forecastin:forecastin_password@localhost:5432/forecastin"
-        self.redis_url = "redis://localhost:6379/0"
-        self.api_base_url = "http://localhost:9000"
-        self.frontend_url = "http://localhost:3000"
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql://forecastin:@localhost:5432/forecastin')
+        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+        self.api_base_url = os.getenv('API_BASE_URL', 'http://localhost:9000')
+        self.frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         
         # Health thresholds
         self.db_pool_utilization_threshold = 0.8  # 80% utilization warning

@@ -4,9 +4,9 @@ services:
     image: postgis/postgis:13-3.1
     container_name: forecastin_postgres
     environment:
-      POSTGRES_DB: forecastin
-      POSTGRES_USER: forecastin
-      POSTGRES_PASSWORD: forecastin_password
+      POSTGRES_DB: ${DATABASE_NAME:-forecastin}
+      POSTGRES_USER: ${DATABASE_USER:-forecastin}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
@@ -46,10 +46,15 @@ services:
     ports:
       - "9000:9000"
     environment:
-      - DATABASE_URL=postgresql://forecastin:forecastin_password@postgres:5432/forecastin
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
+      - DATABASE_URL=${DATABASE_URL:-postgresql://forecastin:${DATABASE_PASSWORD:-}@postgres:5432/forecastin}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - DATABASE_HOST=${DATABASE_HOST:-postgres}
+      - DATABASE_USER=${DATABASE_USER:-forecastin}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
+      - DATABASE_NAME=${DATABASE_NAME:-forecastin}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
       - API_PORT=9000
       - ENVIRONMENT=development
     depends_on:

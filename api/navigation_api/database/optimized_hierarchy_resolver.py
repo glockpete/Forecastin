@@ -26,6 +26,7 @@ Author: Forecastin Development Team
 import threading
 import time
 import logging
+import os
 from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
 from collections import OrderedDict
@@ -184,11 +185,11 @@ class OptimizedHierarchyResolver:
     
     # Database configuration with TCP keepalives
     DB_CONFIG = {
-        'host': 'localhost',
-        'database': 'forecastin',
-        'user': 'forecastin_user',
-        'password': 'forecastin_password',
-        'port': 5432,
+        'host': os.getenv('DATABASE_HOST', 'localhost'),
+        'database': os.getenv('DATABASE_NAME', 'forecastin'),
+        'user': os.getenv('DATABASE_USER', 'forecastin'),
+        'password': os.getenv('DATABASE_PASSWORD', ''),
+        'port': int(os.getenv('DATABASE_PORT', '5432')),
         'minconn': 5,
         'maxconn': 20,
         'keepalives_idle': 30,
@@ -200,8 +201,8 @@ class OptimizedHierarchyResolver:
     
     # Redis configuration
     REDIS_CONFIG = {
-        'host': 'localhost',
-        'port': 6379,
+        'host': os.getenv('REDIS_HOST', 'localhost'),
+        'port': int(os.getenv('REDIS_PORT', '6379')),
         'db': 0,
         'decode_responses': True,
         'socket_timeout': 5,

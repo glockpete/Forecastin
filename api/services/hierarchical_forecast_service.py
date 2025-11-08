@@ -256,8 +256,15 @@ class HierarchicalForecastManager:
         Performance:
             Target: <500ms for top_down, <1000ms for bottom_up
         """
+        # Check if Prophet dependencies are available
+        if Prophet is None or pd is None:
+            raise RuntimeError(
+                "Prophet forecasting dependencies not available. "
+                "Install with: pip install prophet pandas numpy pyarrow"
+            )
+
         start_time = time.time()
-        
+
         # Validate method
         if method not in ['top_down', 'bottom_up']:
             raise ValueError(f"Invalid forecast method: {method}. Use 'top_down' or 'bottom_up'")

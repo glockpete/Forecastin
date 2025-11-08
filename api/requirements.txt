@@ -4,7 +4,6 @@ uvicorn[standard]==0.24.0
 
 # Database
 psycopg[binary]==3.2.3
-psycopg2-binary==2.9.11
 SQLAlchemy==2.0.44
 asyncpg==0.29.0
 
@@ -71,8 +70,17 @@ shapely==2.1.2
 beautifulsoup4==4.12.2
 trafilatura==1.6.0
 
-# Note: Prophet, pandas, numpy, and pyarrow are optional for basic functionality
-# They require extensive build dependencies. Add them when forecasting features are needed.
+# Machine Learning and Forecasting (Optional - required for hierarchical forecasting)
+# Uncomment these lines if you need Prophet-based forecasting features:
+# prophet==1.1.5
+# pandas==2.1.4
+# numpy==1.26.2
+# pyarrow==14.0.1
+#
+# Note: These packages require extensive build dependencies (gcc, g++, cmake, etc.)
+# They are NOT required for basic API functionality.
+# Install with: pip install prophet pandas numpy pyarrow
+# Or use requirements.full.txt for all optional dependencies
 
 # For development dependencies (testing, linting, security scanning, etc.):
 # pip install -r requirements-dev.txt
