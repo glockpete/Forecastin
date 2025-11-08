@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@tanstack/react-query": "^5.8.4",
+    "@tanstack/react-query": "^5.90.7",
     "@tanstack/react-query-devtools": "^5.8.4",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
@@ -23,10 +23,10 @@
     "zod": "^3.22.4",
     "zustand": "^4.4.6",
     "react-map-gl": "^7.1.7",
-    "deck.gl": "^8.9.35",
-    "@deck.gl/core": "^8.9.35",
-    "@deck.gl/layers": "^8.9.35",
-    "@deck.gl/geo-layers": "^8.9.35",
+    "deck.gl": "^9.2.2",
+    "@deck.gl/core": "^9.2.2",
+    "@deck.gl/layers": "^9.2.2",
+    "@deck.gl/geo-layers": "^9.2.2",
     "h3-js": "^4.1.0"
   },
   "scripts": {
@@ -66,7 +66,7 @@
     "msw": "^2.0.11",
     "react-scripts": "5.0.1",
     "tsx": "^4.7.0",
-    "vitest": "^1.1.0"
+    "vitest": "^4.0.8"
   },
   "proxy": "http://localhost:9000"
 }

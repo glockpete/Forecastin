@@ -375,7 +375,8 @@ const MobileColumnView: React.FC<MobileColumnViewProps> = ({
 };
 
 // Main Miller's Columns component
-export const MillerColumns: React.FC = () => {
+// Performance: Wrapped with React.memo to prevent re-renders when parent updates
+export const MillerColumns: React.FC = React.memo(() => {
   const queryClient = useQueryClient();
   const {
     isMobile,
@@ -537,6 +538,9 @@ export const MillerColumns: React.FC = () => {
       </div>
     </ErrorBoundary>
   );
-};
+});
+
+// Add displayName for better debugging with React DevTools
+MillerColumns.displayName = 'MillerColumns';
 
 export default MillerColumns;

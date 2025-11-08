@@ -20,10 +20,10 @@ jobs:
   typescript-verification:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -41,7 +41,7 @@ jobs:
           
       - name: Upload TypeScript errors (if any)
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: typescript-errors
           path: frontend/ts_errors*.txt
@@ -75,10 +75,10 @@ jobs:
           - 6379:6379
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
@@ -321,7 +321,7 @@ jobs:
 
       # Upload performance results
       - name: Upload performance validation results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: performance-slo-validation-results
@@ -351,10 +351,10 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
@@ -412,7 +412,7 @@ jobs:
           "
 
       - name: Upload database performance results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: database-performance-results
@@ -425,10 +425,10 @@ jobs:
     needs: [database-performance]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
       
@@ -504,10 +504,10 @@ jobs:
     if: always()
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v6
         with:
           path: ./artifacts/
           
@@ -631,7 +631,7 @@ jobs:
           "
           
       - name: Upload SLO Compliance Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: slo-compliance-report
           path: slo_compliance_report.json
