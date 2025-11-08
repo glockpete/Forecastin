@@ -1,36 +1,32 @@
 /**
  * Global CSS styles for Forecastin frontend
  * Tailwind CSS imports and custom styles
+ * Dark theme enforced by default
  */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom CSS variables for theming */
-:root {
-  --forecastin-primary: #3b82f6;
-  --forecastin-secondary: #6b7280;
-  --forecastin-background: #ffffff;
-  --forecastin-foreground: #111827;
-}
+/* Layer base styles to ensure dark theme is always applied */
+@layer base {
+  /* Force dark theme on root elements */
+  html {
+    @apply bg-background dark text-text;
+  }
 
-/* Dark mode variables */
-.dark {
-  --forecastin-background: #111827;
-  --forecastin-foreground: #f9fafb;
-}
+  body {
+    @apply bg-background dark text-text m-0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-/* Base styles */
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--forecastin-background);
-  color: var(--forecastin-foreground);
+  #root {
+    @apply bg-background dark text-text min-h-screen;
+  }
 }
 
 code {
@@ -38,33 +34,20 @@ code {
     monospace;
 }
 
-/* Custom scrollbar styles */
+/* Dark theme scrollbar (always applied) */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #374151; /* gray-700 */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: #6b7280; /* gray-500 */
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-track {
-  background: #374151;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #6b7280;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #9ca3af; /* gray-400 */
 }

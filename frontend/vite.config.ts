@@ -59,6 +59,7 @@ export default defineConfig({
       '@config': path.resolve(__dirname, './src/config'),
       '@layers': path.resolve(__dirname, './src/layers'),
       '@handlers': path.resolve(__dirname, './src/handlers'),
+      '@lib': path.resolve(__dirname, './src/lib'),
     },
   },
 
