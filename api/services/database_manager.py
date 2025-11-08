@@ -16,7 +16,6 @@ from urllib.parse import urlparse
 
 import asyncpg
 from asyncpg import Pool, Connection
-from asyncpg.pool import PoolAcquireContext
 
 
 logger = logging.getLogger(__name__)
