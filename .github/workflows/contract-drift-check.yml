@@ -1,0 +1,70 @@
+name: Contract Drift Detection
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  check-contract-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Python dependencies
+        run: |
+          cd api
+          pip install -r requirements.txt
+
+      - name: Install Node dependencies
+        run: |
+          cd frontend
+          npm ci --legacy-peer-deps
+
+      - name: Generate OpenAPI schema
+        run: |
+          python3 scripts/generate_openapi.py
+
+      - name: Regenerate TypeScript contracts
+        run: |
+          python3 scripts/dev/generate_contracts.py
+
+      - name: Check for contract drift
+        run: |
+          if git diff --exit-code frontend/src/types/contracts.generated.ts; then
+            echo "✅ Contracts are up to date"
+          else
+            echo "❌ Contract drift detected!"
+            echo ""
+            echo "Generated contracts differ from committed version."
+            echo "Run 'make contracts' locally and commit the changes."
+            echo ""
+            git diff frontend/src/types/contracts.generated.ts
+            exit 1
+          fi
+
+      - name: Run contract drift tests
+        run: |
+          cd frontend
+          npm test -- tests/contracts/contract_drift.spec.ts
+
+      - name: TypeScript type check
+        run: |
+          cd frontend
+          npm run typecheck
