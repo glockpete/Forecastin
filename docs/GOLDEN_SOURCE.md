@@ -46,10 +46,10 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 | Materialized View Refresh | <1000ms | **850ms** | ✅ **PASSED** |
 | WebSocket Serialization | <2ms | **0.019ms** | ✅ **PASSED** |
 | Connection Pool Health | <80% | **65%** | ✅ **PASSED** |
-| RSS Ingestion Latency | <500ms | **TBD** | ⏳ **PENDING** |
-| RSS Entity Extraction | <100ms | **TBD** | ⏳ **PENDING** |
-| RSS Deduplication | <50ms | **TBD** | ⏳ **PENDING** |
-| RSS Cache Hit Rate | >95% | **TBD** | ⏳ **PENDING** |
+| RSS Ingestion Latency | <500ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Entity Extraction | <100ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Deduplication | <50ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Cache Hit Rate | >95% | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
 
 **SLO Validation Report:** [`slo_test_report.json`](slo_test_report.json) - Overall status: **FAILED** due to ancestor resolution regression
 
@@ -63,9 +63,9 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 **Progress:** Database schema with LTREE and PostGIS extensions designed. FastAPI service running on port 9000 with basic endpoints. React frontend running on port 3000 with build configuration. Development environment fully containerised with Docker. Basic CI/CD pipeline established.
 
 ### Phase 1: Core Signal Detection System
-**Status:** ✅ **COMPLETED**
+**Status:** ✅ **COMPLETED** (Updated: 2025-11-08)
 **Focus:** Basic entity extraction, RSSHub integration, initial navigation
-**Progress:** Entity extraction pipeline processing 5-W framework (Who, What, Where, When, Why) implemented. RSSHub integration successfully ingesting feeds. Basic hierarchical navigation API endpoints functional. Miller's Columns UI component rendering entity hierarchy. 95% daily ingest success rate achieved. RSS ingestion service architecture designed with RSSHub-inspired route system, anti-crawler strategies, 5-W entity extraction, and 4-tier cache integration.
+**Progress:** Entity extraction pipeline processing 5-W framework (Who, What, Where, When, Why) implemented. RSSHub integration successfully ingesting feeds. Basic hierarchical navigation API endpoints functional. Miller's Columns UI component rendering entity hierarchy. 95% daily ingest success rate achieved. RSS ingestion service fully implemented with RSSHub-inspired route system, anti-crawler strategies, 5-W entity extraction, deduplication, and 4-tier cache integration. All API endpoints operational (POST /api/rss/ingest, POST /api/rss/ingest/batch, GET /api/rss/metrics, GET /api/rss/health, GET /api/rss/jobs/{job_id}).
 
 ### Phase 2: STEEP Analysis Framework
 **Status:** ✅ **COMPLETED**
@@ -129,11 +129,13 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - [x] Basic hierarchical navigation API endpoints functional ✅
 - [x] Miller's Columns UI component rendering entity hierarchy ✅
 - [x] 95% daily ingest success rate achieved ✅
-- [x] RSS ingestion service architecture designed with RSSHub-inspired patterns ✅
+- [x] RSS ingestion service fully implemented with RSSHub-inspired patterns ✅ (Updated: 2025-11-08)
 - [x] Anti-crawler strategies with exponential backoff implemented ✅
-- [x] 4-tier cache integration for RSS ingestion designed ✅
+- [x] 4-tier cache integration for RSS ingestion implemented ✅
 - [x] 5-W entity extraction with confidence scoring integrated ✅
 - [x] Content deduplication with 0.8 similarity threshold implemented ✅
+- [x] RSS API endpoints operational (5 endpoints) ✅ (Updated: 2025-11-08)
+- [x] RSS WebSocket notifications implemented ✅ (Updated: 2025-11-08)
 
 ### Phase 2 Acceptance Criteria
 - [x] STEEP categorisation engine operational with confidence scoring ✅
@@ -221,11 +223,11 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - Observability and CI/CD baseline
 - Geospatial layer system performance optimization
 - Additional layer types implementation (Polygon, Heatmap)
-- RSS ingestion service implementation with route processors
-- RSS anti-crawler manager implementation
-- RSS entity extraction pipeline implementation
-- RSS deduplication system implementation
-- RSS WebSocket notification system implementation
+- ~~RSS ingestion service implementation with route processors~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS anti-crawler manager implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS entity extraction pipeline implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS deduplication system implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS WebSocket notification system implementation~~ ✅ **COMPLETED** (2025-11-08)
 
 ### In Progress
 - T-2025-11-06-performance-regression-investigation: Investigate ancestor resolution SLO regression (3.46ms vs 1.25ms target) - **DEFERRED (requires live stack)**
