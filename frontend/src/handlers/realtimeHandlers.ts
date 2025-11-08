@@ -72,7 +72,7 @@ export class RealtimeMessageProcessor {
       // Optimistic update in React Query cache
       const updateResult = this.cacheCoordinator.optimisticUpdate(
         [...hierarchyKeys.entity(targetEntity.id)],
-        (current: Entity | undefined) => current ? { ...current, ...targetEntity } : targetEntity
+        (current: Entity | undefined) => (current ? { ...current, ...targetEntity } : targetEntity) as Entity
       );
 
       if (!updateResult.success) {
@@ -101,11 +101,11 @@ export class RealtimeMessageProcessor {
       // Update UI state if this is the active entity
       const activeEntity = this.uiStore.getState().activeEntity;
       if (activeEntity?.id === targetEntity.id) {
-        this.uiStore.getState().setActiveEntity(targetEntity);
+        this.uiStore.getState().setActiveEntity(targetEntity as Entity);
       }
 
       // Preload related queries for better UX
-      this.cacheCoordinator.preloadRelatedQueries(targetEntity);
+      this.cacheCoordinator.preloadRelatedQueries(targetEntity as Entity);
 
       const duration = performance.now() - startTime;
       this.performanceMonitor.recordMetric('entity_update_processing', duration);
@@ -116,7 +116,7 @@ export class RealtimeMessageProcessor {
       console.error('Error processing entity update:', error);
       
       // Record failure for circuit breaker
-      this.errorRecovery.recordFailure(`entity_update_${message.entityId || message.data?.id || 'unknown'}`);
+      this.errorRecovery.recordFailure(`entity_update_${message.data?.entityId || message.data?.entity?.id || 'unknown'}`);
       
       // Send structured error instead of crashing
       throw new Error(`Failed to process entity update: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -175,9 +175,9 @@ export class RealtimeMessageProcessor {
           batch.map(async (update: WebSocketMessage) => {
             try {
               if (update.type === 'entity_update') {
-                await this.processEntityUpdate(update);
+                await this.processEntityUpdate(update as unknown as EntityUpdateMessage);
               } else if (update.type === 'hierarchy_change') {
-                await this.processHierarchyChange(update);
+                await this.processHierarchyChange(update as unknown as HierarchyChangeMessage);
               }
             } catch (error) {
               console.error('Error processing batch update:', error);
@@ -468,7 +468,7 @@ export const routeRealtimeMessage = (
     }
 
     // Message is validated - safe to process
-    const message = validationResult.message;
+    const message = validationResult.message!;
 
     // Route to appropriate handler using type guards
     if (isEntityUpdate(message)) {

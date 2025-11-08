@@ -142,7 +142,7 @@ const ActionQueue: React.FC<ActionQueueProps> = ({ actions, onActionClick, onAct
           <ActionItem
             key={action.id}
             action={action}
-            onStatusChange={onActionStatusChange}
+            {...(onActionStatusChange && { onStatusChange: onActionStatusChange })}
           />
         ))}
       </div>

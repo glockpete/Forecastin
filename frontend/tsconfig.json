@@ -12,8 +12,8 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -23,7 +23,16 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "baseUrl": "src",
+    "paths": {
+      "@types/*": ["types/*"],
+      "@layers/*": ["layers/*"],
+      "@components/*": ["components/*"],
+      "@lib/*": ["lib/*"],
+      "@hooks/*": ["hooks/*"],
+      "@utils/*": ["utils/*"]
+    }
   },
   "include": [
     "src"

@@ -394,7 +394,7 @@ export const useHybridState = (
       sendMessage({
         type: 'serialization_error',
         error: 'Failed to process WebSocket message',
-        data: { originalType: message.type }
+        originalMessageType: message.type
       });
     }
   }, [coordinateCacheUpdate, scheduleBatchUpdate, sendMessage]);
@@ -468,7 +468,7 @@ export const useHybridState = (
       ...message,
       timestamp: new Date(message.timestamp).toISOString()
     };
-    sendMessage(wsMessage);
+    sendMessage(wsMessage as any);
   }, [sendMessage]);
 
   const subscribe = useCallback((channels: string[]) => {

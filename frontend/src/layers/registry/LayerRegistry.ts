@@ -354,7 +354,7 @@ export class LayerRegistry {
         onLayerMessage: this.handleWebSocketLayerMessage.bind(this),
         onError: this.handleWebSocketError.bind(this),
         onConnectionError: this.handleWebSocketConnectionError.bind(this),
-        featureFlagCheck: () => layerFeatureFlags.isEnabled('ff_websocket_layers_enabled')
+        featureFlagCheck: () => layerFeatureFlags.isEnabled('ff.geo.websocket_layers_enabled')
       });
       
       console.log('[LayerRegistry] WebSocket integration initialized');

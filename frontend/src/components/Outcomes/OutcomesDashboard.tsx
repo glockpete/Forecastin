@@ -25,14 +25,22 @@ const OutcomesDashboard: React.FC = React.memo(() => {
 
   // Parse filters from URL params
   const filters: LensFilters = useMemo(() => {
-    return {
-      role: searchParams.get('role')?.split(',').filter(Boolean),
-      sector: searchParams.get('sector')?.split(',').filter(Boolean),
-      marketLevel: searchParams.get('marketLevel')?.split(',').filter(Boolean),
-      function: searchParams.get('function')?.split(',').filter(Boolean),
-      risk: searchParams.get('risk')?.split(',').filter(Boolean),
-      horizon: searchParams.get('horizon')?.split(',').filter(Boolean) as TimeHorizon[] | undefined,
-    };
+    const result: LensFilters = {};
+    const role = searchParams.get('role')?.split(',').filter(Boolean);
+    const sector = searchParams.get('sector')?.split(',').filter(Boolean);
+    const marketLevel = searchParams.get('marketLevel')?.split(',').filter(Boolean);
+    const functionParam = searchParams.get('function')?.split(',').filter(Boolean);
+    const risk = searchParams.get('risk')?.split(',').filter(Boolean);
+    const horizon = searchParams.get('horizon')?.split(',').filter(Boolean) as TimeHorizon[] | undefined;
+
+    if (role) result.role = role;
+    if (sector) result.sector = sector;
+    if (marketLevel) result.marketLevel = marketLevel;
+    if (functionParam) result.function = functionParam;
+    if (risk) result.risk = risk;
+    if (horizon) result.horizon = horizon;
+
+    return result;
   }, [searchParams]);
 
   // Fetch data with TanStack Query

@@ -951,26 +951,26 @@ export class MessageDeduplicator {
 
     // Generate key based on message type and relevant identifying fields
     switch (type) {
-      case 'entity_update':
+      case 'entity_update': {
         const entityMsg = message as EntityUpdateMessage;
         return `entity_update:${entityMsg.data.entityId}:${timestamp}`;
-
-      case 'hierarchy_change':
+      }
+      case 'hierarchy_change': {
         const hierarchyMsg = message as HierarchyChangeMessage;
         return `hierarchy_change:${hierarchyMsg.data.path}:${timestamp}`;
-
-      case 'bulk_update':
+      }
+      case 'bulk_update': {
         const bulkMsg = message as BulkUpdateMessage;
         return `bulk_update:${bulkMsg.data.entityIds.join(',')}:${timestamp}`;
-
-      case 'cache_invalidate':
+      }
+      case 'cache_invalidate': {
         const cacheMsg = message as CacheInvalidateMessage;
         return `cache_invalidate:${JSON.stringify(cacheMsg.data.keys)}:${timestamp}`;
-
-      case 'layer_data_update':
+      }
+      case 'layer_data_update': {
         const layerMsg = message as LayerDataUpdateMessage;
         return `layer_data_update:${layerMsg.data.layerId}:${timestamp}`;
-
+      }
       default:
         // Generic key for other message types
         return `${type}:${timestamp}:${JSON.stringify(message).substring(0, 100)}`;

@@ -104,7 +104,7 @@ const HorizonLane: React.FC<HorizonLaneProps> = ({
             <OpportunityRadar
               opportunities={opportunities}
               onOpportunityClick={onOpportunitySelect}
-              selectedId={selectedOpportunity?.id}
+              {...(selectedOpportunity?.id && { selectedId: selectedOpportunity.id })}
             />
           )}
         </div>

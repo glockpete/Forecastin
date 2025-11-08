@@ -143,9 +143,17 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
       {/* Search Modal */}
       <div className="fixed inset-0 z-50 overflow-hidden">
         {/* Backdrop */}
-        <div 
+        <div
           className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+          role="button"
+          tabIndex={0}
           onClick={() => setIsOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+              e.preventDefault();
+              setIsOpen(false);
+            }
+          }}
         />
         
         {/* Search Panel */}
@@ -164,7 +172,6 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 }
               }}
               className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-              autoFocus
             />
             <button
               onClick={() => setIsOpen(false)}
@@ -241,7 +248,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                     ))
                   ) : (
                     <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                      <p>No results found for "{query}"</p>
+                      <p>No results found for &ldquo;{query}&rdquo;</p>
                     </div>
                   )}
                 </div>

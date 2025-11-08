@@ -382,18 +382,21 @@ export class AppError extends Error {
   public readonly definition: ErrorDefinition;
   public readonly context?: Record<string, unknown>;
   public readonly timestamp: Date;
+  public cause?: Error;
 
   constructor(
     code: string,
     context?: Record<string, unknown>,
     cause?: Error
   ) {
-    const definition = ERROR_CATALOG[code] || ERROR_CATALOG.ERR_999;
+    const definition = ERROR_CATALOG[code] || ERROR_CATALOG.ERR_999!;
     super(definition.developerMessage);
 
     this.name = 'AppError';
     this.definition = definition;
-    this.context = context;
+    if (context !== undefined) {
+      this.context = context;
+    }
     this.timestamp = new Date();
 
     // Link to original error
@@ -461,9 +464,9 @@ export class AppError extends Error {
       category: this.definition.category,
       severity: this.definition.severity,
       message: this.message,
-      context: this.context,
+      ...(this.context !== undefined && { context: this.context }),
       timestamp: this.timestamp.toISOString(),
-      stack: this.stack,
+      ...(this.stack !== undefined && { stack: this.stack }),
     };
   }
 }
