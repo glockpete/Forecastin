@@ -226,8 +226,8 @@ jobs:
           echo "- ✅ Integration Validation: ${{ needs.integration-validation.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Coverage:**" >> $GITHUB_STEP_SUMMARY
-          echo "- `/ws/echo` endpoint" >> $GITHUB_STEP_SUMMARY
-          echo "- `/ws/health` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- \`/ws/echo\` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- \`/ws/health\` endpoint" >> $GITHUB_STEP_SUMMARY
           echo "- Server-side heartbeat configuration" >> $GITHUB_STEP_SUMMARY
           echo "- Close code tracking (prevent 1006)" >> $GITHUB_STEP_SUMMARY
           echo "- Configuration validation" >> $GITHUB_STEP_SUMMARY
