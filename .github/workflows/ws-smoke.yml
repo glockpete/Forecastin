@@ -145,7 +145,7 @@ jobs:
         working-directory: ./api
         run: |
           echo "=== Linting WebSocket implementation ==="
-          ruff check main.py services/websocket_manager.py tests/test_ws_*.py --select E,F,W,C90 || true
+          ruff check main.py routers/websocket.py services/websocket_manager.py tests/test_ws_*.py --select E,F,W,C90 || true
 
       - name: Type checking (optional)
         working-directory: ./api
