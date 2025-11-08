@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Phase 6 Feature Flag Definitions
 PHASE6_FLAGS: List[Dict[str, Any]] = [
     {
-        "name": "ff.prophet_forecasting",
+        "name": "ff.ml.prophet_forecasting",
         "description": "Enable Prophet-based hierarchical forecasting with top-down/bottom-up methods",
         "flag_type": FeatureFlagType.GRADUAL_ROLLOUT,
         "is_enabled": False,  # Start disabled for gradual rollout
@@ -64,7 +64,7 @@ PHASE6_FLAGS: List[Dict[str, Any]] = [
         }
     },
     {
-        "name": "ff.scenario_construction",
+        "name": "ff.scenario.construction",
         "description": "Enable scenario creation, management, and multi-factor analysis",
         "flag_type": FeatureFlagType.GRADUAL_ROLLOUT,
         "is_enabled": False,
@@ -93,13 +93,13 @@ PHASE6_FLAGS: List[Dict[str, Any]] = [
                 "stage_4": {"percentage": 100, "duration_days": 0, "description": "Global deployment"}
             },
             "dependencies": [
-                "ff.hierarchy_optimized",
-                "ff.ws_v1"
+                "ff.hierarchy.optimized",
+                "ff.ws.realtime"
             ]
         }
     },
     {
-        "name": "ff.cursor_pagination",
+        "name": "ff.data.cursor_pagination",
         "description": "Enable efficient cursor-based pagination for time series data (more efficient than offset)",
         "flag_type": FeatureFlagType.BOOLEAN,
         "is_enabled": True,  # Safe to enable immediately (no breaking changes)

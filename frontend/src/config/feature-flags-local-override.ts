@@ -24,16 +24,16 @@ export function enableLocalGeospatialTesting(): void {
   console.log('[Local Override] Feature flag status:', JSON.stringify(status, null, 2));
   
   // Verify key flags are enabled
-  if (!layerFeatureFlags.isEnabled('ff_geospatial_enabled')) {
-    console.warn('[Local Override] WARNING: ff_geospatial_enabled is still disabled');
+  if (!layerFeatureFlags.isEnabled('ff.geo.layers_enabled')) {
+    console.warn('[Local Override] WARNING: ff.geo.layers_enabled is still disabled');
   } else {
-    console.log('[Local Override] ✅ ff_geospatial_enabled is enabled');
+    console.log('[Local Override] ✅ ff.geo.layers_enabled is enabled');
   }
-  
-  if (!layerFeatureFlags.isEnabled('ff_point_layer_enabled')) {
-    console.warn('[Local Override] WARNING: ff_point_layer_enabled is still disabled');
+
+  if (!layerFeatureFlags.isEnabled('ff.geo.point_layer_active')) {
+    console.warn('[Local Override] WARNING: ff.geo.point_layer_active is still disabled');
   } else {
-    console.log('[Local Override] ✅ ff_point_layer_enabled is enabled');
+    console.log('[Local Override] ✅ ff.geo.point_layer_active is enabled');
   }
   
   console.log('[Local Override] Geospatial features enabled for testing');

@@ -1557,14 +1557,14 @@ async def get_scenario_forecasts(
     """
     Django-inspired hierarchical forecast endpoint with cursor-based pagination
     Supports drill-down navigation through LTREE hierarchy
-    Feature flag: ff.prophet_forecasting
+    Feature flag: ff.ml.prophet_forecasting
     """
     try:
         # Check feature flag
-        if not await feature_flag_service.is_flag_enabled("ff.prophet_forecasting"):
+        if not await feature_flag_service.is_flag_enabled("ff.ml.prophet_forecasting"):
             raise HTTPException(
                 status_code=503,
-                detail="Prophet forecasting is currently disabled. Feature flag: ff.prophet_forecasting"
+                detail="Prophet forecasting is currently disabled. Feature flag: ff.ml.prophet_forecasting"
             )
         
         if not forecast_manager or not cursor_paginator:
@@ -1681,11 +1681,11 @@ async def websocket_scenario_forecasts(websocket: WebSocket, path: str):
     
     try:
         # Check feature flag
-        if not await feature_flag_service.is_flag_enabled("ff.prophet_forecasting"):
+        if not await feature_flag_service.is_flag_enabled("ff.ml.prophet_forecasting"):
             error_msg = {
                 "type": "error",
                 "message": "Prophet forecasting is currently disabled",
-                "feature_flag": "ff.prophet_forecasting"
+                "feature_flag": "ff.ml.prophet_forecasting"
             }
             await connection_manager.send_personal_message(error_msg, client_id)
             return
@@ -1734,14 +1734,14 @@ async def create_scenario(scenario_data: Dict[str, Any]):
     """
     Create new scenario with LTREE path validation
     Multi-factor confidence scoring initialization
-    Feature flag: ff.scenario_construction
+    Feature flag: ff.scenario.construction
     """
     try:
         # Check feature flag
-        if not await feature_flag_service.is_flag_enabled("ff.scenario_construction"):
+        if not await feature_flag_service.is_flag_enabled("ff.scenario.construction"):
             raise HTTPException(
                 status_code=503,
-                detail="Scenario construction is currently disabled. Feature flag: ff.scenario_construction"
+                detail="Scenario construction is currently disabled. Feature flag: ff.scenario.construction"
             )
         
         # Validate required fields
@@ -1804,14 +1804,14 @@ async def get_scenario_analysis(scenario_id: str):
     """
     Multi-factor scenario analysis with four-tier caching
     Leverages geospatial/temporal/entity factor integration
-    Feature flag: ff.scenario_construction
+    Feature flag: ff.scenario.construction
     """
     try:
         # Check feature flag
-        if not await feature_flag_service.is_flag_enabled("ff.scenario_construction"):
+        if not await feature_flag_service.is_flag_enabled("ff.scenario.construction"):
             raise HTTPException(
                 status_code=503,
-                detail="Scenario construction is currently disabled. Feature flag: ff.scenario_construction"
+                detail="Scenario construction is currently disabled. Feature flag: ff.scenario.construction"
             )
         
         if not analysis_engine:
