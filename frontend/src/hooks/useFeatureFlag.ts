@@ -132,18 +132,18 @@ function isUserInRollout(userId: string | undefined, rolloutPercentage: number):
  * Checks if a feature flag is enabled, respecting rollout percentage and user context.
  * Integrates with backend FeatureFlagService and WebSocket real-time updates.
  * 
- * @param flagName - Name of the feature flag (e.g., "ff.geospatial_layers")
+ * @param flagName - Name of the feature flag (e.g., "ff.geo.layers_enabled")
  * @param options - Configuration options
  * @returns Feature flag status and metadata
- * 
+ *
  * @example
  * ```tsx
- * const { isEnabled, isLoading } = useFeatureFlag('ff.geospatial_layers', {
+ * const { isEnabled, isLoading } = useFeatureFlag('ff.geo.layers_enabled', {
  *   userId: currentUser.id,
  *   checkRollout: true,
  *   fallbackEnabled: false
  * });
- * 
+ *
  * if (isEnabled) {
  *   return <GeospatialLayerMap />;
  * }
@@ -259,14 +259,14 @@ export function useFeatureFlags(
  */
 export function useGeospatialFeatureFlags(options: UseFeatureFlagOptions = {}) {
   const mapV1 = useFeatureFlag('ff.map_v1', options);
-  const geospatialLayers = useFeatureFlag('ff.geospatial_layers', options);
-  const pointLayer = useFeatureFlag('ff.point_layer', options);
-  const polygonLayer = useFeatureFlag('ff.polygon_layer', options);
-  const heatmapLayer = useFeatureFlag('ff.heatmap_layer', options);
-  const clustering = useFeatureFlag('ff.clustering_enabled', options);
-  const gpuFiltering = useFeatureFlag('ff.gpu_filtering', options);
-  const websocketLayers = useFeatureFlag('ff.websocket_layers', options);
-  const realtimeUpdates = useFeatureFlag('ff.realtime_updates', options);
+  const geospatialLayers = useFeatureFlag('ff.geo.layers_enabled', options);
+  const pointLayer = useFeatureFlag('ff.geo.point_layer_active', options);
+  const polygonLayer = useFeatureFlag('ff.geo.polygon_layer_active', options);
+  const heatmapLayer = useFeatureFlag('ff.geo.heatmap_layer_active', options);
+  const clustering = useFeatureFlag('ff.geo.clustering_enabled', options);
+  const gpuFiltering = useFeatureFlag('ff.geo.gpu_rendering_enabled', options);
+  const websocketLayers = useFeatureFlag('ff.geo.websocket_layers_enabled', options);
+  const realtimeUpdates = useFeatureFlag('ff.geo.realtime_updates_enabled', options);
   
   return useMemo(() => ({
     // Base dependencies
