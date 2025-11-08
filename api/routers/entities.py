@@ -1,10 +1,11 @@
 """
 Entity CRUD API Routes
-Handles entity create, read, update, delete operations
+Handles entity operations and hierarchy navigation
 """
 
-from fastapi import APIRouter, HTTPException
 import logging
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
 router = APIRouter(
     prefix="/api/entities",
@@ -14,29 +15,37 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
-@router.get("/{entity_id}")
-async def get_entity(entity_id: str):
-    """Get entity by ID"""
-    logger.info(f"GET /api/entities/{entity_id}")
-    return {"message": f"Get entity {entity_id} - move from main.py"}
+@router.get("")
+async def get_entities():
+    """Get all active entities with hierarchy optimization"""
+    try:
+        from main import hierarchy_resolver
+
+        if not hierarchy_resolver:
+            raise HTTPException(status_code=503, detail="Service not initialized")
+
+        # Use optimized hierarchy resolver for O(log n) performance
+        entities = await hierarchy_resolver.get_all_entities()
+        return JSONResponse(content={"entities": entities})
+
+    except Exception as e:
+        logger.error(f"Error getting entities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/")
-async def create_entity():
-    """Create new entity"""
-    logger.info("POST /api/entities/")
-    return {"message": "Create entity - move from main.py"}
+@router.get("/{entity_id}/hierarchy")
+async def get_entity_hierarchy(entity_id: str):
+    """Get entity hierarchy with optimized performance"""
+    try:
+        from main import hierarchy_resolver
 
+        if not hierarchy_resolver:
+            raise HTTPException(status_code=503, detail="Service not initialized")
 
-@router.patch("/{entity_id}")
-async def update_entity(entity_id: str):
-    """Update entity"""
-    logger.info(f"PATCH /api/entities/{entity_id}")
-    return {"message": f"Update entity {entity_id} - move from main.py"}
+        # Use cached hierarchy data
+        hierarchy = await hierarchy_resolver.get_entity_hierarchy(entity_id)
+        return JSONResponse(content={"hierarchy": hierarchy})
 
-
-@router.delete("/{entity_id}")
-async def delete_entity(entity_id: str):
-    """Delete entity"""
-    logger.info(f"DELETE /api/entities/{entity_id}")
-    return {"message": f"Delete entity {entity_id} - move from main.py"}
+    except Exception as e:
+        logger.error(f"Error getting hierarchy for {entity_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
