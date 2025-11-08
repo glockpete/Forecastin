@@ -192,6 +192,7 @@ export type HierarchyNodeFromSchema = z.infer<typeof HierarchyNodeSchema>;
  */
 export const HierarchyResponseSchema = z.object({
   nodes: z.array(EntitySchema),
+  entities: z.array(EntitySchema), // Alias for nodes - used by components
   totalCount: z.number().int().nonnegative(),
   hasMore: z.boolean(),
   nextCursor: z.string().optional(),

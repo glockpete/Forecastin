@@ -6,7 +6,7 @@
  * and hybrid state management systems.
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { layerFeatureFlags } from '../config/feature-flags';
 import { LayerWebSocketIntegration } from '../integrations/LayerWebSocketIntegration';
 import { LayerRegistry } from '../layers/registry/LayerRegistry';
@@ -18,9 +18,9 @@ import type {
 } from '../layers/types/layer-types';
 
 // Mock the existing forecastin systems
-jest.mock('../hooks/useWebSocket');
-jest.mock('../store/uiStore');
-jest.mock('../utils/errorRecovery');
+vi.mock('../hooks/useWebSocket');
+vi.mock('../store/uiStore');
+vi.mock('../utils/errorRecovery');
 
 // Test data matching forecastin entity structure
 const MOCK_ENTITIES: EntityDataPoint[] = [

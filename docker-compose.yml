@@ -63,6 +63,22 @@ services:
     networks:
       - forecastin_network
     restart: unless-stopped
+    # Resource limits for production stability
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Health checks for readiness/liveness
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   # React Frontend (Production-optimized with nginx)
   frontend:
