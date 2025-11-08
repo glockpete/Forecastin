@@ -10,6 +10,19 @@
 **CI/CD Status:** ✅ **Fully implemented** with performance validation workflow
 **Performance Validation:** ⚠️ **SLO regression detected** - Ancestor resolution 3.46ms vs target 1.25ms
 
+### Required CI Checks
+
+All PRs to `main` must pass:
+
+1. **Frontend CI** (`.github/workflows/frontend.yml`)
+   - TypeScript type check (`npm run typecheck`)
+   - Production build (`npm run build`)
+   - **Invariant:** No relative imports outside `src/`. Generated frontend types live in `frontend/src/types/`.
+
+2. **Backend CI** (`.github/workflows/backend.yml`)
+   - Ruff syntax checks (E9, F63, F7, F82)
+   - Mypy type checking (informational only)
+
 ---
 
 ## 1. Project Snapshot
