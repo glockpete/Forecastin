@@ -18,7 +18,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useSearchEntities } from '../../hooks/useHierarchy';
 import { cn } from '../../utils/cn';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
-import { getConfidence } from '@types/contracts.generated';
+import { getConfidence } from '../../types/contracts.generated';
 
 interface SearchInterfaceProps {
   className?: string;
