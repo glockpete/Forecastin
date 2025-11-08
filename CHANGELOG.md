@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 3 PR-ready patches: performance metrics alignment, migration path fix, API endpoint updates
   - Complete backend API map (33 routes, 14 services, 13 DB tables)
   - Complete frontend structure map (hybrid state management, geospatial layers, WebSocket integration)
+  - Documented RSS service configuration (10 environment variables)
+  - Documented database connection pool settings (6 environment variables)
+  - Documented Redis advanced configuration (5 environment variables)
+  - Added WebSocket environment variables summary table with validation rules
+  - Documented geospatial feature flags (3 new flags: ff.geo.layers_enabled, ff.geo.gpu_rendering_enabled, ff.geo.point_layer_active)
+  - Added feature flag dependencies documentation to REPO_MAP.md
 - Documentation update: Fixed file path references and API endpoint documentation
 - Comprehensive developer documentation (CONTRIBUTING.md, DEVELOPER_SETUP.md, TESTING_GUIDE.md, etc.)
 - **RSS Service Integration**: Complete RSS ingestion service now integrated with API
@@ -25,17 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Services integrated: route processor, entity extractor, deduplicator, anti-crawler, WebSocket notifier
 
 ### Changed
-- **Documentation Consolidation Plan**:
-  - Proposed move: `docs/reports/SCOUT_LOG.md` → `checks/SCOUT_LOG.md`
-  - Proposed removal: 8 redundant summary/update files
-  - Proposed merge: 6 files into canonical documentation
-  - Updated GOLDEN_SOURCE.md with corrected API endpoint documentation
-  - Updated AGENTS.md with accurate migration file paths (migration 003 does not exist, use 001)
+- **Documentation Consolidation (2025-11-08)**:
+  - Moved `docs/reports/SCOUT_LOG.md` → `checks/SCOUT_LOG.md`
+  - Removed 8 redundant summary/update files (RSS_INTEGRATION_SUMMARY.md, DOCUMENTATION_UPDATE_SUMMARY_*.md, etc.)
+  - Consolidated performance documentation (removed PERFORMANCE_INVESTIGATION_SUMMARY.md, PERFORMANCE_DIAGNOSTIC_REPORT.md)
+  - Consolidated TypeScript documentation (removed PHASE_TS_SUMMARY.md, typescript_verification_report.md)
+  - Updated GOLDEN_SOURCE.md task board with 2025-11-08 completed tasks
+  - Updated AGENTS.md with accurate migration file paths (001_initial_schema.sql includes LTREE and PostGIS)
+  - Fixed package.json script references in DEVELOPER_SETUP.md (test:coverage → test)
 
 ### Fixed
-- Corrected documentation file references (removed non-existent migration 003)
+- **Documentation Accuracy Fixes (2025-11-08)**:
+  - Fixed broken CONTRIBUTING.md links (AGENTS.md → docs/architecture/AGENTS.md)
+  - Corrected migration file references in AGENTS.md (003_ltree_optimisation.sql does not exist)
+  - Fixed package.json script references in DEVELOPER_SETUP.md
 - **Performance Metrics Drift**: README.md now shows actual measured performance (3.46ms) instead of projected (0.07ms)
-- **REPO_MAP Completeness**: Added missing RSS endpoints to API route documentation
+- **REPO_MAP Completeness**: Added missing 5 RSS endpoints to API route documentation (total 33 routes documented)
 - **TypeScript Strict Type Checking**: Fixed all TypeScript errors in layer infrastructure (PR #22, #23)
   - Fixed 103 type errors across 8 layer files
   - Added `override` modifiers for proper inheritance

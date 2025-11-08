@@ -268,8 +268,8 @@ npm start
 # Run tests
 npm test
 
-# Run tests with coverage
-npm run test:coverage
+# Run tests
+npm run test
 
 # Type checking
 npx tsc --noEmit

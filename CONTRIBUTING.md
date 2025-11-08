@@ -323,7 +323,7 @@ Update documentation when you:
 ### Documentation Files to Update
 
 - **README.md**: High-level features and quick start
-- **AGENTS.md**: Non-obvious patterns and gotchas
+- **[AGENTS.md](docs/architecture/AGENTS.md)**: Non-obvious patterns and gotchas
 - **GOLDEN_SOURCE.md**: Project state and phases
 - **API docs**: OpenAPI specs and endpoint documentation
 - **Architecture docs**: System design changes

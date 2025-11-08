@@ -228,10 +228,9 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - RSS WebSocket notification system implementation
 
 ### In Progress
-- T-2025-11-06-performance-regression-investigation: Investigate ancestor resolution SLO regression (3.46ms vs 1.25ms target)
+- T-2025-11-06-performance-regression-investigation: Investigate ancestor resolution SLO regression (3.46ms vs 1.25ms target) - **DEFERRED (requires live stack)**
 - T-2025-11-06-multi-agent-planning: Plan multi-agent system integration
 - T-2025-11-06-sustainability-framework: Develop long-term sustainability framework
-- T-2025-11-06-rss-architecture-completion: Complete RSS ingestion service architecture documentation
 
 ### Completed
 - T-2025-11-04-initial-setup: Create Golden Source update engine script (✅)
@@ -276,6 +275,13 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - T-2025-11-06-rss-deduplication: Create deduplication system with 0.8 similarity threshold (✅)
 - T-2025-11-06-rss-websocket-integration: Design WebSocket real-time integration (✅)
 - T-2025-11-06-rss-rollout-plan: Create deployment and rollout plan with feature flags (✅)
+- T-2025-11-06-rss-architecture-completion: Complete RSS ingestion service architecture documentation (✅)
+- T-2025-11-08-documentation-audit: Complete repository documentation audit and gap analysis (✅)
+- T-2025-11-08-performance-metrics-alignment: Align README performance metrics with actual measurements (✅)
+- T-2025-11-08-api-endpoint-documentation: Add missing RSS endpoints to REPO_MAP (✅)
+- T-2025-11-08-environment-variables-documentation: Document RSS, WebSocket, database pool, and Redis configuration (✅)
+- T-2025-11-08-feature-flag-dependencies: Document feature flag dependencies and hierarchies (✅)
+- T-2025-11-08-documentation-consolidation: Remove redundant documentation files and consolidate RSS docs (✅)
 
 ### Blocked
 *No tasks currently blocked*

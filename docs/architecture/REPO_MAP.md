@@ -25,6 +25,11 @@
 | GET | `/api/actions` | Get actions data for frontend testing | N/A |
 | GET | `/api/stakeholders` | Get stakeholders data for frontend testing | N/A |
 | GET | `/api/evidence` | Get evidence data for frontend testing | N/A |
+| POST | `/api/rss/ingest` | Ingest single RSS feed with complete processing pipeline | `rss_ingestion_enabled` |
+| POST | `/api/rss/ingest/batch` | Batch RSS feed ingestion with parallelism | `rss_ingestion_enabled` |
+| GET | `/api/rss/metrics` | Get RSS ingestion service performance metrics | N/A |
+| GET | `/api/rss/health` | RSS ingestion service health check | N/A |
+| GET | `/api/rss/jobs/{job_id}` | Get RSS ingestion job status | N/A |
 | GET | `/api/v3/scenarios/{path:path}/forecasts` | Django-inspired hierarchical forecast endpoint with cursor-based pagination | `ff.prophet_forecasting` |
 | GET | `/api/v3/scenarios/{path:path}/hierarchy` | Django-inspired hierarchical navigation structure | N/A |
 | POST | `/api/v6/scenarios` | Create new scenario with LTREE path validation | `ff.scenario_construction` |
@@ -61,6 +66,9 @@
 | `ff.ab_routing` | `false` | 0% | Enable A/B testing routing |
 | `ff.prophet_forecasting` | `false` | 0% | Enable Prophet forecasting models |
 | `ff.scenario_construction` | `false` | 0% | Enable scenario construction features |
+| `ff.geo.layers_enabled` | `false` | 0% | Master switch for geospatial layer system (requires ff.map_v1) |
+| `ff.geo.gpu_rendering_enabled` | `false` | 0% | Enable GPU-accelerated filtering and rendering for geospatial layers |
+| `ff.geo.point_layer_active` | `false` | 0% | Control visibility of PointLayer implementation |
 | `ff_geospatial_enabled` | `false` | 0% | Enable core geospatial features |
 | `ff_point_layer_enabled` | `false` | 0% | Enable point layer rendering |
 | `ff_clustering_enabled` | `false` | 0% | Enable clustering of geospatial points |
@@ -73,6 +81,20 @@
 | `hierarchy_optimized` | `false` | 0% | Optimized hierarchy queries |
 | `ws_v1` | `false` | 0% | Version 1 of WebSocket service |
 | `ab_routing` | `false` | 0% | A/B test routing for ML models |
+
+## Feature Flag Dependencies
+
+| Flag | Requires (Dependencies) | Description |
+|------|-------------------------|-------------|
+| `ff.scenario_construction` | `ff.hierarchy_optimized`, `ff.ws_v1` | Scenario construction requires optimized hierarchy and WebSocket support |
+| `ff.geo.layers_enabled` | `ff.map_v1` | Geospatial layers require PostGIS mapping enabled |
+| `ff.geo.gpu_rendering_enabled` | `ff.geo.layers_enabled` | GPU rendering requires geospatial layers enabled |
+| `ff.geo.point_layer_active` | `ff.geo.layers_enabled` | Point layer requires geospatial layers enabled |
+
+**Notes**:
+- Enabling child flags without parent flags will cause runtime errors
+- Dependencies are validated during flag creation
+- Feature flags follow hierarchical naming (dot notation for related flags)
 
 ## Database Migrations
 
@@ -94,7 +116,13 @@ forecastin/
 │       ├── feature_flag_service.py    # FeatureFlagService with multi-tier caching
 │       ├── cache_service.py           # Multi-tier cache service (L1/L2/L3/L4)
 │       ├── realtime_service.py        # WebSocket service with safe serialization
-│       └── rss/                       # RSS ingestion service
+│       └── rss/                       # RSS ingestion service (RSSHub-inspired)
+│           ├── rss_ingestion_service.py    # Main RSS service with route processors
+│           ├── anti_crawler/               # Anti-crawler strategies
+│           ├── deduplication/              # Content deduplication (0.8 threshold)
+│           ├── entity_extraction/          # 5-W entity extraction
+│           ├── route_processors/           # CSS selector-based extraction
+│           └── websocket/                  # Real-time RSS notifications
 ├── frontend/              # React + TypeScript frontend
 │   ├── src/               # Source code
 │   │   ├── components/    # React components organized by feature

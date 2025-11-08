@@ -138,24 +138,33 @@ DATABASE_NAME=forecastin_prod
 
 ### Database Connection Pool Settings
 
-**Description**: Advanced connection pool configuration
+**Summary Table**:
 
-**Defaults**:
-- `min_size`: 10
-- `max_size`: 20
-- `timeout`: 30 seconds
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_POOL_MIN_SIZE` | `5` | Minimum number of connections in pool |
+| `DB_POOL_MAX_SIZE` | `20` | Maximum number of connections in pool |
+| `DB_COMMAND_TIMEOUT` | `60` | Command timeout in seconds |
+| `DB_KEEPALIVES_IDLE` | `30` | TCP keepalive idle seconds |
+| `DB_KEEPALIVES_INTERVAL` | `10` | TCP keepalive interval seconds |
+| `DB_KEEPALIVES_COUNT` | `5` | TCP keepalive retry count |
 
 **Example**:
 ```bash
-DB_POOL_MIN_SIZE=10
+DB_POOL_MIN_SIZE=5
 DB_POOL_MAX_SIZE=20
-DB_POOL_TIMEOUT=30
+DB_COMMAND_TIMEOUT=60
+DB_KEEPALIVES_IDLE=30
+DB_KEEPALIVES_INTERVAL=10
+DB_KEEPALIVES_COUNT=5
 ```
 
 **Notes**:
 - Pool health monitored every 30 seconds
 - 80% utilization triggers warnings
-- TCP keepalives: idle=30s, interval=10s, count=5
+- Uses RLock for thread-safe connection management
+- Exponential backoff retry mechanism for transient failures
+- TCP keepalives prevent firewall connection drops
 
 ## Redis Configuration
 
@@ -222,6 +231,33 @@ REDIS_DB=1  # Testing
 ```bash
 REDIS_PASSWORD=secure_redis_password
 ```
+
+### Advanced Redis Connection Pool Settings
+
+**Summary Table**:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_MAX_CONNECTIONS` | `10` | Maximum connection pool size |
+| `REDIS_SOCKET_TIMEOUT` | `5` | Socket timeout in seconds |
+| `REDIS_RETRY_ON_TIMEOUT` | `true` | Retry on timeout |
+| `REDIS_HEALTH_CHECK_INTERVAL` | `30` | Health check interval in seconds |
+| `REDIS_SOCKET_KEEPALIVE` | `true` | Enable socket keepalive |
+
+**Example**:
+```bash
+REDIS_MAX_CONNECTIONS=10
+REDIS_SOCKET_TIMEOUT=5
+REDIS_RETRY_ON_TIMEOUT=true
+REDIS_HEALTH_CHECK_INTERVAL=30
+REDIS_SOCKET_KEEPALIVE=true
+```
+
+**Notes**:
+- Connection pool shared across cache service instances
+- Exponential backoff retry mechanism (0.5s, 1.0s, 2.0s)
+- Health checks prevent using dead connections
+- Keepalive prevents connection drops
 
 ### Cache TTL Settings
 
@@ -307,6 +343,15 @@ LOG_LEVEL=WARNING  # Production
 ```
 
 ## WebSocket Configuration
+
+**Summary Table**:
+
+| Variable | Default | Validation | Production Recommendation |
+|----------|---------|------------|---------------------------|
+| `WS_PING_INTERVAL` | `30` | Integer 10-300 | 30 (prevents proxy timeouts) |
+| `WS_PING_TIMEOUT` | `10` | Integer 5-60 | 10 (quick failure detection) |
+| `WS_PUBLIC_URL` | `ws://localhost:9000/ws` | Valid WebSocket URL | Use `wss://` with actual frontend domain |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,...` | Comma-separated URLs | Set to actual frontend URLs (no wildcards) |
 
 ### WS_PING_INTERVAL
 
@@ -430,6 +475,154 @@ NODE_ENV=production
 - `development`: Development server, hot reload
 - `production`: Optimized build, minification
 - `test`: Test environment, mocks enabled
+
+## RSS Ingestion Service
+
+**Summary Table**:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RSS_BATCH_SIZE` | `50` | Number of articles to process in parallel |
+| `RSS_PARALLEL_WORKERS` | `4` | Number of parallel worker threads |
+| `RSS_MAX_RETRIES` | `3` | Maximum retry attempts for failed ingestions |
+| `RSS_DEFAULT_TTL` | `86400` | Cache TTL in seconds (24 hours) |
+| `RSS_MIN_DELAY` | `2.0` | Minimum delay between requests (seconds) |
+| `RSS_MAX_DELAY` | `10.0` | Maximum delay for exponential backoff (seconds) |
+| `RSS_USER_AGENT_ROTATION` | `true` | Enable user agent rotation |
+| `RSS_ENABLE_ENTITY_EXTRACTION` | `true` | Enable 5-W entity extraction |
+| `RSS_ENABLE_DEDUPLICATION` | `true` | Enable content deduplication (0.8 threshold) |
+| `RSS_ENABLE_WEBSOCKET_NOTIFICATIONS` | `true` | Enable real-time WebSocket notifications |
+
+### RSS_BATCH_SIZE
+
+**Description**: Number of articles to process in parallel per batch
+
+**Default**: `50`
+
+**Example**:
+```bash
+RSS_BATCH_SIZE=50  # Process 50 articles per batch
+```
+
+**Notes**:
+- Higher values increase throughput but use more memory
+- Recommended: 50-100 for production
+
+### RSS_PARALLEL_WORKERS
+
+**Description**: Number of parallel worker threads for RSS ingestion
+
+**Default**: `4`
+
+**Example**:
+```bash
+RSS_PARALLEL_WORKERS=4  # 4 concurrent workers
+```
+
+**Notes**:
+- Adjust based on CPU cores and network bandwidth
+- Recommended: 4-8 for most deployments
+
+### RSS_MAX_RETRIES
+
+**Description**: Maximum retry attempts for failed ingestions
+
+**Default**: `3`
+
+**Example**:
+```bash
+RSS_MAX_RETRIES=3
+```
+
+**Notes**:
+- Uses exponential backoff between retries
+- Prevents infinite retry loops
+
+### RSS_DEFAULT_TTL
+
+**Description**: Cache TTL for RSS articles in seconds
+
+**Default**: `86400` (24 hours)
+
+**Example**:
+```bash
+RSS_DEFAULT_TTL=86400  # 24 hours
+RSS_DEFAULT_TTL=3600   # 1 hour for frequently updated feeds
+```
+
+### RSS_MIN_DELAY
+
+**Description**: Minimum delay between requests to prevent rate limiting
+
+**Default**: `2.0` seconds
+
+**Example**:
+```bash
+RSS_MIN_DELAY=2.0  # 2 second minimum delay
+```
+
+**Notes**:
+- Part of anti-crawler strategy
+- Prevents rate limiting from RSS sources
+
+### RSS_MAX_DELAY
+
+**Description**: Maximum delay for exponential backoff
+
+**Default**: `10.0` seconds
+
+**Example**:
+```bash
+RSS_MAX_DELAY=10.0  # Max 10 second backoff
+```
+
+**Notes**:
+- Used during rate limit detection
+- Prevents excessive waiting
+
+### RSS_USER_AGENT_ROTATION
+
+**Description**: Enable user agent rotation to avoid detection
+
+**Default**: `true`
+
+**Example**:
+```bash
+RSS_USER_AGENT_ROTATION=true
+```
+
+### RSS_ENABLE_ENTITY_EXTRACTION
+
+**Description**: Enable 5-W (Who, What, Where, When, Why) entity extraction
+
+**Default**: `true`
+
+**Example**:
+```bash
+RSS_ENABLE_ENTITY_EXTRACTION=true
+```
+
+### RSS_ENABLE_DEDUPLICATION
+
+**Description**: Enable content deduplication with 0.8 similarity threshold
+
+**Default**: `true`
+
+**Example**:
+```bash
+RSS_ENABLE_DEDUPLICATION=true
+```
+
+### RSS_ENABLE_WEBSOCKET_NOTIFICATIONS
+
+**Description**: Enable real-time WebSocket notifications during RSS ingestion
+
+**Default**: `true`
+
+**Example**:
+```bash
+RSS_ENABLE_WEBSOCKET_NOTIFICATIONS=true
+```
 
 ## Feature Flags
 
