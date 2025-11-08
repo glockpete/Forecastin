@@ -263,7 +263,7 @@ class TestCachePerformance(PerformanceTestBase):
         test_data = {
             f"hierarchy:entity_{i}": {
                 "ancestors": [f"entity_{j}" for j in range(max(0, i-10), i)],
-                "path": f"root.entity_{j}.entity_{i}" if i > 0 else "root",
+                "path": f"root.entity_{i-1}.entity_{i}" if i > 0 else "root",
                 "depth": min(i, 10)
             }
             for i in range(10000)

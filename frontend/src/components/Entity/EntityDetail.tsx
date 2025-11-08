@@ -21,7 +21,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useEntity, Entity } from '../../hooks/useHierarchy';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { cn } from '../../utils/cn';
-import { getConfidence, getChildrenCount } from '@types/contracts.generated';
+import { getConfidence, getChildrenCount } from '../../types/contracts.generated';
 
 export const EntityDetail: React.FC = () => {
   const { activeEntity, setActiveEntity } = useUIStore();

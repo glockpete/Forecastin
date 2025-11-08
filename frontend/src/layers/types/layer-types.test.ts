@@ -9,7 +9,7 @@ import type {
   LayerData,
   VisualChannel,
   EntityDataPoint,
-  
+
   // New comprehensive types
   LayerVisConfig,
   EnhancedLayerConfig,
@@ -17,7 +17,7 @@ import type {
   FilterCondition,
   GeospatialFeatureFlags,
   HybridLayerState,
-  
+
   // Legacy compatibility types
   LegacyPointLayerConfig,
   LegacyPointLayerProps,
@@ -26,8 +26,10 @@ import type {
   BaseLayerConfig,
   VisualChannelConfig,
   ComplianceAuditEntry,
-  
-  // Type guards
+} from './layer-types';
+
+// Import type guards as values (they are functions, not types)
+import {
   isLayerData,
   isVisualChannel,
   isGPUFilterConfig,

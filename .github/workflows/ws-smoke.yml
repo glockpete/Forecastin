@@ -28,6 +28,32 @@ jobs:
       matrix:
         python-version: ['3.11']
 
+    # Database services for WebSocket tests
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       # WebSocket configuration for testing
       WS_PING_INTERVAL: "5"      # Faster pings for CI (vs 30s default)
@@ -81,6 +107,9 @@ jobs:
         working-directory: ./api
         env:
           PYTHONPATH: /home/runner/work/Forecastin/Forecastin/api
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379/0
+          TESTING: true
         run: |
           pytest tests/test_ws_echo.py -v \
             --tb=short \
@@ -92,6 +121,9 @@ jobs:
         working-directory: ./api
         env:
           PYTHONPATH: /home/runner/work/Forecastin/Forecastin/api
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379/0
+          TESTING: true
         run: |
           pytest tests/test_ws_health.py -v \
             --tb=short \
@@ -145,7 +177,7 @@ jobs:
         working-directory: ./api
         run: |
           echo "=== Linting WebSocket implementation ==="
-          ruff check main.py services/websocket_manager.py tests/test_ws_*.py --select E,F,W,C90 || true
+          ruff check main.py routers/websocket.py services/websocket_manager.py tests/test_ws_*.py --select E,F,W,C90 || true
 
       - name: Type checking (optional)
         working-directory: ./api
@@ -226,8 +258,8 @@ jobs:
           echo "- ✅ Integration Validation: ${{ needs.integration-validation.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Coverage:**" >> $GITHUB_STEP_SUMMARY
-          echo "- `/ws/echo` endpoint" >> $GITHUB_STEP_SUMMARY
-          echo "- `/ws/health` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- \`/ws/echo\` endpoint" >> $GITHUB_STEP_SUMMARY
+          echo "- \`/ws/health\` endpoint" >> $GITHUB_STEP_SUMMARY
           echo "- Server-side heartbeat configuration" >> $GITHUB_STEP_SUMMARY
           echo "- Close code tracking (prevent 1006)" >> $GITHUB_STEP_SUMMARY
           echo "- Configuration validation" >> $GITHUB_STEP_SUMMARY
