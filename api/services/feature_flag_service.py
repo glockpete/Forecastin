@@ -99,22 +99,22 @@ class UpdateFeatureFlagRequest(BaseModel):
 @dataclass
 class GeospatialFeatureFlags:
     """Geospatial-specific feature flags configuration."""
-    # Core geospatial features
-    ff_geospatial_layers: bool = False  # Enable geospatial layer system
-    ff_point_layer: bool = False       # Point layer implementation
-    ff_polygon_layer: bool = False     # Polygon layer implementation
-    ff_linestring_layer: bool = False  # Linestring layer implementation
-    ff_heatmap_layer: bool = False     # Heatmap layer implementation
-    
+    # Core geospatial features (standardized to ff.geo.* pattern)
+    ff_geo_layers_enabled: bool = False        # Enable geospatial layer system
+    ff_geo_point_layer_active: bool = False    # Point layer implementation
+    ff_geo_polygon_layer_active: bool = False  # Polygon layer implementation
+    ff_geo_linestring_layer_active: bool = False  # Linestring layer implementation
+    ff_geo_heatmap_layer_active: bool = False  # Heatmap layer implementation
+
     # Advanced features
-    ff_clustering_enabled: bool = False    # Point clustering
-    ff_gpu_filtering: bool = False         # GPU-based spatial filtering
-    ff_realtime_updates: bool = False      # Real-time layer updates
-    ff_websocket_layers: bool = False      # WebSocket layer integration
-    
+    ff_geo_clustering_enabled: bool = False    # Point clustering
+    ff_geo_gpu_rendering_enabled: bool = False # GPU-based spatial filtering
+    ff_geo_realtime_updates_enabled: bool = False  # Real-time layer updates
+    ff_geo_websocket_layers_enabled: bool = False  # WebSocket layer integration
+
     # Performance features
-    ff_layer_performance_monitoring: bool = True   # Performance tracking
-    ff_layer_audit_logging: bool = True            # Audit trail
+    ff_geo_performance_monitoring_enabled: bool = True   # Performance tracking
+    ff_geo_audit_logging_enabled: bool = True            # Audit trail
     
     # Rollout percentages for gradual enablement
     rollout_percentages: Dict[str, int] = field(default_factory=lambda: {
@@ -134,17 +134,17 @@ class GeospatialFeatureFlags:
     def get_enabled_features(self) -> Dict[str, bool]:
         """Get all enabled geospatial features."""
         return {
-            'geospatial_layers': self.ff_geospatial_layers and self.is_map_v1_enabled(),
-            'point_layer': self.ff_point_layer and self.ff_geospatial_layers,
-            'polygon_layer': self.ff_polygon_layer and self.ff_geospatial_layers,
-            'linestring_layer': self.ff_linestring_layer and self.ff_geospatial_layers,
-            'heatmap_layer': self.ff_heatmap_layer and self.ff_geospatial_layers,
-            'clustering': self.ff_clustering_enabled and self.ff_geospatial_layers,
-            'gpu_filtering': self.ff_gpu_filtering and self.ff_geospatial_layers,
-            'realtime_updates': self.ff_realtime_updates and self.ff_websocket_layers,
-            'websocket_layers': self.ff_websocket_layers and self.ff_geospatial_layers,
-            'performance_monitoring': self.ff_layer_performance_monitoring,
-            'audit_logging': self.ff_layer_audit_logging
+            'geospatial_layers': self.ff_geo_layers_enabled and self.is_map_v1_enabled(),
+            'point_layer': self.ff_geo_point_layer_active and self.ff_geo_layers_enabled,
+            'polygon_layer': self.ff_geo_polygon_layer_active and self.ff_geo_layers_enabled,
+            'linestring_layer': self.ff_geo_linestring_layer_active and self.ff_geo_layers_enabled,
+            'heatmap_layer': self.ff_geo_heatmap_layer_active and self.ff_geo_layers_enabled,
+            'clustering': self.ff_geo_clustering_enabled and self.ff_geo_layers_enabled,
+            'gpu_filtering': self.ff_geo_gpu_rendering_enabled and self.ff_geo_layers_enabled,
+            'realtime_updates': self.ff_geo_realtime_updates_enabled and self.ff_geo_websocket_layers_enabled,
+            'websocket_layers': self.ff_geo_websocket_layers_enabled and self.ff_geo_layers_enabled,
+            'performance_monitoring': self.ff_geo_performance_monitoring_enabled,
+            'audit_logging': self.ff_geo_audit_logging_enabled
         }
 
 
@@ -871,24 +871,24 @@ class FeatureFlagService:
         """
         # Check base dependency: ff.map_v1
         map_v1_enabled = await self.get_flag_with_rollout('ff.map_v1', user_id)
-        
-        # Check core geospatial flag
-        geospatial_layers_enabled = await self.get_flag_with_rollout('ff.geospatial_layers', user_id)
+
+        # Check core geospatial flag (standardized to ff.geo.* pattern)
+        geospatial_layers_enabled = await self.get_flag_with_rollout('ff.geo.layers_enabled', user_id)
         geospatial_layers_enabled = geospatial_layers_enabled and map_v1_enabled
-        
+
         # Check layer-specific flags
-        point_layer = await self.get_flag_with_rollout('ff.point_layer', user_id)
-        polygon_layer = await self.get_flag_with_rollout('ff.polygon_layer', user_id)
-        linestring_layer = await self.get_flag_with_rollout('ff.linestring_layer', user_id)
-        heatmap_layer = await self.get_flag_with_rollout('ff.heatmap_layer', user_id)
-        
+        point_layer = await self.get_flag_with_rollout('ff.geo.point_layer_active', user_id)
+        polygon_layer = await self.get_flag_with_rollout('ff.geo.polygon_layer_active', user_id)
+        linestring_layer = await self.get_flag_with_rollout('ff.geo.linestring_layer_active', user_id)
+        heatmap_layer = await self.get_flag_with_rollout('ff.geo.heatmap_layer_active', user_id)
+
         # Check advanced features
-        clustering = await self.get_flag_with_rollout('ff.clustering_enabled', user_id)
-        gpu_filtering = await self.get_flag_with_rollout('ff.gpu_filtering', user_id)
-        
+        clustering = await self.get_flag_with_rollout('ff.geo.clustering_enabled', user_id)
+        gpu_filtering = await self.get_flag_with_rollout('ff.geo.gpu_rendering_enabled', user_id)
+
         # Check real-time features
-        websocket_layers = await self.get_flag_with_rollout('ff.websocket_layers', user_id)
-        realtime_updates = await self.get_flag_with_rollout('ff.realtime_updates', user_id)
+        websocket_layers = await self.get_flag_with_rollout('ff.geo.websocket_layers_enabled', user_id)
+        realtime_updates = await self.get_flag_with_rollout('ff.geo.realtime_updates_enabled', user_id)
         
         # Build dependency-aware status
         return {
@@ -929,17 +929,17 @@ class FeatureFlagService:
             List of created feature flags
         """
         geospatial_flags_config = [
-            ('ff.geospatial_layers', 'Enable geospatial layer system (base dependency)', False, 0),
-            ('ff.point_layer', 'Enable point layer implementation', False, 0),
-            ('ff.polygon_layer', 'Enable polygon layer implementation', False, 0),
-            ('ff.linestring_layer', 'Enable linestring layer implementation', False, 0),
-            ('ff.heatmap_layer', 'Enable heatmap layer implementation', False, 0),
-            ('ff.clustering_enabled', 'Enable point clustering feature', False, 0),
-            ('ff.gpu_filtering', 'Enable GPU-based spatial filtering', False, 0),
-            ('ff.websocket_layers', 'Enable WebSocket layer integration', False, 0),
-            ('ff.realtime_updates', 'Enable real-time layer updates', False, 0),
-            ('ff.layer_performance_monitoring', 'Enable layer performance tracking', True, 100),
-            ('ff.layer_audit_logging', 'Enable layer audit trail', True, 100)
+            ('ff.geo.layers_enabled', 'Enable geospatial layer system (base dependency)', False, 0),
+            ('ff.geo.point_layer_active', 'Enable point layer implementation', False, 0),
+            ('ff.geo.polygon_layer_active', 'Enable polygon layer implementation', False, 0),
+            ('ff.geo.linestring_layer_active', 'Enable linestring layer implementation', False, 0),
+            ('ff.geo.heatmap_layer_active', 'Enable heatmap layer implementation', False, 0),
+            ('ff.geo.clustering_enabled', 'Enable point clustering feature', False, 0),
+            ('ff.geo.gpu_rendering_enabled', 'Enable GPU-based spatial rendering', False, 0),
+            ('ff.geo.websocket_layers_enabled', 'Enable WebSocket layer integration', False, 0),
+            ('ff.geo.realtime_updates_enabled', 'Enable real-time layer updates', False, 0),
+            ('ff.geo.performance_monitoring_enabled', 'Enable layer performance tracking', True, 100),
+            ('ff.geo.audit_logging_enabled', 'Enable layer audit trail', True, 100)
         ]
         
         created_flags = []
@@ -998,10 +998,10 @@ class FeatureFlagService:
         
         # Define flag groups by rollout stage
         stage_flags = {
-            'core_layers': ['ff.geospatial_layers'],
-            'point_layers': ['ff.point_layer', 'ff.polygon_layer', 'ff.linestring_layer'],
-            'websocket_integration': ['ff.websocket_layers', 'ff.realtime_updates'],
-            'advanced_features': ['ff.clustering_enabled', 'ff.gpu_filtering', 'ff.heatmap_layer']
+            'core_layers': ['ff.geo.layers_enabled'],
+            'point_layers': ['ff.geo.point_layer_active', 'ff.geo.polygon_layer_active', 'ff.geo.linestring_layer_active'],
+            'websocket_integration': ['ff.geo.websocket_layers_enabled', 'ff.geo.realtime_updates_enabled'],
+            'advanced_features': ['ff.geo.clustering_enabled', 'ff.geo.gpu_rendering_enabled', 'ff.geo.heatmap_layer_active']
         }
         
         if rollout_stage not in stage_flags:
@@ -1154,15 +1154,15 @@ class FeatureFlagService:
             Dictionary indicating success/failure for each flag
         """
         geospatial_flag_names = [
-            'ff.geospatial_layers',
-            'ff.point_layer',
-            'ff.polygon_layer',
-            'ff.linestring_layer',
-            'ff.heatmap_layer',
-            'ff.clustering_enabled',
-            'ff.gpu_filtering',
-            'ff.websocket_layers',
-            'ff.realtime_updates'
+            'ff.geo.layers_enabled',
+            'ff.geo.point_layer_active',
+            'ff.geo.polygon_layer_active',
+            'ff.geo.linestring_layer_active',
+            'ff.geo.heatmap_layer_active',
+            'ff.geo.clustering_enabled',
+            'ff.geo.gpu_rendering_enabled',
+            'ff.geo.websocket_layers_enabled',
+            'ff.geo.realtime_updates_enabled'
         ]
         
         results = {}
