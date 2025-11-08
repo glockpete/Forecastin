@@ -1,0 +1,58 @@
+# Railway-optimized requirements (lightweight, no Prophet/ML packages)
+# Build time: ~3-5 minutes
+
+# FastAPI and ASGI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database
+psycopg[binary]==3.2.3
+psycopg2-binary==2.9.11
+SQLAlchemy==2.0.44
+asyncpg==0.29.0
+
+# Serialization (CRITICAL: orjson required for WebSocket in main.py)
+orjson==3.9.10
+ujson==5.9.0
+
+# Caching and Redis (L2 Cache Tier)
+redis==5.0.1
+hiredis==2.2.3
+
+# HTTP Client and API
+httpx==0.25.2
+aiohttp==3.9.1
+
+# WebSocket Support
+websockets==12.0
+
+# Configuration and Environment
+pydantic==2.6.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# File Operations
+aiofiles==23.2.1
+
+# Date/Time Utilities
+python-dateutil==2.8.2
+
+# Logging and Monitoring
+structlog==23.2.0
+
+# Geospatial (for PostGIS integration)
+shapely==2.1.2
+
+# RSS Processing and HTML Parsing
+beautifulsoup4==4.12.2
+trafilatura==1.6.0
+
+# Note: Excludes heavy dependencies for faster Railway builds:
+# - prophet (10-15 min build time)
+# - pandas, numpy, pyarrow (data science packages)
+# - pytest, linting tools (dev dependencies)
+# - locust, profiling tools (testing dependencies)
+# - security scanning tools (handled in CI/CD)
+#
+# These are not needed for core API functionality.
+# Add them via requirements.txt if ML forecasting features are required.
