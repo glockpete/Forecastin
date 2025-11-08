@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Repository Audit & Documentation Consolidation (2025-11-08)**:
+  - Comprehensive documentation audit with 84 markdown files analysed
+  - `checks/help_docs_consolidation.md` - Consolidation report with 15 actions (18% doc reduction)
+  - `checks/gap_map.md` - 30 identified gaps with code-only vs requires-stack classification
+  - 3 PR-ready patches: performance metrics alignment, migration path fix, API endpoint updates
+  - Complete backend API map (33 routes, 14 services, 13 DB tables)
+  - Complete frontend structure map (hybrid state management, geospatial layers, WebSocket integration)
 - Documentation update: Fixed file path references and API endpoint documentation
 - Comprehensive developer documentation (CONTRIBUTING.md, DEVELOPER_SETUP.md, TESTING_GUIDE.md, etc.)
 - **RSS Service Integration**: Complete RSS ingestion service now integrated with API
@@ -18,11 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Services integrated: route processor, entity extractor, deduplicator, anti-crawler, WebSocket notifier
 
 ### Changed
-- Updated GOLDEN_SOURCE.md with corrected API endpoint documentation
-- Updated AGENTS.md with accurate migration file paths
+- **Documentation Consolidation Plan**:
+  - Proposed move: `docs/reports/SCOUT_LOG.md` → `checks/SCOUT_LOG.md`
+  - Proposed removal: 8 redundant summary/update files
+  - Proposed merge: 6 files into canonical documentation
+  - Updated GOLDEN_SOURCE.md with corrected API endpoint documentation
+  - Updated AGENTS.md with accurate migration file paths (migration 003 does not exist, use 001)
 
 ### Fixed
 - Corrected documentation file references (removed non-existent migration 003)
+- **Performance Metrics Drift**: README.md now shows actual measured performance (3.46ms) instead of projected (0.07ms)
+- **REPO_MAP Completeness**: Added missing RSS endpoints to API route documentation
 - **TypeScript Strict Type Checking**: Fixed all TypeScript errors in layer infrastructure (PR #22, #23)
   - Fixed 103 type errors across 8 layer files
   - Added `override` modifiers for proper inheritance
@@ -34,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - RSS ingestion service code existed but was not connected to API endpoints
   - Added complete API endpoint integration
   - Service now initializes automatically with cache, realtime, and hierarchy services
+
+### Documentation
+- **Audit Findings (2025-11-08)**:
+  - 30 gaps identified (28 code-only, 2 requires-stack)
+  - 15 documentation files flagged for consolidation
+  - 6 undocumented environment variables found
+  - 5 contract drift issues documented (3 code-only fixable)
+  - Performance SLO regression investigation required (ancestor resolution: 3.46ms vs 1.25ms target)
 
 ## [0.9.0] - 2025-11-07 (Current Development)
 
