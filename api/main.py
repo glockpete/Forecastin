@@ -15,7 +15,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 # Import custom modules (absolute imports)
 from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
@@ -33,6 +33,7 @@ from services.scenario_service import (
 )
 from services.automated_refresh_service import AutomatedRefreshService, initialize_automated_refresh_service
 from services.rss.rss_ingestion_service import RSSIngestionService, RSSIngestionConfig
+from models.websocket_schemas import validate_websocket_message, validate_outgoing_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -684,11 +685,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"[WS_DIAGNOSTICS] Message received from {client_id}: length={len(data)}, latency_ms={receive_duration_ms:.2f}")
                 logger.debug(f"[WS_DIAGNOSTICS] Message content preview: {data[:100]}{'...' if len(data) > 100 else ''}")
                 
-                # Parse message
+                # Parse and validate message
                 try:
-                    message = orjson.loads(data)
-                    message_type = message.get('type', 'unknown')
-                    
+                    raw_message = orjson.loads(data)
+
+                    # Validate incoming message with Pydantic schemas
+                    try:
+                        validated_message = validate_websocket_message(raw_message)
+                        message_type = validated_message.type
+                        logger.debug(f"[WS_VALIDATION] Message validated successfully: type={message_type}")
+                    except (ValueError, ValidationError) as validation_error:
+                        logger.error(f"[WS_VALIDATION] Message validation failed from {client_id}: {validation_error}")
+                        response = {
+                            "type": "error",
+                            "error": "Message validation failed",
+                            "details": {"validation_error": str(validation_error)},
+                            "timestamp": time.time()
+                        }
+                        await connection_manager.send_personal_message(response, client_id)
+                        continue
+
                     # Handle ping/pong keepalive
                     if message_type == 'ping':
                         pong_response = {
@@ -696,19 +712,21 @@ async def websocket_endpoint(websocket: WebSocket):
                             "timestamp": time.time(),
                             "client_id": client_id
                         }
+                        # Validate outgoing message
+                        pong_response = validate_outgoing_message(pong_response)
                         await connection_manager.send_personal_message(pong_response, client_id)
-                        logger.debug(f"[WS_DIAGNOSTICS] Sent pong response to {client_id}")
+                        logger.debug(f"[WS_DIAGNOSTICS] Sent validated pong response to {client_id}")
                         continue
-                    
+
                     # Handle other message types (echo for testing)
                     response = {
                         "type": "echo",
-                        "data": message,
+                        "data": raw_message,
                         "timestamp": time.time(),
                         "client_id": client_id,
                         "server_processing_ms": (time.time() - receive_start_time) * 1000
                     }
-                    
+
                 except Exception as e:
                     logger.error(f"[WS_DIAGNOSTICS] Failed to parse message from {client_id}: {e}")
                     response = {
