@@ -134,7 +134,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = React.memo(({
 
       // Initialize WebSocket integration
       wsIntegrationRef.current = new LayerWebSocketIntegration({
-        url: process.env.REACT_APP_WS_URL || 'ws://localhost:9000/ws',
+        url: import.meta.env.VITE_WS_URL || 'ws://localhost:9000/ws',
         onLayerMessage: handleLayerMessage,
         onEntityUpdate: handleEntityUpdate,
         onBatchUpdate: handleBatchUpdate,
@@ -513,7 +513,7 @@ export const GeospatialView: React.FC<GeospatialViewProps> = React.memo(({
         </div>
 
         {/* Performance overlay (development only) */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.MODE === 'development' && (
           <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 text-xs">
             <div className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Performance</div>
             <div className="space-y-1 text-gray-600 dark:text-gray-400">

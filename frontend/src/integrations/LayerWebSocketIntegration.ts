@@ -665,7 +665,7 @@ export class LayerWebSocketIntegration {
     }
     
     // Output to console for development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.MODE === 'development') {
       console.log(`[LayerAudit] ${auditEntry.event}:`, auditEntry.details);
     }
   }
