@@ -1,0 +1,256 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Forecastin Geopolitical Intelligence Platform API",
+    "version": "1.0.0",
+    "description": "FastAPI backend for geopolitical forecasting with STEEP analysis framework",
+    "contact": {
+      "name": "Forecastin Team"
+    },
+    "x-generated": {
+      "timestamp": "2025-11-08T17:44:57.620358",
+      "source": "minimal schema generator"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development server"
+    },
+    {
+      "url": "https://api.forecastin.app",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check if the API is running",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v3/steep": {
+      "get": {
+        "summary": "Get STEEP Analysis Context",
+        "description": "Retrieve STEEP analysis context for an entity path",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Entity path (LTREE format)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "STEEP analysis context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "factors": {
+                      "type": "array"
+                    },
+                    "confidence": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "steep"
+        ]
+      }
+    },
+    "/api/v3/scenarios/{path}/analysis": {
+      "get": {
+        "summary": "Get Multi-Factor Analysis",
+        "description": "Get multi-factor analysis for a scenario",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Scenario path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/api/v6/scenarios": {
+      "post": {
+        "summary": "Create Scenario",
+        "description": "Create a new scenario with confidence scoring",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "factors": {
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scenario created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "scenarios"
+        ]
+      }
+    },
+    "/api/hierarchy/breadcrumbs": {
+      "get": {
+        "summary": "Get Breadcrumbs",
+        "description": "Get breadcrumb navigation for an entity path",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Entity path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Breadcrumb items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "entityId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "hierarchy"
+        ]
+      }
+    },
+    "/ws": {
+      "get": {
+        "summary": "WebSocket Connection",
+        "description": "Establish WebSocket connection for real-time updates",
+        "responses": {
+          "101": {
+            "description": "WebSocket connection established"
+          }
+        },
+        "tags": [
+          "websocket"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "securitySchemes": {}
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "steep",
+      "description": "STEEP analysis framework"
+    },
+    {
+      "name": "scenarios",
+      "description": "Scenario planning workbench"
+    },
+    {
+      "name": "hierarchy",
+      "description": "Hierarchical navigation"
+    },
+    {
+      "name": "websocket",
+      "description": "Real-time WebSocket updates"
+    }
+  ]
+}

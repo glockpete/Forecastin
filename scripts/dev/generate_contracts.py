@@ -221,7 +221,7 @@ def main():
     project_root = script_dir.parent.parent
 
     backend_dir = project_root
-    output_file = project_root / 'types' / 'contracts.generated.ts'
+    output_file = project_root / 'frontend' / 'src' / 'types' / 'contracts.generated.ts'
 
     print("=== Contract Generation Starting ===")
     print(f"Backend directory: {backend_dir}")

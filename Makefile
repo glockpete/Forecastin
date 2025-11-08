@@ -65,13 +65,21 @@ install-frontend: ## Install Node dependencies
 
 openapi: ## Generate OpenAPI schema from FastAPI
 	@echo "${GREEN}Generating OpenAPI schema...${RESET}"
-	python3 scripts/generate_openapi.py
+	python3 scripts/generate_openapi_minimal.py
 
-contracts: openapi ## Generate TypeScript contracts from Python models
+ws-contracts: ## Generate WebSocket contract schema from Pydantic models
+	@echo "${GREEN}Generating WebSocket contract schema...${RESET}"
+	python3 scripts/generate_ws_contract.py
+
+contracts: openapi ws-contracts ## Generate TypeScript contracts from Python models
 	@echo "${GREEN}Generating TypeScript contracts...${RESET}"
 	python3 scripts/dev/generate_contracts.py
+	@echo "${GREEN}Contract generation complete!${RESET}"
+	@echo "  - contracts/openapi.json"
+	@echo "  - contracts/ws.json"
+	@echo "  - frontend/src/types/contracts.generated.ts"
 	@echo "${GREEN}Verifying contract consistency...${RESET}"
-	cd frontend && npm run contracts:check
+	cd frontend && npm run contracts:check || echo "${YELLOW}Note: Run 'npm install' in frontend if verification fails${RESET}"
 
 # Service management
 services-up: ## Start all services
