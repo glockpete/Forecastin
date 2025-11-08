@@ -112,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/build/
+          path: frontend/dist/
           retention-days: 7
 
   # Optional: Add end-to-end tests that require both frontend and backend
