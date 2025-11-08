@@ -25,10 +25,10 @@ const colors = {
 };
 
 interface FeatureFlagConfig {
-  ff_geospatial_enabled: boolean;
-  ff_point_layer_enabled: boolean;
-  ff_gpu_rendering_enabled?: boolean;
-  ff_websocket_layers_enabled?: boolean;
+  'ff.geo.layers_enabled': boolean;
+  'ff.geo.point_layer_active': boolean;
+  'ff.geo.gpu_rendering_enabled'?: boolean;
+  'ff.geo.websocket_layers_enabled'?: boolean;
   rollout_percentages?: {
     core_layers?: number;
     point_layers?: number;
@@ -51,10 +51,10 @@ function loadFeatureFlags(): FeatureFlagConfig {
 
   // Mock config based on environment or defaults
   return {
-    ff_geospatial_enabled: process.env.REACT_APP_FF_GEOSPATIAL === 'true' || true,
-    ff_point_layer_enabled: process.env.REACT_APP_FF_POINT_LAYER === 'true' || true,
-    ff_gpu_rendering_enabled: process.env.REACT_APP_FF_GPU_RENDERING === 'true' || true,
-    ff_websocket_layers_enabled: process.env.REACT_APP_FF_WS_LAYERS === 'true' || true,
+    'ff.geo.layers_enabled': process.env.REACT_APP_FF_GEOSPATIAL === 'true' || true,
+    'ff.geo.point_layer_active': process.env.REACT_APP_FF_POINT_LAYER === 'true' || true,
+    'ff.geo.gpu_rendering_enabled': process.env.REACT_APP_FF_GPU_RENDERING === 'true' || true,
+    'ff.geo.websocket_layers_enabled': process.env.REACT_APP_FF_WS_LAYERS === 'true' || true,
     rollout_percentages: {
       core_layers: parseInt(process.env.REACT_APP_FF_CORE_ROLLOUT || '25', 10),
       point_layers: parseInt(process.env.REACT_APP_FF_POINT_ROLLOUT || '25', 10),
@@ -72,24 +72,24 @@ function validateDependencies(config: FeatureFlagConfig): {
 } {
   const errors: string[] = [];
 
-  // Rule 1: If point_layer_enabled, then geospatial_enabled must be true
-  if (config.ff_point_layer_enabled && !config.ff_geospatial_enabled) {
+  // Rule 1: If point_layer_active, then layers_enabled must be true
+  if (config['ff.geo.point_layer_active'] && !config['ff.geo.layers_enabled']) {
     errors.push(
-      'DEPENDENCY VIOLATION: ff_point_layer_enabled requires ff_geospatial_enabled to be true'
+      'DEPENDENCY VIOLATION: ff.geo.point_layer_active requires ff.geo.layers_enabled to be true'
     );
   }
 
-  // Rule 2: If gpu_rendering_enabled, then geospatial_enabled must be true
-  if (config.ff_gpu_rendering_enabled && !config.ff_geospatial_enabled) {
+  // Rule 2: If gpu_rendering_enabled, then layers_enabled must be true
+  if (config['ff.geo.gpu_rendering_enabled'] && !config['ff.geo.layers_enabled']) {
     errors.push(
-      'DEPENDENCY VIOLATION: ff_gpu_rendering_enabled requires ff_geospatial_enabled to be true'
+      'DEPENDENCY VIOLATION: ff.geo.gpu_rendering_enabled requires ff.geo.layers_enabled to be true'
     );
   }
 
-  // Rule 3: If websocket_layers_enabled, then point_layer_enabled must be true
-  if (config.ff_websocket_layers_enabled && !config.ff_point_layer_enabled) {
+  // Rule 3: If websocket_layers_enabled, then point_layer_active must be true
+  if (config['ff.geo.websocket_layers_enabled'] && !config['ff.geo.point_layer_active']) {
     errors.push(
-      'DEPENDENCY VIOLATION: ff_websocket_layers_enabled requires ff_point_layer_enabled to be true'
+      'DEPENDENCY VIOLATION: ff.geo.websocket_layers_enabled requires ff.geo.point_layer_active to be true'
     );
   }
 
@@ -139,10 +139,10 @@ function validateDependencies(config: FeatureFlagConfig): {
 function printConfig(config: FeatureFlagConfig): void {
   console.log(`${colors.bold}Feature Flag Configuration${colors.reset}`);
   console.log('─'.repeat(50));
-  console.log(`ff_geospatial_enabled:        ${formatBoolean(config.ff_geospatial_enabled)}`);
-  console.log(`ff_point_layer_enabled:       ${formatBoolean(config.ff_point_layer_enabled)}`);
-  console.log(`ff_gpu_rendering_enabled:     ${formatBoolean(config.ff_gpu_rendering_enabled)}`);
-  console.log(`ff_websocket_layers_enabled:  ${formatBoolean(config.ff_websocket_layers_enabled)}`);
+  console.log(`ff.geo.layers_enabled:        ${formatBoolean(config['ff.geo.layers_enabled'])}`);
+  console.log(`ff.geo.point_layer_active:    ${formatBoolean(config['ff.geo.point_layer_active'])}`);
+  console.log(`ff.geo.gpu_rendering_enabled: ${formatBoolean(config['ff.geo.gpu_rendering_enabled'])}`);
+  console.log(`ff.geo.websocket_layers_enabled: ${formatBoolean(config['ff.geo.websocket_layers_enabled'])}`);
 
   if (config.rollout_percentages) {
     console.log('\nRollout Percentages:');

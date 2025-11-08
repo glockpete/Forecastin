@@ -165,6 +165,7 @@ class ContractGenerator:
             self.backend_dir / 'api' / 'services' / 'scenario_service.py',
             self.backend_dir / 'api' / 'services' / 'hierarchical_forecast_service.py',
             self.backend_dir / 'api' / 'main.py',
+            self.backend_dir / 'api' / 'models' / 'websocket_schemas.py',  # WebSocket validation schemas
         ]
 
         for file_path in service_files:
