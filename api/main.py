@@ -45,6 +45,9 @@ ALLOWED_ORIGINS = os.getenv(
 
 logger.info(f"[CORS_CONFIG] Configured CORS for origins: {ALLOWED_ORIGINS}")
 
+# Re-export WebSocket configuration and classes for backward compatibility with tests
+from routers.websocket import WS_PING_INTERVAL, WS_PING_TIMEOUT, ConnectionManager
+
 # Global instances
 hierarchy_resolver: Optional[OptimizedHierarchyResolver] = None
 cache_service: Optional[CacheService] = None
