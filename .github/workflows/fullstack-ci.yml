@@ -1,0 +1,197 @@
+name: Fullstack CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    # Uncomment below to add PostgreSQL service for backend tests
+    # services:
+    #   postgres:
+    #     image: postgres:14
+    #     env:
+    #       POSTGRES_USER: test
+    #       POSTGRES_PASSWORD: test
+    #       POSTGRES_DB: testdb
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run backend tests
+        run: |
+          cd api
+          pytest tests/ -v --cov=. --cov-report=term-missing
+        env:
+          # Add any environment variables needed for tests
+          TESTING: true
+          # DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+
+      - name: Upload coverage reports
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: api/.coverage
+          retention-days: 7
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: ['18']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci --legacy-peer-deps
+
+      - name: TypeScript type check
+        run: |
+          cd frontend
+          npm run typecheck
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+
+  # Optional: Add end-to-end tests that require both frontend and backend
+  # e2e-tests:
+  #   runs-on: ubuntu-latest
+  #   needs: [backend-tests, frontend-tests]
+  #
+  #   services:
+  #     postgres:
+  #       image: postgres:14
+  #       env:
+  #         POSTGRES_USER: test
+  #         POSTGRES_PASSWORD: test
+  #         POSTGRES_DB: testdb
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.11'
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '18'
+  #
+  #     - name: Install backend dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  #
+  #     - name: Install frontend dependencies
+  #       run: |
+  #         cd frontend
+  #         npm ci --legacy-peer-deps
+  #
+  #     - name: Start backend server
+  #       run: |
+  #         cd api
+  #         uvicorn main:app --host 0.0.0.0 --port 8000 &
+  #       env:
+  #         DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+  #
+  #     - name: Start frontend dev server
+  #       run: |
+  #         cd frontend
+  #         npm start &
+  #
+  #     - name: Wait for servers to be ready
+  #       run: |
+  #         npx wait-on http://localhost:8000/health http://localhost:3000
+  #
+  #     - name: Run E2E tests
+  #       run: |
+  #         # Add your e2e test command here
+  #         # e.g., npx playwright test or npx cypress run
+  #         echo "E2E tests would run here"
+
+  # Summary job to ensure all required jobs pass
+  ci-success:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [ "${{ needs.backend-tests.result }}" != "success" ] || [ "${{ needs.frontend-tests.result }}" != "success" ]; then
+            echo "One or more required jobs failed"
+            exit 1
+          fi
+          echo "All CI jobs passed successfully!"
