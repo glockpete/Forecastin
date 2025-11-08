@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import custom modules (absolute imports)
+from config_validation import validate_environment_variables, print_config_summary, ConfigValidationError
 from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
 from services.cache_service import CacheService
 from services.database_manager import DatabaseManager
@@ -70,11 +71,17 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Forecastin API - Phase 0 initialization")
 
     try:
-        # Initialize database manager with proper configuration
-        database_url = os.getenv('DATABASE_URL')
-        if not database_url:
-            database_host = os.getenv('DATABASE_HOST', 'localhost')
-            database_url = f"postgresql://forecastin:forecastin_password@{database_host}:5432/forecastin"
+        # STEP 1: Validate environment variables (fail fast if misconfigured)
+        try:
+            config = validate_environment_variables(strict=False)
+            print_config_summary(config, mask_secrets=True)
+        except ConfigValidationError as e:
+            logger.error(f"Configuration validation failed: {e}")
+            logger.error("Fix your environment variables and restart the application")
+            raise
+
+        # STEP 2: Initialize database manager with validated configuration
+        database_url = config['DATABASE_URL']
 
         # Try to initialize database manager with graceful degradation
         try:

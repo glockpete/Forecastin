@@ -6,6 +6,7 @@ Implements automatic retry and recovery for database, Redis, and WebSocket conne
 
 import asyncio
 import logging
+import os
 import time
 from typing import Dict, Any, Callable, Optional
 import aioredis
@@ -24,9 +25,9 @@ class ConnectionRecoveryManager:
     """Manages connection recovery with automatic retry mechanisms"""
     
     def __init__(self):
-        self.database_url = "postgresql://forecastin:forecastin_password@localhost:5432/forecastin"
-        self.redis_url = "redis://localhost:6379/0"
-        self.api_base_url = "http://localhost:9000"
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql://forecastin:@localhost:5432/forecastin')
+        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+        self.api_base_url = os.getenv('API_BASE_URL', 'http://localhost:9000')
         
         # Recovery configuration
         self.max_retry_attempts = 5

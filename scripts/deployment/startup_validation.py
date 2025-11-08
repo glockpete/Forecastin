@@ -7,6 +7,7 @@ before starting the application.
 
 import asyncio
 import logging
+import os
 import sys
 import time
 from typing import Dict, Any, List
@@ -27,10 +28,10 @@ class StartupValidator:
     def __init__(self, max_retries: int = 5, retry_delay: int = 5):
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.database_url = "postgresql://forecastin:forecastin_password@localhost:5432/forecastin"
-        self.redis_url = "redis://localhost:6379/0"
-        self.api_base_url = "http://localhost:9000"
-        self.frontend_url = "http://localhost:3000"
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql://forecastin:@localhost:5432/forecastin')
+        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+        self.api_base_url = os.getenv('API_BASE_URL', 'http://localhost:9000')
+        self.frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         
         # Connection objects
         self.db_pool = None
