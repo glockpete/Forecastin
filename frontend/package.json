@@ -2,6 +2,7 @@
   "name": "forecastin-frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@deck.gl/core": "^9.2.2",
     "@deck.gl/geo-layers": "^9.2.2",
