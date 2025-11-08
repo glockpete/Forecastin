@@ -141,7 +141,7 @@ async def check_feature_flag_enabled(flag_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/metrics")
+@router.get("/feature-metrics")
 async def get_feature_flag_metrics():
     """Get feature flag service performance metrics"""
     try:

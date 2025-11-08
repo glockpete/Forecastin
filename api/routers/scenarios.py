@@ -182,14 +182,6 @@ async def create_scenario(scenario_data: Dict[str, Any]):
             updated_at=time.time()
         )
 
-        # Initialize multi-factor confidence scoring
-        factors = {
-            "geospatial": scenario_data.get("geospatial_confidence", 0.7),
-            "temporal": scenario_data.get("temporal_confidence", 0.7),
-            "entity": scenario_data.get("entity_confidence", 0.7),
-            "risk": scenario_data.get("risk_confidence", 0.7)
-        }
-
         # Store scenario (would integrate with database in production)
         logger.info(f"Created scenario: {scenario.scenario_id} with path: {scenario.path}")
 

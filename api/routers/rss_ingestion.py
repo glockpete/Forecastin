@@ -6,7 +6,7 @@ Handles RSS feed ingestion, batch processing, and monitoring
 import logging
 import time
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 router = APIRouter(

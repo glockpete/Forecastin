@@ -262,7 +262,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         error_time = time.time()
         logger.error(f"[WS_DIAGNOSTICS] Failed to accept WebSocket connection: {e}")
-        logger.error(f"[WS_DIAGNOSTICS] Failed connection details - error_type: {type(e).__name__}")
+        logger.error(f"[WS_DIAGNOSTICS] Failed connection details - error_type: {type(e).__name__}, duration_ms={(error_time - connection_start_time)*1000:.2f}")
         logger.info(f"[WS_DIAGNOSTICS] ===== CONNECTION ATTEMPT END (FAILED) =====")
 
     finally:
@@ -300,7 +300,7 @@ async def websocket_echo_endpoint(websocket: WebSocket):
     x_forwarded_for = headers.get('x-forwarded-for', 'none')
     x_forwarded_proto = headers.get('x-forwarded-proto', 'none')
 
-    logger.info(f"[WS_ECHO] Connection from {client_ip}, origin={origin}, x-forwarded-for={x_forwarded_for}")
+    logger.info(f"[WS_ECHO] Connection from {client_ip}, origin={origin}, x-forwarded-for={x_forwarded_for}, x-forwarded-proto={x_forwarded_proto}")
 
     # Origin validation
     if origin != "no_origin" and origin not in ALLOWED_ORIGINS and "chrome-extension://" not in origin:
