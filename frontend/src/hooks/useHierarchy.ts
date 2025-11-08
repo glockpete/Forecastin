@@ -6,15 +6,19 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
-import {
+import type {
   Entity,
-  HierarchyNode,
   BreadcrumbItem,
-  HierarchyResponse,
+  HierarchyResponse} from '../types';
+import {
+  HierarchyNode,
   EntityType,
   PathString,
-  fromEntityId,
+  toEntityId,
 } from '../types';
+
+// Re-export Entity type for components
+export type { Entity };
 
 // API base URL
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:9000/api';
@@ -58,7 +62,7 @@ export const useRootHierarchy = () => {
 };
 
 // Fetch child entities for a specific parent (lazy loading)
-export const useChildren = (parentPath: string, depth: number, enabled: boolean = true) => {
+export const useChildren = (parentPath: string, depth: number, enabled = true) => {
   return useQuery({
     queryKey: hierarchyKeys.children(parentPath, depth),
     queryFn: async (): Promise<HierarchyResponse> => {
@@ -112,7 +116,7 @@ export const useEntity = (id: string) => {
 };
 
 // Search entities with filters
-export const useSearchEntities = (query: string, filters?: any, enabled: boolean = true) => {
+export const useSearchEntities = (query: string, filters?: any, enabled = true) => {
   return useQuery({
     queryKey: hierarchyKeys.search(query, filters),
     queryFn: async (): Promise<HierarchyResponse> => {

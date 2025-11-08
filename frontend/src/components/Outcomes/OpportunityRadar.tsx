@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, Clock } from 'lucide-react';
-import { OpportunityRadarProps, Opportunity } from '../../types/outcomes';
+import type { OpportunityRadarProps, Opportunity } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 
 const OpportunityCard: React.FC<{

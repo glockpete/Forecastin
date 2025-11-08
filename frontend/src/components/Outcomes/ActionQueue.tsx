@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { CheckCircle, Circle, Clock, XCircle, AlertCircle } from 'lucide-react';
-import { ActionQueueProps, Action } from '../../types/outcomes';
+import type { ActionQueueProps, Action } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 import { useUpdateActionStatus } from '../../hooks/useOutcomes';
 

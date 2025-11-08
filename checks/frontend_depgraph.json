@@ -1,0 +1,205 @@
+{
+  "meta": {
+    "generated": "2025-11-07",
+    "tool": "manual-analysis",
+    "note": "Simplified module-level dependency graph. Full graph requires ts-morph or madge."
+  },
+  "modules": {
+    "layers": {
+      "path": "frontend/src/layers",
+      "files": 13,
+      "loc": 7846,
+      "exports": [
+        "BaseLayer",
+        "PointLayer",
+        "PolygonLayer",
+        "LinestringLayer",
+        "GeoJsonLayer",
+        "LayerRegistry",
+        "LayerData",
+        "VisualChannel",
+        "GPUFilterConfig"
+      ],
+      "imports_from": ["types", "utils"],
+      "imported_by": [
+        "handlers",
+        "integrations",
+        "components/Map",
+        "hooks"
+      ]
+    },
+    "types": {
+      "path": "frontend/src/types",
+      "files": 3,
+      "loc": 1809,
+      "exports": [
+        "Entity",
+        "HierarchyResponse",
+        "WebSocketMessage",
+        "LayerDataUpdateMessage",
+        "EntityType",
+        "PathString"
+      ],
+      "imports_from": [],
+      "imported_by": [
+        "layers",
+        "handlers",
+        "hooks",
+        "components",
+        "integrations",
+        "utils"
+      ]
+    },
+    "handlers": {
+      "path": "frontend/src/handlers",
+      "files": 2,
+      "loc": 1111,
+      "exports": [
+        "RealtimeHandlers",
+        "ValidatedHandlers",
+        "handleEntityUpdate",
+        "handleHierarchyChange"
+      ],
+      "imports_from": [
+        "types",
+        "hooks",
+        "layers"
+      ],
+      "imported_by": [
+        "integrations",
+        "components/Map",
+        "hooks/useHybridState"
+      ]
+    },
+    "hooks": {
+      "path": "frontend/src/hooks",
+      "files": 6,
+      "loc": 1869,
+      "exports": [
+        "useHierarchy",
+        "useFeatureFlag",
+        "useHybridState",
+        "hierarchyKeys"
+      ],
+      "imports_from": [
+        "types",
+        "utils",
+        "handlers"
+      ],
+      "imported_by": [
+        "components",
+        "handlers"
+      ]
+    },
+    "integrations": {
+      "path": "frontend/src/integrations",
+      "files": 1,
+      "loc": 749,
+      "exports": [
+        "LayerWebSocketIntegration"
+      ],
+      "imports_from": [
+        "layers",
+        "types",
+        "handlers"
+      ],
+      "imported_by": [
+        "components/Map"
+      ]
+    },
+    "utils": {
+      "path": "frontend/src/utils",
+      "files": 6,
+      "loc": 3208,
+      "exports": [
+        "stateManager",
+        "errorRecovery",
+        "validation",
+        "clientId",
+        "idempotencyGuard"
+      ],
+      "imports_from": ["types"],
+      "imported_by": [
+        "handlers",
+        "hooks",
+        "components"
+      ]
+    },
+    "components": {
+      "path": "frontend/src/components",
+      "files": 20,
+      "loc": 5893,
+      "exports": [
+        "MillerColumns",
+        "GeospatialView",
+        "EntityDetail",
+        "SearchInterface",
+        "OutcomesDashboard",
+        "ErrorBoundary"
+      ],
+      "imports_from": [
+        "hooks",
+        "types",
+        "layers",
+        "integrations",
+        "utils",
+        "store"
+      ],
+      "imported_by": ["App"]
+    },
+    "store": {
+      "path": "frontend/src/store",
+      "files": 1,
+      "loc": 174,
+      "exports": [
+        "useUIStore"
+      ],
+      "imports_from": ["types"],
+      "imported_by": [
+        "components",
+        "hooks"
+      ]
+    },
+    "config": {
+      "path": "frontend/src/config",
+      "files": 3,
+      "loc": 890,
+      "exports": [
+        "LayerFeatureFlagManager",
+        "FeatureFlagConfig",
+        "env"
+      ],
+      "imports_from": [],
+      "imported_by": [
+        "hooks/useFeatureFlag"
+      ]
+    }
+  },
+  "dependency_chains": [
+    {
+      "chain": ["App", "components", "hooks", "types"],
+      "type": "normal",
+      "risk": "low"
+    },
+    {
+      "chain": ["components/Map", "integrations", "layers", "types"],
+      "type": "normal",
+      "risk": "low"
+    },
+    {
+      "chain": ["handlers", "hooks", "utils"],
+      "type": "bidirectional_possible",
+      "risk": "medium",
+      "note": "Needs verification for circular dependencies"
+    }
+  ],
+  "metrics": {
+    "total_modules": 10,
+    "total_files": 58,
+    "total_loc": 26882,
+    "avg_loc_per_file": 463,
+    "max_depth": 4,
+    "circular_dependencies_detected": 0,
+    "circular_dependencies_possible": 1
+  }
+}

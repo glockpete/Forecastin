@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Users } from 'lucide-react';
-import { StakeholderMapProps } from '../../types/outcomes';
+import type { StakeholderMapProps } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 
 const StakeholderMap: React.FC<StakeholderMapProps> = ({

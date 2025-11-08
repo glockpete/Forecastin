@@ -4,7 +4,7 @@
  * with forecastin-specific compliance and performance requirements
  */
 
-import {
+import type {
   LayerConfig,
   VisualChannel,
   VisualChannelScale,

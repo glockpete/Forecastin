@@ -7,7 +7,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, X, ChevronDown } from 'lucide-react';
-import { LensFilters, LensFilterOption, LensBarProps } from '../../types/outcomes';
+import type { LensFilters, LensFilterOption, LensBarProps } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 
 const LensBar: React.FC<LensBarProps> = ({ filters, onFiltersChange, availableFilters }) => {

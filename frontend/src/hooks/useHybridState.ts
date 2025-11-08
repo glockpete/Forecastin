@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from './useWebSocket';
 import { useUIStore } from '../store/uiStore';
 import { hierarchyKeys } from './useHierarchy';
-import { Entity } from '../types';
+import type { Entity } from '../types';
 import { globalErrorRecovery } from '../utils/errorRecovery';
 import { PerformanceMonitor } from '../utils/stateManager';
 

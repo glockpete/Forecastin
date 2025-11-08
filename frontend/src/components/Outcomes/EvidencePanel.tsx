@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { FileText, ExternalLink, Calendar, TrendingUp } from 'lucide-react';
-import { EvidencePanelProps } from '../../types/outcomes';
+import type { EvidencePanelProps } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 

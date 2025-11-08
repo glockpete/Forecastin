@@ -3,7 +3,7 @@
  * Implements orjson-style safe serialization for WebSocket messages
  */
 
-import { LayerWebSocketMessage } from '../types/layer-types';
+import type { LayerWebSocketMessage } from '../types/layer-types';
 
 /**
  * Safe serialization following orjson pattern from forecastin

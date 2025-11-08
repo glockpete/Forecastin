@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Clock, AlertCircle } from 'lucide-react';
-import { HorizonLaneProps, TimeHorizon } from '../../types/outcomes';
+import type { HorizonLaneProps, TimeHorizon } from '../../types/outcomes';
 import { cn } from '../../utils/cn';
 import OpportunityRadar from './OpportunityRadar';
 import ActionQueue from './ActionQueue';

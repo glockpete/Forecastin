@@ -905,7 +905,7 @@ export class MessageDeduplicator {
   /**
    * @param windowMs - Time window for deduplication in milliseconds (default 5000ms)
    */
-  constructor(windowMs: number = 5000) {
+  constructor(windowMs = 5000) {
     this.windowMs = windowMs;
 
     // DEFECT FIX #4: Start periodic cleanup timer

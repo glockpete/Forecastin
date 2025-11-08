@@ -21,7 +21,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useHybridState } from '../../hooks/useHybridState';
 import { useUIStore } from '../../store/uiStore';
 import { LayerRegistry } from '../../layers/registry/LayerRegistry';
-import { BaseLayer } from '../../layers/base/BaseLayer';
+import type { BaseLayer } from '../../layers/base/BaseLayer';
 import { LayerWebSocketIntegration } from '../../integrations/LayerWebSocketIntegration';
 import { cn } from '../../utils/cn';
 import { ErrorBoundary } from '../UI/ErrorBoundary';

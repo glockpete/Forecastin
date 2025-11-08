@@ -1,0 +1,37 @@
+DEAD CODE ANALYSIS - Generated 2025-11-07
+
+=== UNUSED IMPORTS (100+ occurrences) ===
+See REPORT.md Section 4 for complete list
+
+Top files with unused imports:
+- App.tsx: 10 unused imports
+- MillerColumns.tsx: 8 unused imports
+- GeospatialView.tsx: 5 unused imports
+- NavigationPanel.tsx: 4 unused imports
+- SearchInterface.tsx: 3 unused imports
+- OutcomesDashboard.tsx: 7 unused imports
+
+=== UNREFERENCED EXPORTS ===
+frontend/src/handlers/realtimeHandlers.ts:17 - parseRealtimeMessage
+frontend/src/handlers/realtimeHandlers.ts:19 - RealtimeMessage
+frontend/src/errors/errorCatalog.ts:* - Multiple exports (needs manual verification)
+frontend/src/utils/clientId.ts:* - All exports (usage unclear)
+frontend/src/utils/idempotencyGuard.ts:* - All exports (usage unclear)
+
+=== DEPRECATED FILES (REMOVE) ===
+frontend/src/types/zod/messages.ts.deprecated (7,069 bytes)
+
+=== FILES WITHOUT TEST COVERAGE ===
+frontend/src/errors/errorCatalog.ts (545 LOC)
+frontend/src/utils/clientId.ts
+frontend/src/utils/idempotencyGuard.ts
+frontend/src/integrations/LayerWebSocketIntegration.ts (749 LOC)
+frontend/src/utils/errorRecovery.ts (563 LOC)
+frontend/src/utils/validation.ts (468 LOC)
+
+=== RECOMMENDATION ===
+1. Run actual ts-prune for comprehensive analysis:
+   npx ts-prune --ignore "\.test\.ts$"
+2. Remove deprecated files immediately
+3. Add tests for utils/ files to verify usage
+4. Consider removing errorCatalog.ts if only partially used

@@ -16,8 +16,8 @@ export class IdempotencyGuard {
   private cleanupIntervalId?: NodeJS.Timeout;
 
   constructor(
-    windowMs: number = 60000, // 1 minute default
-    maxSize: number = 1000 // Maximum tracked messages
+    windowMs = 60000, // 1 minute default
+    maxSize = 1000 // Maximum tracked messages
   ) {
     this.processedMessages = new Set();
     this.messageTimestamps = new Map();
