@@ -48,6 +48,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://forecastin:forecastin_password@postgres:5432/forecastin
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
       - API_PORT=9000
       - ENVIRONMENT=development
     depends_on:

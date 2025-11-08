@@ -70,12 +70,9 @@ class DatabaseManager:
         
         # TCP keepalives to prevent firewall drops
         # Settings: keepalives_idle: 30, keepalives_interval: 10, keepalives_count: 5
-        self._server_settings = {
-            'keepalives_idle': '30',
-            'keepalives_interval': '10',
-            'keepalives_count': '5',
-            **self.server_settings
-        }
+        # NOTE: Removed hardcoded keepalive settings as they cause initialization errors
+        # when using URL connection strings with asyncpg.
+        self._server_settings = self.server_settings
         
         # Health monitoring
         self._pool_utilization_warning_threshold = 0.8  # 80% utilization warning
@@ -97,7 +94,7 @@ class DatabaseManager:
                 min_size=self.min_connections,
                 max_size=self.max_connections,
                 command_timeout=self.command_timeout,
-                server_settings=self._server_settings,
+                server_settings=self.server_settings,
             )
             
             logger.info(

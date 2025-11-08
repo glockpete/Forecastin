@@ -183,10 +183,11 @@ async def lifespan(app: FastAPI):
     
     try:
         # Initialize database manager with proper configuration
-        # Use environment variable or localhost for local development
         import os
-        database_host = os.getenv('DATABASE_HOST', 'localhost')
-        database_url = f"postgresql://forecastin:forecastin_password@{database_host}:5432/forecastin"
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            database_host = os.getenv('DATABASE_HOST', 'localhost')
+            database_url = f"postgresql://forecastin:forecastin_password@{database_host}:5432/forecastin"
         
         # Try to initialize database manager with graceful degradation
         try:
@@ -203,10 +204,13 @@ async def lifespan(app: FastAPI):
         hierarchy_resolver = OptimizedHierarchyResolver()
         
         # Initialize cache service (L1 Memory -> L2 Redis -> L3 DB -> L4 Materialized Views)
-        # Use environment variable or localhost for local development
-        redis_host = os.getenv('REDIS_HOST', 'localhost')
+        redis_url = os.getenv('REDIS_URL')
+        if not redis_url:
+            redis_host = os.getenv('REDIS_HOST', 'localhost')
+            redis_url = f"redis://{redis_host}:6379/0"
+            
         try:
-            cache_service = CacheService(redis_url=f"redis://{redis_host}:6379/0")
+            cache_service = CacheService(redis_url=redis_url)
             await cache_service.initialize()
             logger.info("Redis cache connection established successfully")
         except Exception as redis_error:
