@@ -39,7 +39,7 @@ import EntityDetail from '../Entity/EntityDetail';
 import GeospatialView from '../Map/GeospatialView';
 import { LoadingSpinner } from '../UI/LoadingSpinner';
 import { ErrorBoundary } from '../UI/ErrorBoundary';
-import { getConfidence, getChildrenCount } from '../../../../types/contracts.generated';
+import { getConfidence, getChildrenCount } from '../../types/contracts.generated';
 
 // Entity type icons mapping
 const getEntityIcon = (type: string) => {

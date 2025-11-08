@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Convert to AppError for consistent handling
@@ -76,14 +76,14 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props) {
+  override componentDidUpdate(prevProps: Props) {
     // Reset error state if props changed (allows recovery)
     if (this.props.resetOnPropsChange && this.state.hasError && prevProps.children !== this.props.children) {
       this.resetError();
     }
   }
 
-  componentWillUnmount() {
+  override componentWillUnmount() {
     // Clean up retry timeout
     if (this.retryTimeoutId) {
       clearTimeout(this.retryTimeoutId);
@@ -116,9 +116,6 @@ export class ErrorBoundary extends Component<Props, State> {
   private resetError = () => {
     this.setState({
       hasError: false,
-      error: undefined,
-      errorInfo: undefined,
-      appError: undefined,
       isRetrying: false,
     });
   };
@@ -151,7 +148,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }, delay);
   };
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
