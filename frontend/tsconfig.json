@@ -7,13 +7,13 @@
       "es6"
     ],
     "allowJs": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true,  // Keep true for external library compatibility
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,  // May break existing code if enabled
+    "noUncheckedIndexedAccess": true,  // SECURITY: Prevents unsafe array/object access
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,

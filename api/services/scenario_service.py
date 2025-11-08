@@ -447,23 +447,59 @@ class MultiFactorAnalysisEngine:
         )
     
     async def _analyze_geospatial_factor(self, factor: AnalysisFactor) -> float:
-        """Analyze geospatial factor (placeholder for GPU filtering integration)"""
-        # TODO: Integrate with existing PointLayer and GPU filtering
+        """
+        Analyze geospatial factor (placeholder for GPU filtering integration)
+
+        FUTURE INTEGRATION: This should integrate with existing PointLayer and GPU filtering.
+        Implementation requires:
+        - Connection to GPU-accelerated geospatial processing
+        - PointLayer H3 hexagon filtering
+        - Spatial analysis using deck.gl backend
+
+        Returns: Mock confidence score (0.75) until integration is complete
+        """
         return 0.75
-    
+
     async def _analyze_temporal_factor(self, factor: AnalysisFactor) -> float:
-        """Analyze temporal factor (placeholder for temporal analysis)"""
-        # TODO: Integrate with temporal analysis capabilities
+        """
+        Analyze temporal factor (placeholder for temporal analysis)
+
+        FUTURE INTEGRATION: This should integrate with temporal analysis capabilities.
+        Implementation requires:
+        - Time series analysis
+        - Trend detection
+        - Seasonal pattern recognition
+
+        Returns: Mock confidence score (0.70) until integration is complete
+        """
         return 0.70
-    
+
     async def _analyze_entity_factor(self, factor: AnalysisFactor) -> float:
-        """Analyze entity factor (placeholder for 5-W framework integration)"""
-        # TODO: Integrate with existing 5-W framework
+        """
+        Analyze entity factor (placeholder for 5-W framework integration)
+
+        FUTURE INTEGRATION: This should integrate with existing 5-W framework.
+        Implementation requires:
+        - Who/What/When/Where/Why analysis
+        - Entity relationship mapping
+        - Context-aware scoring
+
+        Returns: Mock confidence score (0.80) until integration is complete
+        """
         return 0.80
-    
+
     async def _analyze_risk_factor(self, factor: AnalysisFactor) -> float:
-        """Analyze risk factor (placeholder for ML A/B testing integration)"""
-        # TODO: Integrate with ML A/B testing framework
+        """
+        Analyze risk factor (placeholder for ML A/B testing integration)
+
+        FUTURE INTEGRATION: This should integrate with ML A/B testing framework.
+        Implementation requires:
+        - ML model evaluation
+        - A/B test result analysis
+        - Risk scoring algorithm
+
+        Returns: Mock confidence score (0.65) until integration is complete
+        """
         return 0.65
     
     async def _cache_analysis_result(self, cache_key: str, result: AnalysisResult):

@@ -7,7 +7,6 @@ uvicorn[standard]==0.24.0
 
 # Database
 psycopg[binary]==3.2.3
-psycopg2-binary==2.9.11
 SQLAlchemy==2.0.44
 asyncpg==0.29.0
 
