@@ -215,7 +215,7 @@ wscat -c ws://localhost:9000/ws/health
 
 ### **Diagnostics Playbook**
 
-For detailed troubleshooting, see [`checks/ws_server_diagnostics.md`](checks/ws_server_diagnostics.md) which includes:
+For detailed troubleshooting, see the WebSocket troubleshooting section in [STARTUP_PROCEDURES_AND_ERROR_PATTERNS.md](docs/STARTUP_PROCEDURES_AND_ERROR_PATTERNS.md#websocket-connection-issues) which includes:
 - Symptoms → Causes matrix for 1006 errors
 - Step-by-step diagnostic procedures
 - Nginx configuration examples
@@ -318,6 +318,8 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ### **Getting Started**
 - [Developer Setup Guide](docs/DEVELOPER_SETUP.md) - Complete local development setup
+- [Startup Procedures & Error Patterns](docs/STARTUP_PROCEDURES_AND_ERROR_PATTERNS.md) - Comprehensive startup guide with troubleshooting
+- [Startup Quick Reference](docs/STARTUP_QUICK_REFERENCE.md) - Fast troubleshooting checklist
 - [Contributing Guidelines](CONTRIBUTING.md) - How to contribute to the project
 - [Testing Guide](docs/TESTING_GUIDE.md) - Testing infrastructure and best practices
 - [GitHub Actions Guide](docs/GITHUB_ACTIONS_GUIDE.md) - Using CI/CD workflows and understanding test results
