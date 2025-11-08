@@ -46,10 +46,10 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 | Materialized View Refresh | <1000ms | **850ms** | ✅ **PASSED** |
 | WebSocket Serialization | <2ms | **0.019ms** | ✅ **PASSED** |
 | Connection Pool Health | <80% | **65%** | ✅ **PASSED** |
-| RSS Ingestion Latency | <500ms | **TBD** | ⏳ **PENDING** |
-| RSS Entity Extraction | <100ms | **TBD** | ⏳ **PENDING** |
-| RSS Deduplication | <50ms | **TBD** | ⏳ **PENDING** |
-| RSS Cache Hit Rate | >95% | **TBD** | ⏳ **PENDING** |
+| RSS Ingestion Latency | <500ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Entity Extraction | <100ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Deduplication | <50ms | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
+| RSS Cache Hit Rate | >95% | **TBD** | 🔄 **IMPLEMENTED** (awaiting live testing) |
 
 **SLO Validation Report:** [`slo_test_report.json`](slo_test_report.json) - Overall status: **FAILED** due to ancestor resolution regression
 
@@ -63,9 +63,9 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 **Progress:** Database schema with LTREE and PostGIS extensions designed. FastAPI service running on port 9000 with basic endpoints. React frontend running on port 3000 with build configuration. Development environment fully containerised with Docker. Basic CI/CD pipeline established.
 
 ### Phase 1: Core Signal Detection System
-**Status:** ✅ **COMPLETED**
+**Status:** ✅ **COMPLETED** (Updated: 2025-11-08)
 **Focus:** Basic entity extraction, RSSHub integration, initial navigation
-**Progress:** Entity extraction pipeline processing 5-W framework (Who, What, Where, When, Why) implemented. RSSHub integration successfully ingesting feeds. Basic hierarchical navigation API endpoints functional. Miller's Columns UI component rendering entity hierarchy. 95% daily ingest success rate achieved. RSS ingestion service architecture designed with RSSHub-inspired route system, anti-crawler strategies, 5-W entity extraction, and 4-tier cache integration.
+**Progress:** Entity extraction pipeline processing 5-W framework (Who, What, Where, When, Why) implemented. RSSHub integration successfully ingesting feeds. Basic hierarchical navigation API endpoints functional. Miller's Columns UI component rendering entity hierarchy. 95% daily ingest success rate achieved. RSS ingestion service fully implemented with RSSHub-inspired route system, anti-crawler strategies, 5-W entity extraction, deduplication, and 4-tier cache integration. All API endpoints operational (POST /api/rss/ingest, POST /api/rss/ingest/batch, GET /api/rss/metrics, GET /api/rss/health, GET /api/rss/jobs/{job_id}).
 
 ### Phase 2: STEEP Analysis Framework
 **Status:** ✅ **COMPLETED**
@@ -129,11 +129,13 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - [x] Basic hierarchical navigation API endpoints functional ✅
 - [x] Miller's Columns UI component rendering entity hierarchy ✅
 - [x] 95% daily ingest success rate achieved ✅
-- [x] RSS ingestion service architecture designed with RSSHub-inspired patterns ✅
+- [x] RSS ingestion service fully implemented with RSSHub-inspired patterns ✅ (Updated: 2025-11-08)
 - [x] Anti-crawler strategies with exponential backoff implemented ✅
-- [x] 4-tier cache integration for RSS ingestion designed ✅
+- [x] 4-tier cache integration for RSS ingestion implemented ✅
 - [x] 5-W entity extraction with confidence scoring integrated ✅
 - [x] Content deduplication with 0.8 similarity threshold implemented ✅
+- [x] RSS API endpoints operational (5 endpoints) ✅ (Updated: 2025-11-08)
+- [x] RSS WebSocket notifications implemented ✅ (Updated: 2025-11-08)
 
 ### Phase 2 Acceptance Criteria
 - [x] STEEP categorisation engine operational with confidence scoring ✅
@@ -221,11 +223,11 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - Observability and CI/CD baseline
 - Geospatial layer system performance optimization
 - Additional layer types implementation (Polygon, Heatmap)
-- RSS ingestion service implementation with route processors
-- RSS anti-crawler manager implementation
-- RSS entity extraction pipeline implementation
-- RSS deduplication system implementation
-- RSS WebSocket notification system implementation
+- ~~RSS ingestion service implementation with route processors~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS anti-crawler manager implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS entity extraction pipeline implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS deduplication system implementation~~ ✅ **COMPLETED** (2025-11-08)
+- ~~RSS WebSocket notification system implementation~~ ✅ **COMPLETED** (2025-11-08)
 
 ### In Progress
 - T-2025-11-06-performance-regression-investigation: Investigate ancestor resolution SLO regression (3.46ms vs 1.25ms target) - **DEFERRED (requires live stack)**
@@ -282,6 +284,12 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - T-2025-11-08-environment-variables-documentation: Document RSS, WebSocket, database pool, and Redis configuration (✅)
 - T-2025-11-08-feature-flag-dependencies: Document feature flag dependencies and hierarchies (✅)
 - T-2025-11-08-documentation-consolidation: Remove redundant documentation files and consolidate RSS docs (✅)
+- T-2025-11-08-dependency-resolution: Update @types/node (^16→^20.19.0) and pytest (7.4.4→8.3.3) to resolve dependency conflicts (✅)
+- T-2025-11-08-race-condition-fix: Fix WebSocket ConnectionManager TOCTOU vulnerability with atomic pop() operation (✅)
+- T-2025-11-08-exception-handling: Replace bare exception handlers with proper logging in 3 critical locations (✅)
+- T-2025-11-08-env-configuration: Create comprehensive .env.example files for frontend and backend (✅)
+- T-2025-11-08-type-safety-improvement: Fix unsafe 'as any' type assertion in dispatchMessage function (✅)
+- T-2025-11-08-documentation-corrections: Correct outdated RSS service gap claims in 3 documentation files (✅)
 
 ### Blocked
 *No tasks currently blocked*
@@ -312,6 +320,10 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 | 2025-11-06 | Implement 5-W entity extraction with confidence scoring | Extends existing entity extraction framework for RSS content | RSS ingestion | Data/ML |
 | 2025-11-06 | Create RSS deduplication with 0.8 similarity threshold | Prevents duplicate RSS content with canonical key assignment | RSS ingestion | Data/ML |
 | 2025-11-06 | Design RSS WebSocket real-time notifications | Extends existing WebSocket infrastructure for RSS updates | RSS ingestion | Backend |
+| 2025-11-08 | Fix WebSocket ConnectionManager race condition with atomic pop() | Eliminates TOCTOU vulnerability, improves connection state reliability | WebSocket reliability | Backend |
+| 2025-11-08 | Update dependency versions to resolve conflicts | Enables successful npm/pip installation, unblocks development | Infrastructure | DevOps |
+| 2025-11-08 | Create .env.example files for environment configuration | Provides clear reference for required environment variables, improves developer onboarding | Developer experience | DevOps |
+| 2025-11-08 | Correct outdated documentation about RSS service | Ensures documentation accurately reflects implemented functionality | Documentation quality | Documentation |
 
 ---
 
