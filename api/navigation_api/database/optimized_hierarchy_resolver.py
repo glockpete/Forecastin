@@ -1233,8 +1233,8 @@ class OptimizedHierarchyResolver:
                     if self.redis_client:
                         try:
                             self.redis_client.delete(f"rss_hierarchy:{rss_entity_id}")
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            self.logger.warning(f"Failed to delete Redis cache for {rss_entity_id}: {e}")
 
                     self.logger.info(
                         f"Updated RSS entity {rss_entity_id} confidence to {new_confidence:.3f}"

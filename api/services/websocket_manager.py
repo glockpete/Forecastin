@@ -642,8 +642,9 @@ class WebSocketManager:
                     "error": f"Message processing failed: {str(e)}",
                     "timestamp": time.time()
                 })
-            except Exception:
-                pass  # Client might be disconnected
+            except Exception as send_error:
+                # Client might be disconnected, log and continue
+                logger.debug(f"Failed to send error message to client {client_id}: {send_error}")
     
     def get_metrics(self) -> Dict[str, Any]:
         """Get WebSocket manager performance metrics."""

@@ -332,7 +332,8 @@ class RSSRouteProcessor:
                             confidence=0.3,  # Lower confidence for fallbacks
                             fallback_used=True
                         )
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Fallback selector failed: {e}")
                 continue
         
         # Return empty result if all fallbacks fail
