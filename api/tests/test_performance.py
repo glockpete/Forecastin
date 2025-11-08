@@ -20,8 +20,7 @@ import json
 
 # Import the hierarchy resolver
 from api.navigation_api.database.optimized_hierarchy_resolver import (
-    OptimizedHierarchyResolver,
-    refresh_hierarchy_views
+    OptimizedHierarchyResolver
 )
 
 # Import services
@@ -53,28 +52,31 @@ class CacheMetrics:
     
 class PerformanceTestBase:
     """Base class for performance tests"""
-    
-    def __init__(self, db_url: str):
-        self.db_url = db_url
-        self.hierarchy_resolver = None
-        self.cache_service = None
-        self.db_manager = None
-        
-    async def setup(self):
+
+    # Initialize instance variables (pytest will call these without __init__)
+    db_url: str = None
+    hierarchy_resolver = None
+    cache_service = None
+    db_manager = None
+
+    async def setup(self, db_url: str):
         """Setup test environment"""
         try:
+            # Store db_url
+            self.db_url = db_url
+
             # Initialize services
             self.hierarchy_resolver = OptimizedHierarchyResolver(self.db_url)
             self.cache_service = CacheService()
             self.db_manager = DatabaseManager(self.db_url)
-            
+
             # Ensure materialized views are refreshed
-            await refresh_hierarchy_views()
-            
+            await self.db_manager.refresh_hierarchy_views()
+
         except Exception as e:
             logger.error(f"Setup failed: {e}")
             raise
-    
+
     async def teardown(self):
         """Cleanup test environment"""
         try:
@@ -90,8 +92,7 @@ class TestHierarchyResolutionPerformance(PerformanceTestBase):
     @pytest.fixture(autouse=True)
     async def setup_performance_test(self, db_url):
         """Setup performance test environment"""
-        self.db_url = db_url
-        await self.setup()
+        await self.setup(db_url)
         yield
         await self.teardown()
     
@@ -252,9 +253,8 @@ class TestCachePerformance(PerformanceTestBase):
     @pytest.fixture(autouse=True)
     async def setup_cache_test(self, db_url):
         """Setup cache test environment"""
-        self.db_url = db_url
-        await self.setup()
-        
+        await self.setup(db_url)
+
         # Initialize cache with test data
         await self._populate_cache()
     
