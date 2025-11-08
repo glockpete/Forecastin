@@ -8,6 +8,7 @@ import type { LayerConfig, LayerType, LayerRegistryEntry, FeatureFlagConfig, Lay
 import { layerCacheManager } from '../utils/layer-utils';
 import { LayerWebSocketIntegration } from '../../integrations/LayerWebSocketIntegration';
 import { layerFeatureFlags } from '../../config/feature-flags';
+import { PointLayer } from '../implementations/PointLayer';
 
 interface LayerInstance {
   id: string;
@@ -811,8 +812,16 @@ export class LayerRegistry {
       {
         type: 'point',
         factory: (config: LayerConfig) => {
-          // This would import the actual PointLayer implementation
-          throw new Error('PointLayer implementation not yet integrated');
+          // Create PointLayerProps from LayerConfig
+          const pointProps = {
+            id: config.id,
+            config: config as any, // Type compatibility bridge
+            data: (config.data as any[]) || [],
+            visible: config.visible ?? true,
+            opacity: config.opacity,
+            zIndex: config.zIndex
+          };
+          return new PointLayer(pointProps);
         }
       }
     ];

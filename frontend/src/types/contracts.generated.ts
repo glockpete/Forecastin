@@ -22,10 +22,9 @@ export const BoundingBoxSchema = z.object({
 
 export type BoundingBox = z.infer<typeof BoundingBoxSchema>;
 
-export const PositionSchema = z.tuple([
-  z.number(), // longitude
-  z.number(), // latitude
-  z.number().optional(), // altitude
+export const PositionSchema = z.union([
+  z.tuple([z.number(), z.number()]), // 2D: longitude, latitude
+  z.tuple([z.number(), z.number(), z.number()]), // 3D: longitude, latitude, altitude
 ]);
 
 export type Position = z.infer<typeof PositionSchema>;

@@ -1,0 +1,36 @@
+{
+  "type": "LAYER_DATA_UPDATE",
+  "payload": {
+    "layer_id": "test-layer-001",
+    "layer_type": "point",
+    "layer_data": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.4194, 37.7749]
+          },
+          "properties": {
+            "name": "San Francisco",
+            "entityType": "region"
+          }
+        }
+      ]
+    },
+    "bbox": {
+      "minLat": 37.0,
+      "maxLat": 38.0,
+      "minLng": -123.0,
+      "maxLng": -122.0
+    },
+    "changed_at": 1699564800000
+  },
+  "meta": {
+    "timestamp": 1699564800000,
+    "sequence": 1,
+    "clientId": "test-client",
+    "sessionId": "test-session"
+  }
+}

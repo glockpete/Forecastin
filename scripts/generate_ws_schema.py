@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""
+Generate WebSocket Schema
+Outputs to: contracts/ws.json
+
+This script generates a JSON schema for WebSocket messages based on
+the contracts already defined in frontend/src/types/contracts.generated.ts
+
+Usage:
+    python scripts/generate_ws_schema.py
+"""
+
+import json
+from pathlib import Path
+
+
+def generate_ws_schema():
+    """Generate WebSocket message schema"""
+
+    # Define the WebSocket message schema based on existing contracts
+    schema = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Forecastin WebSocket Messages",
+        "description": "WebSocket message schemas for real-time geospatial updates",
+        "version": "1.0.0",
+        "definitions": {
+            "BoundingBox": {
+                "type": "object",
+                "required": ["minLat", "maxLat", "minLng", "maxLng"],
+                "properties": {
+                    "minLat": {"type": "number", "minimum": -90, "maximum": 90},
+                    "maxLat": {"type": "number", "minimum": -90, "maximum": 90},
+                    "minLng": {"type": "number", "minimum": -180, "maximum": 180},
+                    "maxLng": {"type": "number", "minimum": -180, "maximum": 180}
+                }
+            },
+            "Position": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "items": {"type": "number"}
+            },
+            "Color": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {"type": "integer", "minimum": 0, "maximum": 255}
+            },
+            "Geometry": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "required": ["type", "coordinates"],
+                        "properties": {
+                            "type": {"const": "Point"},
+                            "coordinates": {"$ref": "#/definitions/Position"}
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "required": ["type", "coordinates"],
+                        "properties": {
+                            "type": {"const": "LineString"},
+                            "coordinates": {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {"$ref": "#/definitions/Position"}
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "required": ["type", "coordinates"],
+                        "properties": {
+                            "type": {"const": "Polygon"},
+                            "coordinates": {
+                                "type": "array",
+                                "items": {
+                                    "type": "array",
+                                    "minItems": 4,
+                                    "items": {"$ref": "#/definitions/Position"}
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            "LayerDataUpdate": {
+                "type": "object",
+                "required": ["type", "payload"],
+                "properties": {
+                    "type": {"const": "LAYER_DATA_UPDATE"},
+                    "payload": {
+                        "type": "object",
+                        "required": ["layer_id", "layer_type", "layer_data", "changed_at"],
+                        "properties": {
+                            "layer_id": {"type": "string", "minLength": 1},
+                            "layer_type": {
+                                "type": "string",
+                                "enum": ["point", "polygon", "line", "linestring", "heatmap", "cluster", "geojson"]
+                            },
+                            "layer_data": {
+                                "type": "object",
+                                "required": ["type", "features"],
+                                "properties": {
+                                    "type": {"const": "FeatureCollection"},
+                                    "features": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "required": ["type", "geometry"],
+                                            "properties": {
+                                                "type": {"const": "Feature"},
+                                                "geometry": {"$ref": "#/definitions/Geometry"},
+                                                "properties": {"type": "object"}
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "bbox": {"$ref": "#/definitions/BoundingBox"},
+                            "changed_at": {"type": "number"}
+                        }
+                    },
+                    "meta": {
+                        "type": "object",
+                        "required": ["timestamp"],
+                        "properties": {
+                            "timestamp": {"type": "number"},
+                            "sequence": {"type": "integer", "minimum": 0},
+                            "clientId": {"type": "string"},
+                            "sessionId": {"type": "string"}
+                        }
+                    }
+                }
+            },
+            "PolygonUpdate": {
+                "type": "object",
+                "required": ["type", "payload"],
+                "properties": {
+                    "type": {"const": "POLYGON_UPDATE"},
+                    "payload": {
+                        "type": "object",
+                        "required": ["entityId", "geometry", "properties", "bbox", "timestamp"],
+                        "properties": {
+                            "entityId": {"type": "string", "minLength": 1},
+                            "geometry": {"$ref": "#/definitions/Geometry"},
+                            "properties": {
+                                "type": "object",
+                                "required": ["name", "entityType", "confidence", "hierarchyPath"],
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "entityType": {
+                                        "type": "string",
+                                        "enum": ["country", "region", "infrastructure", "zone", "border", "pipeline", "route", "unknown"]
+                                    },
+                                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                                    "hierarchyPath": {"type": "string"}
+                                }
+                            },
+                            "bbox": {"$ref": "#/definitions/BoundingBox"},
+                            "changeReason": {"type": "string"},
+                            "timestamp": {"type": "string", "format": "date-time"}
+                        }
+                    }
+                }
+            }
+        },
+        "oneOf": [
+            {"$ref": "#/definitions/LayerDataUpdate"},
+            {"$ref": "#/definitions/PolygonUpdate"}
+        ]
+    }
+
+    # Output to contracts directory
+    contracts_dir = Path(__file__).parent.parent / 'contracts'
+    contracts_dir.mkdir(exist_ok=True)
+
+    output_file = contracts_dir / 'ws.json'
+
+    with open(output_file, 'w') as f:
+        json.dump(schema, f, indent=2)
+
+    print(f"✅ WebSocket schema generated: {output_file}")
+    print(f"   Title: {schema['title']}")
+    print(f"   Version: {schema['version']}")
+    print(f"   Message types: {len(schema.get('definitions', {}))}")
+
+    return output_file
+
+
+if __name__ == '__main__':
+    generate_ws_schema()

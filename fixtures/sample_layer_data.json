@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.0364, 38.8951]
+      },
+      "properties": {
+        "id": "entity_001",
+        "name": "US Department of State",
+        "entityType": "infrastructure",
+        "confidence": 0.95
+      },
+      "id": "entity_001"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [116.4074, 39.9042]
+      },
+      "properties": {
+        "id": "entity_002",
+        "name": "China Foreign Ministry",
+        "entityType": "infrastructure",
+        "confidence": 0.92
+      },
+      "id": "entity_002"
+    }
+  ]
+}

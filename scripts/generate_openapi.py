@@ -21,7 +21,11 @@ def generate_openapi_schema():
 
         schema = app.openapi()
 
-        output_file = Path(__file__).parent.parent / 'openapi.json'
+        # Output to contracts directory
+        contracts_dir = Path(__file__).parent.parent / 'contracts'
+        contracts_dir.mkdir(exist_ok=True)
+
+        output_file = contracts_dir / 'openapi.json'
 
         with open(output_file, 'w') as f:
             json.dump(schema, f, indent=2)

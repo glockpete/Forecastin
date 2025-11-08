@@ -1,4 +1,4 @@
-.PHONY: help bootstrap check typecheck test test-unit test-integration dev build clean install-api install-frontend openapi contracts
+.PHONY: help bootstrap check typecheck test test-unit test-integration dev build build-docker clean install-api install-frontend openapi contracts ci
 
 # Colors for output
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -19,6 +19,9 @@ bootstrap: ## Bootstrap development environment
 	@bash scripts/dev/bootstrap.sh
 
 check: typecheck test ## Run all checks (typecheck + tests)
+
+ci: typecheck test build ## Run CI checks (typecheck, test, build) - no infrastructure required
+	@echo "${GREEN}All CI checks passed ✓${RESET}"
 
 typecheck: ## Run TypeScript type checking
 	@echo "${GREEN}Running TypeScript type check...${RESET}"
@@ -45,7 +48,11 @@ dev: ## Start development servers
 	@echo "  Backend:  cd api && uvicorn main:app --reload --port 9000"
 	@echo "  Frontend: cd frontend && npm start"
 
-build: ## Build production Docker images
+build: ## Build frontend for production
+	@echo "${GREEN}Building frontend...${RESET}"
+	cd frontend && npm run build
+
+build-docker: ## Build production Docker images
 	@echo "${GREEN}Building production images...${RESET}"
 	docker-compose build
 
