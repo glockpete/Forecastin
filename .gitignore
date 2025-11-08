@@ -14,6 +14,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+RAILWAY_CONNECTION_SETUP.md
 
 # IDEs and editors
 .vscode/
