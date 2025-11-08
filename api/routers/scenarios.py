@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from services.scenario_service import ScenarioEntity, RiskLevel
 
 router = APIRouter(
-    prefix="/api",
+    prefix="/api",  # Routes include versioned paths: /v3/scenarios/..., /v6/scenarios/...
     tags=["scenarios"]
 )
 

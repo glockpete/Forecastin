@@ -75,6 +75,35 @@ If the application grows significantly, consider implementing FastAPI's dependen
 
 ---
 
+## 5. Scenarios Router Prefix
+
+**Copilot Concern:** Router uses generic prefix `/api` instead of `/api/scenarios`.
+
+**Analysis:** **Copilot's suggestion would create incorrect routes.**
+
+**Current routes with prefix `/api`:**
+- `/api/v3/scenarios/{path}/forecasts`
+- `/api/v3/scenarios/{path}/hierarchy`
+- `/api/v6/scenarios`
+- `/api/v6/scenarios/{scenario_id}/analysis`
+
+**If we used prefix `/api/scenarios` (as Copilot suggests):**
+- `/api/scenarios/v3/scenarios/{path}/forecasts` ❌ Duplicate "scenarios"!
+- `/api/scenarios/v3/scenarios/{path}/hierarchy` ❌ Duplicate "scenarios"!
+- `/api/scenarios/v6/scenarios` ❌ Duplicate "scenarios"!
+
+**Decision:** Keep prefix as `/api` because routes already include versioned scenario paths.
+
+**Rationale:**
+- Routes follow versioned API pattern: `/api/v{X}/scenarios/...`
+- Version number (v3, v6) comes before resource name in the path
+- This allows multiple API versions to coexist
+- Adding `/scenarios` to prefix would create redundant path segments
+
+**Status:** Added inline comment explaining the design choice.
+
+---
+
 ## Summary
 
 | Suggestion | Status | Action |
@@ -83,6 +112,7 @@ If the application grows significantly, consider implementing FastAPI's dependen
 | 2. Re-exports | Temporary | Remove after test migration |
 | 3. Deprecated env vars | ✅ Fixed | Documented & commented out |
 | 4. ConnectionManager | Invalid | Already uses it correctly |
+| 5. Scenarios prefix | Invalid | Would create duplicate paths |
 
 ---
 
