@@ -284,14 +284,14 @@ Tests validate:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Ancestor Resolution | <1.25ms | 0.07ms* | ✅ |
+| Ancestor Resolution | <10ms | 3.46ms | ⚠️ |
 | Throughput | >40,000 RPS | 42,726 RPS | ✅ |
 | Cache Hit Rate | >99% | 99.2% | ✅ |
 | Descendant Retrieval | <2ms | 1.25ms | ✅ |
 | Materialized View Refresh | <1000ms | 850ms | ✅ |
 | WebSocket Serialization | <1ms | 0.019ms | ✅ |
 
-*Projected after recent optimizations
+*Performance regression under investigation (original target: 1.25ms, actual: 3.46ms)
 
 ---
 

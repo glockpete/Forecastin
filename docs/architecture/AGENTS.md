@@ -142,7 +142,7 @@
 
 ### Optimization Files
 - [`optimized_hierarchy_resolver.py`](api/navigation_api/database/optimized_hierarchy_resolver.py) - Core performance optimization
-- [`001_initial_schema.sql`](migrations/001_initial_schema.sql) - Initial schema with LTREE optimization
+- [`001_initial_schema.sql`](migrations/001_initial_schema.sql) - Initial schema with LTREE and PostGIS extensions
 - [`004_automated_materialized_view_refresh.sql`](migrations/004_automated_materialized_view_refresh.sql) - Materialized view automation
 - [`WebSocketManager.tsx`](frontend/src/ws/WebSocketManager.tsx) - Client-side WS management
 - [`frontend/src/config/env.ts`](frontend/src/config/env.ts) - Runtime URL configuration

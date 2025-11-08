@@ -1,433 +1,269 @@
-# Repository Audit Scout Log
+# Frontend Hardening Scout Log
 
-**Project:** Forecastin Repository Audit & Documentation Consolidation
-**Phase:** Code-Only Analysis (No Running Stack)
-**Started:** 2025-11-08
-**Mode:** Read-only code access, evidence-based analysis
-
----
-
-## Mission Statement
-
-Get the project back on track by:
-1. Inventorying real changes against documentation
-2. Updating existing docs to match current code
-3. Consolidating scattered "help" docs
-4. Generating concrete fixes and work items that do not require a running stack
+**Project:** Forecastin Frontend Hardening & Developer Experience Enhancement
+**Phase:** Multi-phase code quality and type safety improvement
+**Started:** 2025-11-06
+**Mode:** CODE-ONLY (no network/DB calls, deterministic, idempotent)
 
 ---
 
 ## Session Log
 
-### 2025-11-08 - Repository Audit and Documentation Consolidation
-
-#### Methodology
-
-**Two-Pass Method:**
-- **Pass 1 — Inventory and Diff**: Map backend, frontend, and all documentation to identify drift
-- **Pass 2 — Remediate and Plan**: Update docs in place, consolidate duplicates, generate patches
-
-**Operating Rules:**
-- British English throughout
-- Evidence first: every claim cites file paths and line ranges
-- No generic advice: tie every recommendation to specific code
-- Prefer updating existing docs over creating new ones
-- Make minimal, safe patches with atomic diffs
-- Separate "code-only now" from "requires local stack"
-- Flag uncertainty explicitly
-
----
-
-#### Pass 1: Inventory and Diff
-
-##### Backend Mapping (FastAPI, Pydantic, Services)
-
-**Routes Inventoried:**
-- **33 total routes** (29 HTTP, 4 WebSocket)
-  - api/main.py:401-2003 - All endpoints mapped
-  - RSS endpoints: 5 new routes at lines 1832-2003
-  - Feature flag CRUD: 8 routes at lines 1018-1164
-  - Scenario/forecasting: 6 routes at lines 1532-1825
-
-**Evidence:** Backend structure analysis completed by Explore agent
-
-**Services Mapped:**
-- **14 core services** in api/services/
-  - database_manager.py - Thread-safe DB with TCP keepalives
-  - cache_service.py - Multi-tier L1-L4 caching
-  - feature_flag_service.py - Gradual rollout with WebSocket notifications
-  - realtime_service.py - orjson WebSocket serialization
-  - rss/rss_ingestion_service.py - RSSHub-inspired ingestion
-  - Plus 9 additional services
-
-**Database Schema:**
-- **13 tables** across 6 migration files
-- **4 materialized views** for O(log n) performance
-- **8 database functions** for hierarchy operations
-
-**Feature Flags:**
-- **25+ flags** inventoried
-  - Core: ff.hierarchy_optimized, ff.ws_v1, ff.map_v1, ff.ab_routing
-  - Geospatial: 11 flags (ff.geo.*)
-  - Phase 6: ff.prophet_forecasting, ff.scenario_construction
-  - RSS: rss_ingestion_enabled, entity_extraction_enabled
-
-**WebSocket Messages:**
-- **35+ message types** with discriminated unions
-  - Type guards implemented for all message types
-  - Zod validation in frontend
-
----
-
-##### Frontend Mapping (React, TypeScript, Zustand)
-
-**Structure:**
-- **Hybrid state management**: React Query + Zustand + WebSocket
-- **Geospatial layer system**: 4 layer types (Point, Polygon, Linestring, GeoJSON)
-- **Multi-tier caching**: L1-L4 with 99.2% target hit rate
-- **WebSocket integration**: Hardened reconnection with exponential backoff + jitter
-
-**Evidence:** Frontend structure analysis completed by Explore agent
-
-**Components:**
-- Miller's Columns: frontend/src/components/MillerColumns/MillerColumns.tsx
-- GeospatialView: frontend/src/components/Map/GeospatialView.tsx
-- WebSocket hooks: frontend/src/hooks/useWebSocket.ts
-- Layer registry: frontend/src/layers/registry/LayerRegistry.ts
-
-**State Management:**
-- Zustand: frontend/src/store/uiStore.ts (navigation, theme, breadcrumbs)
-- React Query: 5-minute stale time, 10-minute garbage collection
-- WebSocket: Circuit breaker pattern with 3 failure thresholds
-
-**TypeScript Status:**
-- **0 compilation errors** reported in docs
-- Strict mode enabled with 5 additional flags
-- 103 layer errors fixed in previous session (per GOLDEN_SOURCE.md:9)
-
----
-
-##### Documentation Inventory
-
-**Total Files:** 84 markdown files
-
-**Key Findings:**
-1. **3 primary guides** exist with no duplication:
-   - docs/DEVELOPER_SETUP.md (729 lines)
-   - docs/TESTING_GUIDE.md (854 lines)
-   - docs/GITHUB_ACTIONS_GUIDE.md (675 lines)
-
-2. **Redundant files identified:**
-   - 2 DOCUMENTATION_UPDATE_SUMMARY files (2025-11-06, 2025-11-07)
-   - RSS_DOCUMENTATION_COMMIT_SUMMARY.md
-   - 3 performance report files (can be consolidated)
-   - 3 TypeScript summary files (can be consolidated)
-   - SCOUT_LOG.md exists in docs/reports/ but should be in checks/
-
-3. **Missing file:**
-   - checks/SCOUT_LOG.md (does not exist, creating now)
-
----
-
-##### Drift Analysis
-
-**Contract Drift: Backend ↔ Frontend**
-
-1. **WebSocket Message Discriminants**: ✅ **NO DRIFT** - Verified alignment
-   - Evidence: api/services/realtime_service.py:290 vs frontend/src/types/ws_messages.ts:60-470
-
-2. **RSS API Endpoints**: ⚠️ **INCOMPLETE DOCS**
-   - 5 endpoints implemented (api/main.py:1832-2003)
-   - docs/RSS_API_ENDPOINTS.md exists but completeness unverified
-   - docs/architecture/REPO_MAP.md missing RSS routes
-
-3. **Performance Metrics**: ❌ **DRIFT DETECTED**
-   - README.md:287 claims "0.07ms*" (projected)
-   - GOLDEN_SOURCE.md:39 shows "3.46ms" (actual measured)
-   - Impact: Misleading performance claims
-
-4. **Feature Flag Naming**: ⚠️ **INCONSISTENT**
-   - Backend: Dot notation (ff.hierarchy_optimized) vs underscore (ff_geospatial_enabled)
-   - No documented standardization
-
-5. **GeoJSON Layer**: ⚠️ **MISSING BACKEND MODEL**
-   - Frontend implements GeoJsonLayer.ts
-   - No corresponding Pydantic model found in backend
-
-**Documentation Drift**
-
-1. **Migration file paths**: ❌ **INCORRECT**
-   - AGENTS.md references non-existent migration 003
-   - Correct file: migrations/001_initial_schema.sql
-
-2. **API endpoint count**: ❌ **OUTDATED**
-   - REPO_MAP.md lists 28 routes
-   - Actual: 33 routes (5 RSS endpoints missing)
-
-3. **Environment variables**: ⚠️ **INCOMPLETE**
-   - 6 undocumented env vars found:
-     - RSS service config (8 vars)
-     - Database pool settings (5 vars)
-     - Redis configuration (4 vars)
-     - WebSocket defaults missing
-     - Feature flag dependencies not documented
-
-4. **Performance metrics**: ❌ **INCONSISTENT**
-   - Multiple files show different values
-   - Projected vs actual not clearly distinguished
-
----
-
-#### Pass 2: Remediate and Plan
-
-##### Documentation Updates (In-Place Edits)
-
-**Immediate Fixes (Code-Only):**
-
-1. ✅ **CHANGELOG.md**: Added Unreleased section with audit findings
-   - 30 gaps documented
-   - 15 consolidation actions
-   - 3 patches created
-
-2. ✅ **README.md**: Performance metrics alignment (patch DOC001)
-   - Change "0.07ms*" → "3.46ms"
-   - Add regression status note
-   - Evidence: README.md:285-293
-
-3. ✅ **AGENTS.md**: Migration path fix (patch DOC002)
-   - Verify no references to non-existent migration 003
-   - Evidence: docs/architecture/AGENTS.md:146
-
-4. ✅ **REPO_MAP.md**: Add RSS endpoints (patch DOC003)
-   - Add 5 missing RSS routes
-   - Update folder structure documentation
-   - Evidence: docs/architecture/REPO_MAP.md:29
-
-##### Help Documentation Consolidation
-
-**Created:** `checks/help_docs_consolidation.md`
-
-**Actions Proposed:**
-- **Remove**: 8 files (redundant summaries)
-- **Merge**: 6 files into canonical docs
-- **Move**: 1 file (SCOUT_LOG.md to checks/)
-- **Keep**: 67 files (no changes needed)
-
-**Impact:**
-- 18% documentation reduction
-- 30-40% faster doc navigation
-- Clearer canonical sources
-
-**Evidence:** See checks/help_docs_consolidation.md for complete table
-
----
-
-##### Gap Map and Action Plan
-
-**Created:** `checks/gap_map.md`
-
-**30 Gaps Identified:**
-- **28 code-only** (can fix without running stack)
-- **2 requires-stack** (need live system)
-
-**Categorization:**
-- Contract drift: 5 items (1 high, 2 medium, 2 low risk)
-- Broken scripts/commands: 3 items (0 high, 2 medium, 1 low risk)
-- Missing tests/fixtures: 4 items (0 high, 3 medium, 1 low risk)
-- Undocumented flags/vars: 6 items (0 high, 3 medium, 3 low risk)
-- Documentation drift: 12 items (0 high, 4 medium, 8 low risk)
-
-**7-Day Action Plan:**
-- Day 1-2: High-priority doc fixes (6 items, 4-6 hours)
-- Day 3-4: Environment variable documentation (6 items, 6-8 hours)
-- Day 5: Contract drift analysis (3 items, 4-5 hours)
-- Day 6-7: Test coverage expansion (4 items, 10-12 hours)
-
-**Deferred (Requires Stack):**
-- Performance regression investigation (needs benchmarks)
-- Feature flag naming standardization (needs migration)
-
----
-
-##### PR-Ready Patches
-
-**Created:** 3 patches in patches/ directory
-
-1. **DOC001**: Performance metrics alignment
-   - File: README.md:285-293
-   - Risk: Low, no breaking changes
-   - Effort: 15 minutes
-
-2. **DOC002**: AGENTS.md migration path fix
-   - File: docs/architecture/AGENTS.md:146
-   - Risk: Low, documentation only
-   - Effort: 10 minutes
-
-3. **DOC003**: REPO_MAP API endpoints update
-   - File: docs/architecture/REPO_MAP.md:29+
-   - Risk: Low, adds missing routes
-   - Effort: 1 hour
-
-**Commit Messages:** See patches/*/README.md for conventional commit style
-
----
+### 2025-11-06 - Phase TS: Type Safety Hardening
 
 #### Discoveries
 
-##### Backend Architecture
+1. **Current TypeScript Configuration**
+   - Already had `"strict": true` enabled
+   - Missing additional strictness flags: `noImplicitOverride`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `noImplicitReturns`
+   - Location: `frontend/tsconfig.json`
 
-1. **Multi-tier caching** consistently implemented:
-   - L1: Thread-safe LRU (10,000 entries, RLock)
-   - L2: Redis distributed cache
-   - L3: PostgreSQL buffer cache
-   - L4: Materialized views (pre-computation)
-   - Evidence: api/services/cache_service.py, api/navigation_api/database/optimized_hierarchy_resolver.py
+2. **Type Errors Found**
+   - `frontend/src/App.tsx:33` - Implicit `any` in retry callback parameters (`failureCount`, `error`)
+   - `frontend/src/App.tsx:40` - Implicit `any` in retryDelay callback (`attemptIndex`)
+   - These are now fixed with explicit types: `failureCount: number, error: Error`, `attemptIndex: number`
 
-2. **RSSHub-inspired RSS ingestion**:
-   - 5 new API endpoints fully implemented
-   - Route-based content extraction with CSS selectors
-   - Anti-crawler strategies with exponential backoff
-   - 5-W entity extraction framework
-   - 0.8 similarity threshold deduplication
-   - Evidence: api/services/rss/*, api/main.py:1832-2003
+3. **Duplicate Type Definitions**
+   - `Entity` interface defined in three places:
+     - `frontend/src/types/index.ts` (canonical)
+     - `frontend/src/hooks/useHierarchy.ts` (duplicate)
+     - `frontend/src/store/uiStore.ts` (imports from canonical)
+   - `BreadcrumbItem` interface defined in two places:
+     - `frontend/src/types/index.ts` (canonical)
+     - `frontend/src/hooks/useHierarchy.ts` (duplicate with different schema)
+     - `frontend/src/store/uiStore.ts` (different schema: `label` instead of `name`)
+   - **Decision:** Keep canonical types in `types/index.ts`, update duplicates to import
 
-3. **Django-inspired patterns**:
-   - Hierarchical navigation (date_hierarchy adaptation)
-   - Cursor-based pagination for time series
-   - Layered validation (field, model, constraints)
-   - Evidence: api/services/hierarchical_forecast_service.py, api/services/scenario_service.py
-
-4. **Thread safety via RLock**:
-   - Re-entrant locking instead of standard Lock
-   - Prevents deadlocks in complex call chains
-   - Evidence: Consistent pattern across all services
-
-5. **orjson for WebSocket serialization**:
-   - 2-5x faster than standard JSON
-   - Handles datetime/dataclass objects safely
-   - Evidence: api/services/realtime_service.py:113, 140
-
-##### Frontend Architecture
-
-1. **Hybrid state management** pattern:
-   - React Query for server state (stale-while-revalidate)
-   - Zustand for UI state (persisted to localStorage)
-   - WebSocket for real-time coordination
-   - Circuit breaker pattern for resilience
-   - Evidence: frontend/src/hooks/useHybridState.ts, frontend/src/App.tsx:28-43
-
-2. **Hardened WebSocket reconnection**:
-   - Exponential backoff: 3s, 6s, 12s, 24s, 30s cap
-   - Jitter: ±20% randomization (prevents thundering herd)
-   - Ping/pong keepalive: 20-second interval
-   - Evidence: frontend/src/hooks/useWebSocket.ts:208-219
-
-3. **Geospatial layer architecture**:
-   - BaseLayer abstract class with EventEmitter
-   - 4 layer types: Point, Polygon, Linestring, GeoJSON
-   - GPU filtering with CPU fallback
-   - Performance SLOs: 1.25ms render, 99.2% cache hit
-   - Evidence: frontend/src/layers/base/BaseLayer.ts, frontend/src/layers/registry/LayerRegistry.ts
-
-4. **TypeScript strict mode compliance**:
-   - 5 strict flags enabled: strict, noImplicitOverride, exactOptionalPropertyTypes, noUncheckedIndexedAccess, noImplicitReturns
-   - 103 errors fixed in layer infrastructure (previous session)
-   - 0 compilation errors (per docs)
-   - Evidence: frontend/tsconfig.json, docs/GOLDEN_SOURCE.md:9
-
-5. **Message sequence tracking**:
-   - MessageSequenceTracker prevents out-of-order processing
-   - MessageDeduplicator prevents duplicate processing
-   - Memory leak fix included
-   - Evidence: frontend/src/types/ws_messages.ts:806, 900
-
----
+4. **Type Safety Gaps**
+   - String-based IDs allow mixing different entity types (e.g., actor ID used where org ID expected)
+   - Array/object types use mutable references where readonly would be safer
+   - `any` types in metadata and filter objects
+   - Missing Result<T,E> pattern for operations that can fail
 
 #### Changes Made
 
-**Files Created:**
-1. `checks/help_docs_consolidation.md` - Consolidation report (15 actions)
-2. `checks/gap_map.md` - Gap analysis with 30 items
-3. `checks/SCOUT_LOG.md` - This audit log
-4. `patches/DOC001_performance_metrics_alignment/README.md` - Patch for README.md
-5. `patches/DOC002_agents_migration_path_fix/README.md` - Patch for AGENTS.md
-6. `patches/DOC003_repo_map_api_endpoints/README.md` - Patch for REPO_MAP.md
+1. **Updated tsconfig.json** (`frontend/tsconfig.json`)
+   ```diff
+   + "noImplicitOverride": true,
+   + "exactOptionalPropertyTypes": true,
+   + "noUncheckedIndexedAccess": true,
+   + "noImplicitReturns": true,
+   ```
 
-**Files Updated:**
-1. `CHANGELOG.md` - Added Unreleased section with audit findings
+2. **Fixed Type Errors in App.tsx** (`frontend/src/App.tsx:33,40`)
+   - Added explicit types to React Query retry callbacks
+   - `retry: (failureCount: number, error: Error) => ...`
+   - `retryDelay: (attemptIndex: number) => ...`
 
-**Files Proposed for Update (Next Steps):**
-1. `README.md` - Performance metrics alignment (DOC001)
-2. `docs/architecture/AGENTS.md` - Migration path fix (DOC002)
-3. `docs/architecture/REPO_MAP.md` - Add RSS endpoints (DOC003)
-4. `docs/ENVIRONMENT_VARIABLES.md` - Add 18+ undocumented vars
-5. `docs/GOLDEN_SOURCE.md` - Update task board status
+3. **Created Branded Types System** (`frontend/src/types/brand.ts`)
+   - `Brand<T, K>` utility for nominal typing
+   - `EntityId<T>` where T is EntityType discriminator ('actor', 'org', 'initiative', etc.)
+   - Specific type aliases: `ActorId`, `OrgId`, `OutcomeId`, etc.
+   - Constructor functions: `toEntityId()`, `toPathString()`, `toConfidenceScore()`, `toTimestamp()`
+   - `Result<T, E>` type with `Ok()`, `Err()`, `unwrap()`, `unwrapOr()` helpers
+   - Type guards and mappers: `isOk()`, `isErr()`, `mapResult()`, `chainResult()`
+
+4. **Updated Canonical Types** (`frontend/src/types/index.ts`)
+   - Made `Entity<T>` generic over EntityType
+   - Changed `id`, `parentId` to `EntityId<T>`
+   - Changed `path`, `columnPaths` to `PathString`
+   - Changed `confidence` to `ConfidenceScore` (branded 0-1 range)
+   - Changed `createdAt`, `updatedAt`, `timestamp` to `Timestamp` (ISO 8601)
+   - Changed mutable arrays to `readonly` arrays
+   - Changed `any` to `unknown` for data fields
+   - Made `BreadcrumbItem<T>`, `HierarchyNode<T>`, `HierarchyResponse<T>`, `UIState<T>`, `SearchResult<T>` generic
+
+#### Design Decisions
+
+1. **Branded Types Strategy**
+   - Use nominal typing via Brand<T,K> to prevent ID mixing at compile time
+   - Generic Entity<T> allows type-safe specialization (e.g., `Entity<'actor'>`)
+   - Runtime constructors (`toEntityId`) provide validation and type casting
+   - This is a breaking change for existing code but provides strong safety guarantees
+
+2. **Readonly-by-Default for Collections**
+   - Arrays and objects are marked `readonly` to prevent accidental mutation
+   - Forces explicit use of immutable update patterns
+   - Aligns with React best practices and React Query expectations
+
+3. **Result<T,E> Pattern**
+   - Rust-inspired error handling without exceptions
+   - Makes error cases explicit in function signatures
+   - Will be used for parsing, validation, and fallible operations in Phase Guards
+
+4. **Migration Path**
+   - Phase TS: Define branded types and update canonical type definitions ✅
+   - Phase TS: Codemod to replace raw string IDs with branded constructors (pending)
+   - Phase Guards: Add runtime validation with Zod
+   - Phase Guards: Wrap WS handlers with parseOrReport<T>
+
+#### Known Issues & Follow-ups
+
+1. **Duplicate Type Definitions**
+   - `useHierarchy.ts` defines Entity, HierarchyNode, BreadcrumbItem locally
+   - `uiStore.ts` has a different BreadcrumbItem schema (`label` vs `name`)
+   - **Follow-up:** Create patch to unify type imports in Phase TS completion
+
+2. **Missing Type Parameters in useHierarchy**
+   - Retry callbacks (lines 83, 90) have implicit `any` parameters
+   - **Follow-up:** Fix in next patch
+
+3. **Type Safety Gaps Still Present**
+   - Many files still use plain `string` for IDs instead of `EntityId<T>`
+   - WebSocket handlers don't validate message schemas
+   - No idempotency guards for duplicate messages
+   - **Follow-up:** Address in Phase Guards
+
+4. **React Query Type Safety**
+   - Query keys not using `QueryKey` branded type
+   - staleTime and gcTime could be branded for time duration safety
+   - **Follow-up:** Implement in Phase Cache
+
+#### Next Steps (Phase TS Completion)
+
+1. Create `codemods/brandIds.ts` to automate ID type migration
+2. Apply codemod dry-run on 3-5 representative files
+3. Generate `patches/` directory with suggested changes
+4. Update `useHierarchy.ts` to remove duplicate types and import from `types/index.ts`
+5. Unify `BreadcrumbItem` schema across codebase
+6. Fix remaining implicit `any` type parameters
+7. Run full type check and ensure no regressions
+
+#### Metrics
+
+- Files modified: 3
+  - `frontend/tsconfig.json`
+  - `frontend/src/App.tsx`
+  - `frontend/src/types/brand.ts` (new)
+  - `frontend/src/types/index.ts`
+- Type errors fixed: 3 (App.tsx implicit any parameters)
+- New type safety features: 12 branded types, Result<T,E> pattern
+- Lines of code added: ~250 (brand.ts), ~30 (types/index.ts updates)
+- Breaking changes: Yes (Entity signature changed to generic)
 
 ---
 
-#### Deferred Items (Requires Running Stack)
+## Trade-offs & Architectural Notes
 
-1. **Performance regression investigation**:
-   - Ancestor resolution: 3.46ms actual vs 1.25ms target
-   - Requires: Running PostgreSQL, Redis, benchmark suite
-   - Tool: scripts/slo_validation.py
-   - Evidence: docs/GOLDEN_SOURCE.md:39
+### Branded Types vs. Runtime Validation
 
-2. **Feature flag naming standardization**:
-   - Migration required to standardize dot vs underscore notation
-   - Requires: Running database, frontend/backend coordination
-   - Migration: migrations/001_standardize_feature_flag_names.sql exists
+**Decision:** Use both branded types (compile-time) AND runtime validation (Phase Guards)
 
----
+**Rationale:**
+- Branded types catch errors during development (IDE autocomplete, tsc checks)
+- Runtime validation catches errors from external sources (API, WebSocket, user input)
+- Together they provide defense-in-depth
 
-#### Acceptance Criteria
+**Trade-off:**
+- More verbose code (need to use constructors like `toEntityId()`)
+- Migration cost (need to update all existing code)
+- **Benefit:** Prevents entire classes of bugs (ID confusion, out-of-range confidence scores)
 
-✅ **Completed:**
-- [x] Every updated doc section includes at least one evidence citation to code lines
-- [x] No new documents created (consolidated instead)
-- [x] Patches compile conceptually and reduce contradictions
-- [x] Gap map cleanly separates code-only from requires-stack work
-- [x] Risk/effort/confidence assigned to each gap
-- [x] 7-day action plan with dependencies and acceptance tests
-- [x] Proposed PRs with titles, scope, risk assessment
+### Generic Entity<T> vs. Separate Interfaces
 
-**Metrics:**
-- Documentation files analysed: 84
-- Backend files mapped: 40+ (routes, services, migrations)
-- Frontend files mapped: 50+ (components, hooks, types, layers)
-- Gaps identified: 30 (28 code-only, 2 requires-stack)
-- Consolidation actions: 15 (8 remove, 6 merge, 1 move)
-- Patches created: 3 (all code-only)
-- Evidence citations: 100+ file:line references
+**Decision:** Use generic `Entity<T extends EntityType>`
 
----
+**Alternatives considered:**
+1. Separate interfaces: `ActorEntity`, `OrgEntity`, `OutcomeEntity`, etc.
+2. Union type: `Entity = ActorEntity | OrgEntity | ...`
+3. Generic with discriminator: `Entity<T>` (chosen)
 
-#### Next Steps
+**Rationale:**
+- Avoids code duplication (all entities share 90% of fields)
+- Allows flexible typing: `Entity` (any type), `Entity<'actor'>` (specific)
+- Easier to add new entity types (update EntityType union, no new interfaces)
 
-**Immediate (Code-Only):**
-1. Apply patches DOC001, DOC002, DOC003
-2. Move docs/reports/SCOUT_LOG.md to checks/SCOUT_LOG.md
-3. Remove 8 redundant summary files
-4. Update ENVIRONMENT_VARIABLES.md with 18+ missing vars
-5. Consolidate RSS documentation (3 files → 2 canonical)
-6. Consolidate performance documentation (3 files → 1 canonical)
-7. Consolidate TypeScript documentation (3 files → 1 canonical)
+**Trade-off:**
+- Slightly more complex type signatures
+- Need to be careful with type narrowing
+- **Benefit:** Single source of truth, easier maintenance
 
-**Deferred (Requires Stack):**
-1. Run scripts/slo_validation.py to measure actual performance
-2. Update performance metrics across all docs with measured values
-3. Test feature flag naming migration
-4. Verify RSS API endpoint schemas with live requests
+### Readonly Arrays vs. Mutable Arrays
 
-**Proposed PRs (5 total):**
-1. PR-1: Documentation Accuracy (Day 1-2, Low risk)
-2. PR-2: Environment Variables Documentation (Day 3-4, Low risk)
-3. PR-3: Feature Flag Documentation (Day 3-4, Low risk)
-4. PR-4: Contract Drift Fixes (Day 5, Medium risk)
-5. PR-5: Test Coverage Expansion (Day 6-7, Medium risk)
+**Decision:** Use `readonly` for all collection types in interfaces
+
+**Rationale:**
+- Prevents accidental mutation bugs
+- Aligns with React immutability requirements
+- Forces explicit use of spread operators and immutable updates
+- Better for React.memo and useMemo optimization
+
+**Trade-off:**
+- Need to cast or clone when calling mutable APIs
+- Slightly more verbose update code
+- **Benefit:** Safer, more predictable state updates
 
 ---
 
-**Session Complete:** 2025-11-08
-**Total Time:** ~6 hours (including agent delegation)
-**Confidence:** 90% (high confidence in code-only findings, lower for performance measurements without running stack)
+## Questions & Blockers
+
+### Questions
+
+1. **Entity Type Taxonomy:** Do we need additional entity types beyond the 12 defined?
+   - Current: actor, org, initiative, outcome, horizon, evidence, stakeholder, opportunity, action, lens, layer, filter
+   - Potential additions: metric, kpi, goal, risk, assumption, dependency?
+
+2. **BreadcrumbItem Schema Divergence:** Which schema is correct?
+   - `types/index.ts`: `{ id, name, type, path, pathDepth }`
+   - `uiStore.ts`: `{ label, path, entityId? }`
+   - Need to clarify with product/UX team
+
+3. **Confidence Score Range:** Should we validate 0-1 range at runtime or allow >1?
+   - Some ML systems use log-odds or unnormalized scores
+   - Decision: Enforce 0-1 range in `toConfidenceScore()`, document assumption
+
+### Blockers
+
+None currently. All Phase TS work can proceed without external dependencies.
+
+---
+
+## Useful Snippets & Patterns
+
+### Creating a Branded Entity ID
+
+```typescript
+import { toEntityId } from './types/brand';
+
+// From API response (unsafe string)
+const actorId = toEntityId(responseData.id, 'actor');
+
+// Type error - prevents mixing entity types
+const org: Entity<'org'> = { id: actorId, ... }; // ❌ Error
+
+// Correct usage
+const actor: Entity<'actor'> = { id: actorId, ... }; // ✅
+```
+
+### Using Result<T,E> Pattern
+
+```typescript
+import { Result, Ok, Err, unwrapOr } from './types/brand';
+
+function parseEntity(data: unknown): Result<Entity, ParseError> {
+  if (!isValidEntity(data)) {
+    return Err(new ParseError('Invalid entity'));
+  }
+  return Ok(data);
+}
+
+const result = parseEntity(rawData);
+const entity = unwrapOr(result, defaultEntity);
+```
+
+### Safe Path Construction
+
+```typescript
+import { toPathString } from './types/brand';
+
+const path = toPathString('/actor/123/initiative/456'); // ✅
+const badPath = toPathString('actor/123'); // ❌ Throws - must start with /
+```
+
+---
+
+## References
+
+- TypeScript Handbook: Branded Types https://www.typescriptlang.org/docs/handbook/declaration-files/do-s-and-don-ts.html
+- React Query Best Practices: https://tkdodo.eu/blog/react-query-best-practices
+- Rust Result<T,E>: https://doc.rust-lang.org/std/result/
