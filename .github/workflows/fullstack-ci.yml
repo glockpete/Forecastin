@@ -16,21 +16,31 @@ jobs:
       matrix:
         python-version: ['3.11']
 
-    # Uncomment below to add PostgreSQL service for backend tests
-    # services:
-    #   postgres:
-    #     image: postgres:14
-    #     env:
-    #       POSTGRES_USER: test
-    #       POSTGRES_PASSWORD: test
-    #       POSTGRES_DB: testdb
-    #     ports:
-    #       - 5432:5432
-    #     options: >-
-    #       --health-cmd pg_isready
-    #       --health-interval 10s
-    #       --health-timeout 5s
-    #       --health-retries 5
+    # PostgreSQL and Redis services for backend tests
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -54,9 +64,10 @@ jobs:
           cd api
           pytest tests/ -v --cov=. --cov-report=term-missing
         env:
-          # Add any environment variables needed for tests
+          # Environment variables for tests
           TESTING: true
-          # DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379/0
 
       - name: Upload coverage reports
         if: success()
