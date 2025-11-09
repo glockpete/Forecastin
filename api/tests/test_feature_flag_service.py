@@ -10,9 +10,8 @@ Tests cover:
 - WebSocket notifications
 """
 
-import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -100,7 +99,7 @@ class TestFeatureFlagService:
         assert flag is not None
         assert flag.flag_name == "test.feature"
         assert flag.description == "Test feature"
-        assert flag.is_enabled == False
+        assert not flag.is_enabled
         assert flag.rollout_percentage == 0
         mock_db_manager.fetchrow.assert_called_once()
 
@@ -125,7 +124,7 @@ class TestFeatureFlagService:
         # Assert
         assert flag is not None
         assert flag.flag_name == "cached.feature"
-        assert flag.is_enabled == True
+        assert flag.is_enabled
         mock_cache_service.get.assert_called_once()
 
     async def test_get_flag_from_database(self, feature_flag_service, mock_db_manager, mock_cache_service):
@@ -224,7 +223,7 @@ class TestFeatureFlagService:
 
         # Assert
         assert flag is not None
-        assert flag.is_enabled == True
+        assert flag.is_enabled
         assert flag.rollout_percentage == 50
         assert flag.description == "Updated description"
         mock_db_manager.fetchrow.assert_called_once()
@@ -238,7 +237,7 @@ class TestFeatureFlagService:
         result = await feature_flag_service.delete_flag("test.feature")
 
         # Assert
-        assert result == True
+        assert result
         mock_db_manager.execute.assert_called_once()
 
     async def test_delete_nonexistent_flag(self, feature_flag_service, mock_db_manager):
@@ -250,7 +249,7 @@ class TestFeatureFlagService:
         result = await feature_flag_service.delete_flag("nonexistent.feature")
 
         # Assert
-        assert result == False
+        assert not result
 
     async def test_gradual_rollout_percentages(self, feature_flag_service, mock_db_manager):
         """Test gradual rollout percentage validation"""
@@ -379,5 +378,5 @@ class TestFeatureFlagService:
         assert "isEnabled" in flag_dict
         assert "rolloutPercentage" in flag_dict
         assert flag_dict["flagName"] == "test.feature"
-        assert flag_dict["isEnabled"] == True
+        assert flag_dict["isEnabled"]
         assert flag_dict["rolloutPercentage"] == 100

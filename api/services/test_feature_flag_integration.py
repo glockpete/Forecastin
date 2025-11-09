@@ -253,7 +253,7 @@ async def test_feature_flag_service_integration():
     flag = await feature_flag_service.create_flag(create_request)
     assert flag is not None
     assert flag.flag_name == "test.feature"
-    assert flag.is_enabled == True
+    assert flag.is_enabled
     assert flag.rollout_percentage == 50
 
     logger.info(f"✓ Created flag: {flag.flag_name}")
@@ -277,7 +277,7 @@ async def test_feature_flag_service_integration():
     updated_flag = await feature_flag_service.update_flag("test.feature", update_request)
     assert updated_flag is not None
     assert updated_flag.description == "Updated test feature flag"
-    assert updated_flag.is_enabled == False
+    assert not updated_flag.is_enabled
     assert updated_flag.rollout_percentage == 25
 
     logger.info(f"✓ Updated flag: {updated_flag.flag_name}")
@@ -293,7 +293,7 @@ async def test_feature_flag_service_integration():
     # Test 5: Check if flag is enabled
     logger.info("Test 5: Checking if flag is enabled")
     is_enabled = await feature_flag_service.is_flag_enabled("test.feature")
-    assert is_enabled == False
+    assert not is_enabled
 
     logger.info(f"✓ Flag enabled status: {is_enabled}")
 
@@ -315,7 +315,7 @@ async def test_feature_flag_service_integration():
     # Test 7: Delete feature flag
     logger.info("Test 7: Deleting feature flag")
     deleted = await feature_flag_service.delete_flag("test.feature")
-    assert deleted == True
+    assert deleted
 
     # Verify flag is gone
     deleted_flag = await feature_flag_service.get_flag("test.feature")
@@ -380,7 +380,7 @@ async def test_feature_flag_service_integration():
     # Test 14: Error handling - try to delete non-existent flag
     logger.info("Test 14: Testing deletion of non-existent flag")
     result = await feature_flag_service.delete_flag("non.existent")
-    assert result == False
+    assert not result
     logger.info("✓ Correctly handled deletion of non-existent flag")
 
     # Cleanup
@@ -443,7 +443,7 @@ async def test_performance_requirements():
 
     # Check cache hit rate
     cache_stats = cache_service.get_stats()
-    total_cache_calls = cache_stats["get_calls"]
+    cache_stats["get_calls"]
     logger.info(f"Cache stats: {cache_stats}")
 
     # Cleanup

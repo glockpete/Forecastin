@@ -13,7 +13,7 @@ Run: pytest api/tests/test_rss_performance_slos.py -v
 import asyncio
 import time
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -163,7 +163,7 @@ class TestRSSIngestionSLOs:
         # Simulate complete pipeline
         # 1. Ingestion
         await asyncio.sleep(0.3)  # 300ms
-        ingest_result = await mock_rss_service.ingest_feed(mock_rss_feed_data)
+        await mock_rss_service.ingest_feed(mock_rss_feed_data)
         mock_rss_service.ingest_feed.return_value = {
             'articles_ingested': len(mock_rss_feed_data),
             'status': 'success'

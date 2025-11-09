@@ -16,8 +16,7 @@ Tests cover:
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -211,7 +210,7 @@ class TestAutomatedRefreshService:
         view_name = "test_view"
 
         # Act
-        result = service._trigger_refresh(view_name, force=True)
+        service._trigger_refresh(view_name, force=True)
 
         # Assert
         assert service.rollback_snapshot is not None

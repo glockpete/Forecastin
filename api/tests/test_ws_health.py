@@ -12,14 +12,12 @@ These tests ensure the health endpoint can detect and prevent
 WebSocket issues including 1006 close codes and idle timeouts.
 """
 
-import asyncio
 import json
 import os
 
 # Import the FastAPI app
 import sys
 import time
-from typing import Any, Dict
 
 import pytest
 from fastapi.testclient import TestClient
@@ -117,7 +115,7 @@ class TestWebSocketHealth:
         with client.websocket_connect("/ws/health") as websocket:
             # Consume initial status
             initial_status = json.loads(websocket.receive_text())
-            initial_time = initial_status["server_time"]
+            initial_status["server_time"]
 
             # Wait a bit
             time.sleep(0.2)

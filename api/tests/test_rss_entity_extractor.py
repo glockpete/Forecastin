@@ -11,10 +11,8 @@ Tests cover:
 - Pattern-based entity recognition
 """
 
-import asyncio
 from datetime import datetime
-from typing import List
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 

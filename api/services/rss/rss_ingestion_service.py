@@ -80,7 +80,7 @@ class RSSIngestionMetrics:
 class RSSIngestionService:
     """
     Main RSS ingestion service with RSSHub-inspired patterns
-    
+
     This service implements the complete RSS ingestion pipeline:
     1. Route-based content extraction with CSS selectors
     2. Anti-crawler strategies with exponential backoff
@@ -99,7 +99,7 @@ class RSSIngestionService:
     ):
         """
         Initialize RSS ingestion service
-        
+
         Args:
             cache_service: Existing cache service with four-tier strategy
             realtime_service: WebSocket real-time service
@@ -134,12 +134,12 @@ class RSSIngestionService:
     ) -> Dict[str, Any]:
         """
         Ingest RSS feed with complete processing pipeline
-        
+
         Args:
             feed_url: RSS feed URL to ingest
             route_config: RSSHub-inspired route configuration
             job_id: Optional job ID for tracking
-            
+
         Returns:
             Ingestion results with metrics and extracted entities
         """
@@ -225,11 +225,11 @@ class RSSIngestionService:
     ) -> Dict[str, Any]:
         """
         Ingest multiple RSS feeds in parallel or sequentially
-        
+
         Args:
             feed_configs: List of feed configurations
             parallel: Whether to process feeds in parallel
-            
+
         Returns:
             Aggregate results from all feeds
         """

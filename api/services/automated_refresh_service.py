@@ -268,7 +268,7 @@ class AutomatedRefreshService:
             with self.db_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO refresh_metrics 
+                        INSERT INTO refresh_metrics
                         (view_name, refresh_duration_ms, success, created_at)
                         VALUES (%s, %s, %s, NOW())
                     """, (

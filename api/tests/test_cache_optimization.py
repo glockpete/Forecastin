@@ -6,7 +6,6 @@ This test validates:
 2. orjson serialization performance vs standard json
 """
 
-import asyncio
 import time
 from collections import OrderedDict
 

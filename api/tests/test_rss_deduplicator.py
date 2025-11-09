@@ -13,10 +13,7 @@ Tests cover:
 """
 
 import asyncio
-import hashlib
-from datetime import datetime
-from typing import List
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -176,7 +173,7 @@ class TestRSSDeduplicator:
         ]
 
         # Act
-        result = await deduplicator.deduplicate_articles(articles)
+        await deduplicator.deduplicate_articles(articles)
 
         # Assert
         assert len(deduplicator.audit_trail) >= 1
@@ -434,7 +431,6 @@ class TestRSSDeduplicator:
     async def test_thread_safety_concurrent_deduplication(self, deduplicator):
         """Test thread-safe deduplication operations"""
         # Arrange
-        import threading
 
         articles_set1 = [
             MockArticle("1", "Content A"),

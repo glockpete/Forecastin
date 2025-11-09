@@ -5,22 +5,17 @@ Tests ScenarioEntity, ScenarioCollaborationService, MultiFactorAnalysisEngine, a
 
 import asyncio
 import time
-from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from api.services.scenario_service import (
     AnalysisFactor,
-    AnalysisResult,
-    CollaborationState,
     CursorPaginator,
     MultiFactorAnalysisEngine,
     RiskLevel,
-    RiskProfile,
     ScenarioCollaborationService,
     ScenarioEntity,
-    ValidationStatus,
 )
 
 # ===========================
@@ -349,7 +344,7 @@ class TestMultiFactorAnalysisEngine:
         await engine.initialize()
 
         scenario_id = "test_scenario_004"
-        result = await engine.analyze_scenario(scenario_id)
+        await engine.analyze_scenario(scenario_id)
 
         # Verify WebSocket broadcast was triggered
         mock_realtime_service.broadcast_update.assert_called()

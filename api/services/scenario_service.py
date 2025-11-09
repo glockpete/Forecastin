@@ -102,7 +102,7 @@ class CollaborationState:
 class ScenarioEntity:
     """
     Core scenario entity with LTREE hierarchy integration.
-    
+
     Leverages existing LTREE materialized views and four-tier caching
     for O(log n) performance on hierarchical queries.
     """
@@ -178,7 +178,7 @@ class AnalysisResult:
 class CursorPaginator:
     """
     Cursor-based pagination for efficient time series data pagination.
-    
+
     More efficient than offset-based pagination for large datasets.
     Implements cursor encoding/decoding with timestamp-based pagination.
     """
@@ -209,12 +209,12 @@ class CursorPaginator:
     ) -> Dict[str, Any]:
         """
         Paginate forecast time series data using cursor-based pagination.
-        
+
         Args:
             forecast: HierarchicalForecast to paginate
             cursor: Optional cursor for pagination continuation
             page_size: Number of items per page (default: 100)
-            
+
         Returns:
             Paginated forecast data with next_cursor and has_more flags
         """
@@ -270,7 +270,7 @@ class CursorPaginator:
 class MultiFactorAnalysisEngine:
     """
     Multi-factor analysis engine with four-tier caching.
-    
+
     Integrates with existing geospatial, temporal, and entity extraction
     systems for comprehensive scenario analysis.
     """
@@ -314,17 +314,17 @@ class MultiFactorAnalysisEngine:
     ) -> AnalysisResult:
         """
         Perform multi-factor analysis with caching and real-time updates.
-        
+
         Implements four-tier cache lookup (L1→L2→L3→L4) and broadcasts
         real-time updates via WebSocket using orjson serialization.
-        
+
         Args:
             scenario_id: Scenario identifier
             factors: List of analysis factors to evaluate
-            
+
         Returns:
             AnalysisResult with comprehensive factor scores
-            
+
         Performance Target: <200ms with caching
         """
         start_time = time.time()
@@ -569,7 +569,7 @@ class MultiFactorAnalysisEngine:
             }
 
             # Use safe_serialize_message for WebSocket resilience
-            serialized_message = safe_serialize_message(message)
+            safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(
                 message
             )
@@ -630,7 +630,7 @@ class MultiFactorAnalysisEngine:
 class ValidationResult:
     """
     Comprehensive validation result with ML integration.
-    
+
     Implements Django-style layered validation results with
     automated risk assessment and ML confidence scoring.
     """
@@ -659,16 +659,16 @@ class ValidationResult:
 class ScenarioValidationEngine:
     """
     Comprehensive scenario validation with ML integration.
-    
+
     Implements Django-style layered validation:
     1. Field-level validation (data types, ranges)
     2. Model-level validation (multi-field logic)
     3. Unique constraints (LTREE path uniqueness)
     4. General constraints (business rules)
-    
+
     Integrates with existing ML A/B testing framework for validation
     confidence scoring and automatic rollback capabilities.
-    
+
     Performance Target: <50ms validation latency with 99.2% cache hit rate
     """
 
@@ -724,19 +724,19 @@ class ScenarioValidationEngine:
     ) -> ValidationResult:
         """
         Django-style layered validation with ML integration.
-        
+
         Validation Layers:
         1. Field-level validation (data types, ranges)
         2. Model-level validation (multi-field logic)
         3. Unique constraints (LTREE path uniqueness)
         4. General constraints (business rules)
-        
+
         Args:
             scenario: ScenarioEntity to validate
-            
+
         Returns:
             ValidationResult with comprehensive error/warning information
-            
+
         Performance Target: <50ms with caching
         """
         start_time = time.time()
@@ -1011,7 +1011,7 @@ class ScenarioValidationEngine:
     ) -> RiskLevel:
         """
         Automated risk assessment based on validation results.
-        
+
         Risk Levels:
         - Low: confidence >0.85, all validations pass
         - Medium: confidence 0.70-0.85, minor warnings
@@ -1111,7 +1111,7 @@ class ScenarioValidationEngine:
             }
 
             # Use safe_serialize_message for WebSocket resilience
-            serialized_message = safe_serialize_message(message)
+            safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(
                 message
             )
@@ -1151,7 +1151,7 @@ class ScenarioValidationEngine:
 class ScenarioCollaborationService:
     """
     Real-time scenario collaboration with WebSocket integration.
-    
+
     Implements collaborative editing with:
     - Change tracking and audit trail
     - Conflict resolution strategies
@@ -1175,12 +1175,12 @@ class ScenarioCollaborationService:
     ) -> Dict[str, Any]:
         """
         Handle real-time scenario collaboration with safe serialization.
-        
+
         Args:
             scenario_id: Scenario identifier
             user_id: User making changes
             changes: Dictionary of changes to apply
-            
+
         Returns:
             Collaboration result with conflict information
         """
@@ -1220,7 +1220,7 @@ class ScenarioCollaborationService:
             }
 
             # Use safe_serialize_message for WebSocket resilience
-            serialized_message = safe_serialize_message(message)
+            safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(message)
 
             self.logger.info(
@@ -1237,7 +1237,7 @@ class ScenarioCollaborationService:
             self.logger.error(f"Collaboration error for scenario {scenario_id}: {e}")
 
             # Send error message to user
-            error_message = safe_serialize_message({
+            safe_serialize_message({
                 'type': 'collaboration_error',
                 'scenario_id': scenario_id,
                 'error': str(e),

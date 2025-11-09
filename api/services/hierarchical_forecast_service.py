@@ -107,7 +107,7 @@ class HierarchicalForecast:
 class ProphetModelCache:
     """
     Thread-safe Prophet model cache using RLock.
-    
+
     Uses RLock instead of standard Lock for re-entrant locking
     to prevent deadlocks in complex query scenarios.
     """
@@ -115,7 +115,7 @@ class ProphetModelCache:
     def __init__(self, max_size: int = 100):
         """
         Initialize Prophet model cache.
-        
+
         Args:
             max_size: Maximum number of cached models
         """
@@ -171,10 +171,10 @@ class ProphetModelCache:
 class HierarchicalForecastManager:
     """
     Hierarchical time series forecasting with Prophet integration.
-    
+
     Implements top-down and bottom-up forecasting methods with four-tier
     caching strategy and real-time WebSocket updates.
-    
+
     Performance Targets:
     - <500ms for top-down forecasting
     - <1000ms for bottom-up forecasting
@@ -191,7 +191,7 @@ class HierarchicalForecastManager:
     ):
         """
         Initialize hierarchical forecast manager.
-        
+
         Args:
             cache_service: Multi-tier cache service (L1→L2)
             realtime_service: WebSocket service with orjson serialization
@@ -240,19 +240,19 @@ class HierarchicalForecastManager:
     ) -> HierarchicalForecast:
         """
         Generate hierarchical forecast with consistency constraints.
-        
+
         This method implements four-tier cache lookup (L1→L2→L3→L4)
         and broadcasts real-time updates via WebSocket using orjson.
-        
+
         Args:
             entity_path: LTREE path (e.g., 'root.continent.asia.country.japan')
             forecast_horizon: Days to forecast ahead
             method: 'top_down' or 'bottom_up'
             historical_days: Days of historical data to use
-            
+
         Returns:
             HierarchicalForecast with complete hierarchy
-            
+
         Performance:
             Target: <500ms for top_down, <1000ms for bottom_up
         """
@@ -330,16 +330,16 @@ class HierarchicalForecastManager:
     ) -> HierarchicalForecast:
         """
         Generate parent-level forecast and disaggregate to children.
-        
+
         Top-down approach:
         1. Generate parent forecast using Prophet
         2. Query child entities via LTREE path
         3. Disaggregate parent forecast to children using historical proportions
         4. Ensure consistency: sum(children) == parent
-        
+
         Performance Target: <500ms
         """
-        start_time = time.time()
+        time.time()
 
         # Get parent entity hierarchy information
         parent_entity = self.hierarchy_resolver.get_hierarchy(entity_path)
@@ -414,16 +414,16 @@ class HierarchicalForecastManager:
     ) -> HierarchicalForecast:
         """
         Generate individual forecasts for leaf entities and aggregate.
-        
+
         Bottom-up approach:
         1. Query leaf entities via LTREE descendants
         2. Generate individual forecasts using Prophet
         3. Aggregate forecasts up hierarchy levels
         4. Store parent-child relationships for drill-down
-        
+
         Performance Target: <1000ms
         """
-        start_time = time.time()
+        time.time()
 
         # Get parent entity
         parent_entity = self.hierarchy_resolver.get_hierarchy(entity_path)
@@ -521,7 +521,7 @@ class HierarchicalForecastManager:
     ) -> HierarchicalForecast:
         """
         Generate single-level (non-hierarchical) forecast.
-        
+
         Fallback method when no children exist.
         """
         parent_entity = self.hierarchy_resolver.get_hierarchy(entity_path)
@@ -570,7 +570,7 @@ class HierarchicalForecastManager:
     ) -> Dict[str, Any]:
         """
         Generate Prophet forecast for entity.
-        
+
         Uses cached models when available (L1 cache with RLock).
         """
         # Check model cache
@@ -603,7 +603,7 @@ class HierarchicalForecastManager:
         upper = forecast_data['yhat_upper'].tolist()
 
         # Calculate confidence score based on prediction interval width
-        avg_interval_width = sum(u - l for u, l in zip(upper, lower)) / len(upper)
+        avg_interval_width = sum(u - lower_val for u, lower_val in zip(upper, lower)) / len(upper)
         avg_value = sum(values) / len(values)
         confidence = max(0.0, min(1.0, 1.0 - (avg_interval_width / (2 * abs(avg_value)))))
 
@@ -622,9 +622,9 @@ class HierarchicalForecastManager:
     ) -> Optional['pd.DataFrame']:
         """
         Query historical time series data for entity.
-        
+
         Implements exponential backoff retry (0.5s, 1s, 2s) for database operations.
-        
+
         Returns DataFrame with columns: 'ds' (datetime), 'y' (value)
         """
         if not self.db_pool or pd is None:
@@ -639,7 +639,7 @@ class HierarchicalForecastManager:
                     with conn.cursor() as cur:
                         # Query historical data from database
                         cur.execute("""
-                            SELECT 
+                            SELECT
                                 date_recorded as ds,
                                 metric_value as y
                             FROM entity_metrics
@@ -715,7 +715,7 @@ class HierarchicalForecastManager:
     ) -> ForecastNode:
         """Disaggregate parent forecast to child using proportion."""
         child_values = [v * proportion for v in parent_forecast['values']]
-        child_lower = [l * proportion for l in parent_forecast['lower']]
+        child_lower = [lower_val * proportion for lower_val in parent_forecast['lower']]
         child_upper = [u * proportion for u in parent_forecast['upper']]
 
         return ForecastNode(
@@ -734,7 +734,7 @@ class HierarchicalForecastManager:
     def _calculate_consistency_score(self, root_node: ForecastNode) -> float:
         """
         Calculate parent-child forecast consistency.
-        
+
         Measures how well sum(children) matches parent forecast.
         """
         if not root_node.children:
@@ -772,7 +772,7 @@ class HierarchicalForecastManager:
     async def _get_cached_forecast(self, cache_key: str) -> Optional[HierarchicalForecast]:
         """
         Get cached forecast from L1 (memory) → L2 (Redis).
-        
+
         Returns None if not found in any cache tier.
         """
         if not self.cache_service:
@@ -846,7 +846,7 @@ class HierarchicalForecastManager:
     ) -> None:
         """
         Broadcast forecast update via WebSocket with orjson serialization.
-        
+
         Uses safe_serialize_message() to prevent WebSocket crashes.
         """
         if not self.realtime_service:

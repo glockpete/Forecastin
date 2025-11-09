@@ -44,7 +44,7 @@ class RSSArticle:
 class RSSEntityExtractor:
     """
     Extracts 5-W entities from RSS content with confidence scoring
-    
+
     Follows the rules from AGENTS.md:
     - Confidence scores are calibrated by rules, not just base model confidence
     - PersonEntity with title+organization gets higher score than name alone

@@ -34,10 +34,6 @@ def validate_environment_variables(strict: bool = False) -> Dict[str, str]:
     config: Dict[str, str] = {}
 
     # Required environment variables
-    required_vars = {
-        # Database (can be constructed from components or provided as full URL)
-        'DATABASE_URL': None,  # Optional if components are provided
-    }
 
     # Optional environment variables with defaults
     optional_vars = {

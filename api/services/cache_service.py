@@ -2,7 +2,7 @@
 Cache Service with Redis connection handling and L1 memory cache.
 
 Implements the multi-tier caching strategy:
-- L1: Memory LRU (10,000 entries) with RLock synchronization  
+- L1: Memory LRU (10,000 entries) with RLock synchronization
 - L2: Redis (shared across instances) with connection pooling and exponential backoff
 - L3: Database PostgreSQL buffer cache (handled by DB layer)
 - L4: Materialized views (handled by DB layer)
@@ -146,17 +146,17 @@ class LRUCacheEntry:
 class LRUMemoryCache:
     """
     Thread-safe LRU memory cache with RLock synchronization.
-    
+
     Uses RLock instead of standard Lock for re-entrant locking
     to prevent deadlocks in complex query scenarios.
-    
+
     Performance: Uses OrderedDict for O(1) LRU operations instead of list-based O(n).
     """
 
     def __init__(self, max_size: int = 10000):
         """
         Initialize LRU memory cache.
-        
+
         Args:
             max_size: Maximum number of entries in cache
         """
@@ -314,7 +314,7 @@ class LRUMemoryCache:
 class CacheService:
     """
     Multi-tier cache service with Redis and memory LRU cache.
-    
+
     Implements the caching strategy:
     - L1: Memory LRU cache (thread-safe with RLock)
     - L2: Redis cache (shared across instances)
@@ -332,7 +332,7 @@ class CacheService:
     ):
         """
         Initialize cache service.
-        
+
         Args:
             redis_url: Redis connection URL
             max_memory_cache_size: Maximum entries in L1 memory cache
@@ -398,10 +398,10 @@ class CacheService:
     async def get(self, key: str) -> Optional[Any]:
         """
         Get value from cache (L1 memory first, then L2 Redis).
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None
         """
@@ -504,10 +504,10 @@ class CacheService:
     async def delete(self, key: str) -> bool:
         """
         Delete value from cache (L1 and L2).
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if key was deleted, False otherwise
         """
@@ -549,10 +549,10 @@ class CacheService:
     async def exists(self, key: str) -> bool:
         """
         Check if key exists in cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if key exists, False otherwise
         """
@@ -575,10 +575,10 @@ class CacheService:
     async def _retry_redis_operation(self, coro):
         """
         Execute Redis operation with exponential backoff retry.
-        
+
         Args:
             coro: Coroutine to execute
-            
+
         Returns:
             Operation result
         """
@@ -657,7 +657,7 @@ class CacheService:
     def invalidate_l1_cache(self, key_pattern: str = None) -> None:
         """
         Invalidate L1 cache entries, optionally matching a pattern.
-        
+
         Args:
             key_pattern: Optional pattern to match keys for selective invalidation
         """
@@ -866,7 +866,6 @@ class CacheService:
             view_name: Name of the materialized view
             hook: Callback function to execute on refresh
         """
-        hook_key = f"mv_hook:{view_name}"
 
         def wrapper(key: str, value: Any):
             if key.startswith(f"mv:{view_name}"):

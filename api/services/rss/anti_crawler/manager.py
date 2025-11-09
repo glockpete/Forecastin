@@ -46,7 +46,7 @@ class UserAgent:
 class AntiCrawlerManager:
     """
     Intelligent anti-crawler manager with exponential backoff
-    
+
     This manager implements sophisticated anti-crawler strategies:
     - Domain-specific delay tracking
     - Exponential backoff based on failure history
@@ -102,7 +102,7 @@ class AntiCrawlerManager:
     async def apply_delay(self, domain: str, route_config: Optional[Dict] = None) -> None:
         """
         Apply intelligent delay based on domain history and route configuration
-        
+
         Args:
             domain: Domain being crawled
             route_config: Optional route-specific configuration
@@ -160,10 +160,10 @@ class AntiCrawlerManager:
     async def rotate_user_agent(self, route_config: Optional[Dict] = None) -> str:
         """
         Rotate to next user agent in pool
-        
+
         Args:
             route_config: Optional route configuration
-            
+
         Returns:
             New user agent string
         """
@@ -216,11 +216,11 @@ class AntiCrawlerManager:
     def should_blacklist(self, domain: str, duration: float = 3600) -> bool:
         """
         Check if a domain should be temporarily blacklisted
-        
+
         Args:
             domain: Domain to check
             duration: Blacklist duration in seconds
-            
+
         Returns:
             True if domain should be blacklisted
         """
@@ -240,7 +240,7 @@ class AntiCrawlerManager:
     async def handle_rate_limit(self, domain: str, retry_after: Optional[int] = None) -> None:
         """
         Handle rate limiting response from a domain
-        
+
         Args:
             domain: Domain that rate limited us
             retry_after: Optional Retry-After header value in seconds
@@ -343,7 +343,7 @@ async def apply_intelligent_delay(domain: str, manager: AntiCrawlerManager,
                                  min_delay: float = 2.0, max_delay: float = 30.0) -> None:
     """
     Convenience function for applying intelligent delay
-    
+
     Args:
         domain: Domain to apply delay for
         manager: Anti-crawler manager instance
@@ -376,15 +376,15 @@ class SmartRetryStrategy:
     async def execute_with_retry(self, coro, domain: str, description: str = "operation"):
         """
         Execute coroutine with smart retry logic
-        
+
         Args:
             coro: Coroutine to execute
             domain: Domain for tracking
             description: Description for logging
-            
+
         Returns:
             Coroutine result
-            
+
         Raises:
             Exception: If all retries fail
         """

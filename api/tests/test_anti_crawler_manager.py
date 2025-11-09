@@ -15,8 +15,6 @@ Tests cover:
 
 import asyncio
 import time
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -189,7 +187,7 @@ class TestAntiCrawlerManager:
     async def test_rotate_user_agent(self, manager):
         """Test user agent rotation"""
         # Arrange
-        initial_agent = manager.get_current_user_agent()
+        manager.get_current_user_agent()
 
         # Act
         new_agent = await manager.rotate_user_agent()

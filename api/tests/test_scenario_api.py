@@ -3,16 +3,12 @@ Unit tests for Phase 6 Scenario API Endpoints
 Tests Django-inspired API patterns with cursor-based pagination
 """
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.main import app
-from api.services.scenario_service import RiskLevel
 
 # ===========================
 # Fixtures

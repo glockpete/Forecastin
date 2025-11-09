@@ -34,7 +34,7 @@ class DeduplicationAuditEntry:
 class RSSDeduplicator:
     """
     Deduplication system with 0.8 similarity threshold for RSS content.
-    
+
     Follows the rules from AGENTS.md:
     - Uses 0.8 similarity threshold for deduplication
     - Canonical key assignment with SHA-256 hashing
@@ -53,10 +53,10 @@ class RSSDeduplicator:
     async def deduplicate_articles(self, articles: List[Any]) -> List[Any]:
         """
         Deduplicate RSS articles using 0.8 similarity threshold.
-        
+
         Args:
             articles: List of RSS articles to deduplicate
-            
+
         Returns:
             List of unique RSS articles
         """
@@ -115,10 +115,10 @@ class RSSDeduplicator:
     async def deduplicate_entities(self, entities: List[Any]) -> List[Any]:
         """
         Deduplicate entities across multiple RSS articles using canonical keys.
-        
+
         Args:
             entities: List of RSS entities to deduplicate
-            
+
         Returns:
             List of unique RSS entities
         """
@@ -168,17 +168,17 @@ class RSSDeduplicator:
     async def _calculate_similarity(self, content1: str, content2: str) -> float:
         """
         Calculate content similarity using a simple approach.
-        
+
         For production, this would use TF-IDF or sentence embeddings.
         For this implementation, we'll use a basic approach based on:
         - Jaccard similarity of words
         - Length similarity
         - Common substring analysis
-        
+
         Args:
             content1: First content string
             content2: Second content string
-            
+
         Returns:
             Similarity score between 0.0 and 1.0
         """
@@ -214,7 +214,7 @@ class RSSDeduplicator:
     async def _log_deduplication(self, duplicate_id: str, canonical_id: str, similarity: float):
         """
         CRITICAL: Audit trail logging as required by AGENTS.md.
-        
+
         Args:
             duplicate_id: ID of the duplicate article
             canonical_id: ID of the canonical article
@@ -266,7 +266,7 @@ class RSSDeduplicator:
     async def _log_entity_merge(self, old_id: str, new_id: str):
         """
         Log entity merge operations to audit trail.
-        
+
         Args:
             old_id: ID of the entity being replaced
             new_id: ID of the entity replacing it
@@ -292,7 +292,7 @@ class RSSDeduplicator:
     def get_audit_trail(self) -> List[DeduplicationAuditEntry]:
         """
         Get the complete audit trail of deduplication operations.
-        
+
         Returns:
             List of audit trail entries
         """
@@ -307,7 +307,7 @@ class RSSDeduplicator:
     async def get_deduplication_stats(self) -> Dict[str, Any]:
         """
         Get deduplication statistics.
-        
+
         Returns:
             Dictionary with deduplication statistics
         """

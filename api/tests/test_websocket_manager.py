@@ -17,14 +17,12 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 from services.websocket_manager import (
     ConnectionStats,
-    SerializationError,
     WebSocketManager,
     WebSocketMessage,
     safe_serialize_message,

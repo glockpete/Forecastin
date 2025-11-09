@@ -34,7 +34,7 @@ async def health_check():
     if hierarchy_resolver:
         try:
             # Test hierarchy resolver with a sample query
-            cache_metrics = hierarchy_resolver.get_cache_performance_metrics()
+            hierarchy_resolver.get_cache_performance_metrics()
             services_status["hierarchy_resolver"] = "healthy"
         except Exception as e:
             services_status["hierarchy_resolver"] = f"unhealthy: {e}"

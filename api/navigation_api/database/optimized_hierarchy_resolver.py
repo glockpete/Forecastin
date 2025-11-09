@@ -97,7 +97,7 @@ class CacheMetrics:
 class ThreadSafeLRUCache:
     """
     Thread-safe LRU cache using RLock for re-entrant locking.
-    
+
     This implementation uses threading.RLock instead of standard Lock
     to prevent deadlocks in complex query scenarios, as specified in
     the project requirements.
@@ -160,17 +160,17 @@ class ThreadSafeLRUCache:
 class OptimizedHierarchyResolver:
     """
     High-performance hierarchy resolver with four-tier caching strategy.
-    
+
     This resolver implements a sophisticated caching hierarchy designed for
     O(log n) performance with LTREE operations, achieving sub-2ms response times
     for hierarchical queries in the geopolitical intelligence domain.
-    
+
     Cache Hierarchy:
     1. L1 (Memory): Thread-safe LRU cache with RLock (1000 entries)
     2. L2 (Redis): Distributed cache shared across instances
     3. L3 (Database): PostgreSQL buffer cache + query optimization
     4. L4 (Materialized Views): Pre-computed hierarchy data
-    
+
     Thread Safety:
     - All cache operations protected by RLock
     - Exponential backoff retry for database connections
@@ -214,7 +214,7 @@ class OptimizedHierarchyResolver:
     def __init__(self, db_config: Optional[Dict] = None, redis_config: Optional[Dict] = None):
         """
         Initialize the hierarchy resolver with database and Redis configurations.
-        
+
         Args:
             db_config: Optional database configuration override
             redis_config: Optional Redis configuration override
@@ -493,7 +493,7 @@ class OptimizedHierarchyResolver:
     def _query_database_hierarchy(self, entity_id: str) -> Optional[HierarchyNode]:
         """
         Query database directly using optimized LTREE queries.
-        
+
         This method implements exponential backoff retry mechanism for transient
         failures as specified in the project requirements.
         """
@@ -558,7 +558,7 @@ class OptimizedHierarchyResolver:
     def _query_materialized_views(self, entity_id: str) -> Optional[HierarchyNode]:
         """
         Query materialized views for pre-computed hierarchy data.
-        
+
         This represents the L4 cache layer, which provides the fastest database
         queries by using pre-computed hierarchy information.
         """
@@ -629,17 +629,17 @@ class OptimizedHierarchyResolver:
     def refresh_materialized_view(self, view_name: str = "mv_entity_ancestors") -> bool:
         """
         Manually trigger a refresh of the underlying LTREE materialized view.
-        
+
         This method implements the manual refresh mechanism required for
         materialized views, as they do not automatically update like regular views.
-        
+
         According to the project requirements, materialized views require manual
         refresh after hierarchy modifications to prevent stale data.
-        
+
         Args:
             view_name: Name of the materialized view to refresh
                          (default: "mv_entity_ancestors")
-        
+
         Returns:
             True if refresh was successful, False otherwise
         """
@@ -686,7 +686,7 @@ class OptimizedHierarchyResolver:
     def refresh_all_materialized_views(self) -> Dict[str, bool]:
         """
         Refresh all hierarchy-related materialized views.
-        
+
         Returns:
             Dictionary mapping view names to refresh success status
         """
@@ -705,10 +705,10 @@ class OptimizedHierarchyResolver:
     def get_cache_performance_metrics(self) -> Dict[str, Any]:
         """
         Get comprehensive cache performance metrics for monitoring and optimization.
-        
+
         This method provides detailed metrics for each cache tier to enable
         performance monitoring and automatic optimization recommendations.
-        
+
         Returns:
             Dictionary containing detailed performance metrics
         """
@@ -776,7 +776,7 @@ class OptimizedHierarchyResolver:
     def clear_cache(self, tier: Optional[str] = None) -> None:
         """
         Clear cache for specified tier or all tiers.
-        
+
         Args:
             tier: Cache tier to clear ('l1', 'l2', 'l3', 'l4') or None for all
         """
@@ -1033,10 +1033,10 @@ class OptimizedHierarchyResolver:
     ) -> List[HierarchyNode]:
         """
         Get all entities in the hierarchy with optional limit.
-        
+
         Args:
             limit: Maximum number of entities to return
-            
+
         Returns:
             List of all hierarchy nodes
         """
@@ -1268,20 +1268,20 @@ def benchmark_hierarchy_resolution(resolver: OptimizedHierarchyResolver,
                                  iterations: int = 1000) -> Dict[str, float]:
     """
     Benchmark hierarchy resolution performance.
-    
+
     This function validates that the resolver meets the specified performance
     targets for the geopolitical intelligence system.
-    
+
     Performance Targets:
     - Ancestor resolution: <1.25ms (P95: 1.87ms)
     - Throughput: >42,000 RPS
     - Cache hit rate: >99%
-    
+
     Args:
         resolver: Hierarchy resolver instance to benchmark
         test_entities: List of entity IDs to test with
         iterations: Number of iterations per entity
-    
+
     Returns:
         Dictionary containing benchmark results
     """

@@ -8,7 +8,6 @@ Note: This is a stub implementation demonstrating the test structure.
 Full implementation would integrate with actual FastAPI test client.
 """
 
-import asyncio
 from typing import Any, Dict
 
 import pytest

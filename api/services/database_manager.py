@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     """
     Thread-safe database manager with connection pooling and context manager support.
-    
+
     Key features:
     - Uses threading.RLock for re-entrant locking (not standard Lock)
     - TCP keepalives to prevent firewall drops
@@ -42,7 +42,7 @@ class DatabaseManager:
     ):
         """
         Initialize DatabaseManager with connection pooling.
-        
+
         Args:
             database_url: PostgreSQL connection URL
             min_connections: Minimum number of connections in pool
@@ -123,10 +123,10 @@ class DatabaseManager:
     async def get_connection(self) -> Connection:
         """
         Get a database connection from the pool with retry logic.
-        
+
         Yields:
             Database connection
-            
+
         Raises:
             Exception: If connection cannot be acquired after retries
         """
@@ -158,11 +158,11 @@ class DatabaseManager:
     async def execute(self, query: str, *args) -> str:
         """
         Execute a query on the database.
-        
+
         Args:
             query: SQL query to execute
             *args: Query parameters
-            
+
         Returns:
             Query result status
         """
@@ -172,11 +172,11 @@ class DatabaseManager:
     async def fetch(self, query: str, *args) -> list:
         """
         Fetch multiple rows from the database.
-        
+
         Args:
             query: SQL query to execute
             *args: Query parameters
-            
+
         Returns:
             List of fetched rows
         """
@@ -186,11 +186,11 @@ class DatabaseManager:
     async def fetchrow(self, query: str, *args) -> Optional[dict]:
         """
         Fetch a single row from the database.
-        
+
         Args:
             query: SQL query to execute
             *args: Query parameters
-            
+
         Returns:
             Single row or None if no rows returned
         """
@@ -200,11 +200,11 @@ class DatabaseManager:
     async def fetchval(self, query: str, *args) -> Any:
         """
         Fetch a single value from the database.
-        
+
         Args:
             query: SQL query to execute
             *args: Query parameters
-            
+
         Returns:
             Single value
         """
@@ -214,7 +214,7 @@ class DatabaseManager:
     async def refresh_hierarchy_views(self) -> None:
         """
         Refresh materialized views for hierarchy operations.
-        
+
         This is required after hierarchy modifications as materialized views
         do not refresh automatically like regular views.
         """

@@ -7,11 +7,9 @@ and four-tier caching for the ScenarioValidationEngine.
 Author: Forecastin Development Team
 """
 
-import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -379,7 +377,7 @@ class TestPerformanceMetrics:
         latency_ms = (time.time() - start_time) * 1000
 
         # First validation might be slower, check metrics instead
-        metrics = validation_engine.get_performance_metrics()
+        validation_engine.get_performance_metrics()
 
         # After cache warming, average should be well below 50ms
         assert latency_ms < 200  # Generous first-run allowance

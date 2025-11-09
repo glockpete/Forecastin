@@ -12,14 +12,12 @@ These tests validate that the echo endpoint properly handles
 WebSocket connections and prevents 1006 close codes.
 """
 
-import asyncio
 import json
 import os
 
 # Import the FastAPI app
 import sys
 import time
-from typing import Any, Dict
 
 import pytest
 from fastapi.testclient import TestClient

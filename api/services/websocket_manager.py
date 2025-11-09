@@ -82,20 +82,20 @@ class SerializationError(Exception):
 def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]) -> str:
     """
     Safely serialize WebSocket message with orjson and fallback to json.dumps.
-    
+
     This function handles:
     - Circular references in objects
     - Datetime objects (converts to ISO format)
     - Dataclass objects (converts to dict)
     - Complex nested structures
     - Fallback to json.dumps if orjson fails
-    
+
     Args:
         message: Message to serialize
-        
+
     Returns:
         JSON string
-        
+
     Raises:
         SerializationError: If serialization fails completely
     """
@@ -187,7 +187,7 @@ def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]
 class WebSocketManager:
     """
     WebSocket manager with orjson serialization and broadcasting.
-    
+
     Features:
     - orjson serialization with fallback to json.dumps
     - Message batching for high-frequency updates
@@ -208,7 +208,7 @@ class WebSocketManager:
     ):
         """
         Initialize WebSocket manager.
-        
+
         Args:
             max_connections: Maximum number of WebSocket connections
             message_batch_size: Number of messages to batch before sending
@@ -283,7 +283,7 @@ class WebSocketManager:
     async def connect(self, websocket: Any, client_id: str) -> None:
         """
         Register a new WebSocket connection.
-        
+
         Args:
             websocket: WebSocket connection object
             client_id: Unique client identifier
@@ -311,7 +311,7 @@ class WebSocketManager:
     async def disconnect(self, client_id: str, reason: str = "Client disconnected") -> None:
         """
         Unregister a WebSocket connection.
-        
+
         Args:
             client_id: Client identifier
             reason: Disconnection reason
@@ -336,12 +336,12 @@ class WebSocketManager:
     ) -> bool:
         """
         Send message to a specific client.
-        
+
         Args:
             client_id: Target client identifier
             message: Message to send
             use_batch: Whether to use message batching
-            
+
         Returns:
             True if message was sent successfully
         """
@@ -392,13 +392,13 @@ class WebSocketManager:
     ) -> Dict[str, bool]:
         """
         Broadcast message to multiple clients.
-        
+
         Args:
             message: Message to broadcast
             channel: Broadcast channel (None for all clients)
             exclude_client: Client to exclude from broadcast
             use_batch: Whether to use message batching
-            
+
         Returns:
             Dictionary of client_id -> success status
         """
@@ -449,11 +449,11 @@ class WebSocketManager:
     async def subscribe_to_channel(self, client_id: str, channel: str) -> bool:
         """
         Subscribe client to a broadcast channel.
-        
+
         Args:
             client_id: Client identifier
             channel: Channel name
-            
+
         Returns:
             True if subscription successful
         """
@@ -466,11 +466,11 @@ class WebSocketManager:
     async def unsubscribe_from_channel(self, client_id: str, channel: str) -> bool:
         """
         Unsubscribe client from a broadcast channel.
-        
+
         Args:
             client_id: Client identifier
             channel: Channel name
-            
+
         Returns:
             True if unsubscription successful
         """
@@ -581,7 +581,7 @@ class WebSocketManager:
     async def handle_message(self, client_id: str, message_data: str) -> None:
         """
         Handle incoming WebSocket message from client.
-        
+
         Args:
             client_id: Client identifier
             message_data: Raw message data

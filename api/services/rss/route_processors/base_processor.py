@@ -66,7 +66,7 @@ class ExtractionResult:
 class RSSRouteProcessor:
     """
     RSSHub-inspired route processor with CSS selector extraction
-    
+
     This processor implements intelligent content extraction patterns:
     - Multiple CSS selector fallbacks
     - Content normalization and cleaning
@@ -118,11 +118,11 @@ class RSSRouteProcessor:
     async def process_feed(self, feed_url: str, route_config: Dict) -> List[RSSArticle]:
         """
         Process RSS feed and extract articles using route configuration
-        
+
         Args:
             feed_url: RSS feed URL
             route_config: RSSHub-inspired route configuration
-            
+
         Returns:
             List of extracted RSS articles
         """
@@ -154,11 +154,11 @@ class RSSRouteProcessor:
     async def process_article(self, article_data: Dict, route_config: Dict) -> RSSArticle:
         """
         Process individual article using CSS selector extraction
-        
+
         Args:
             article_data: Raw article data from RSS feed
             route_config: Route configuration with CSS selectors
-            
+
         Returns:
             Processed RSS article with extracted content
         """
@@ -213,11 +213,11 @@ class RSSRouteProcessor:
     async def _extract_with_selectors(self, soup: BeautifulSoup, selectors_config: Dict) -> Dict[str, ExtractionResult]:
         """
         Extract content using CSS selectors with fallback strategies
-        
+
         Args:
             soup: BeautifulSoup object
             selectors_config: CSS selector configuration
-            
+
         Returns:
             Dictionary of extraction results with confidence
         """
@@ -239,12 +239,12 @@ class RSSRouteProcessor:
     async def _extract_with_fallback(self, soup: BeautifulSoup, field: str, selectors: List[str]) -> ExtractionResult:
         """
         Extract content using multiple selector fallbacks
-        
+
         Args:
             soup: BeautifulSoup object
             field: Field being extracted
             selectors: List of CSS selectors to try
-            
+
         Returns:
             Extraction result with confidence score
         """
@@ -286,11 +286,11 @@ class RSSRouteProcessor:
     async def _extract_with_fallback_methods(self, soup: BeautifulSoup, field: str) -> ExtractionResult:
         """
         Extract content using fallback methods when CSS selectors fail
-        
+
         Args:
             soup: BeautifulSoup object
             field: Field being extracted
-            
+
         Returns:
             Extraction result with lower confidence
         """

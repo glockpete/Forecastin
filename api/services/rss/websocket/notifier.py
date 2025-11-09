@@ -32,7 +32,7 @@ class RSSWebSocketMessage:
 class RSSWebSocketNotifier:
     """
     WebSocket notifier for real-time RSS updates.
-    
+
     Follows the rules from AGENTS.md:
     - Custom RSS message types (rss_feed_update, rss_entity_extracted, rss_deduplication_result)
     - orjson serialization with safe_serialize_message fallback
@@ -56,7 +56,7 @@ class RSSWebSocketNotifier:
     ):
         """
         Notify clients of RSS feed update.
-        
+
         Args:
             feed_id: RSS feed identifier
             articles_count: Total number of articles in feed
@@ -86,7 +86,7 @@ class RSSWebSocketNotifier:
     ):
         """
         Notify clients of entity extraction completion.
-        
+
         Args:
             article_id: Article identifier
             entities_count: Total number of entities extracted
@@ -116,7 +116,7 @@ class RSSWebSocketNotifier:
     ):
         """
         Notify clients of deduplication results.
-        
+
         Args:
             feed_id: RSS feed identifier
             original_count: Original number of articles
@@ -142,7 +142,7 @@ class RSSWebSocketNotifier:
     async def notify_ingestion_start(self, job_id: str, feed_url: str):
         """
         Notify clients that RSS ingestion has started.
-        
+
         Args:
             job_id: Ingestion job identifier
             feed_url: RSS feed URL being processed
@@ -167,7 +167,7 @@ class RSSWebSocketNotifier:
     ):
         """
         Notify clients that RSS ingestion has completed.
-        
+
         Args:
             job_id: Ingestion job identifier
             articles_processed: Number of articles processed
@@ -195,7 +195,7 @@ class RSSWebSocketNotifier:
     ):
         """
         Notify clients of ingestion progress.
-        
+
         Args:
             job_id: Ingestion job identifier
             progress: Progress percentage (0-100) or count
@@ -217,7 +217,7 @@ class RSSWebSocketNotifier:
     async def notify_ingestion_error(self, job_id: str, error: str, article_id: Optional[str] = None):
         """
         Notify clients of ingestion error.
-        
+
         Args:
             job_id: Ingestion job identifier
             error: Error message
@@ -238,7 +238,7 @@ class RSSWebSocketNotifier:
     async def _send_message(self, message: RSSWebSocketMessage, throttle: bool = False):
         """
         Send message via WebSocket with proper serialization.
-        
+
         Args:
             message: RSS WebSocket message to send
             throttle: Whether to apply throttling for this message
@@ -278,7 +278,7 @@ class RSSWebSocketNotifier:
     async def _batch_send_messages(self):
         """
         Send messages in batches to prevent flooding.
-        
+
         Implements server-side debounce strategy as specified in AGENTS.md.
         """
         if not self._message_queue:
@@ -325,7 +325,7 @@ class RSSWebSocketNotifier:
     async def subscribe_to_feed(self, client_id: str, feed_id: str):
         """
         Subscribe client to specific feed updates.
-        
+
         Args:
             client_id: Client identifier
             feed_id: RSS feed identifier to subscribe to
@@ -337,7 +337,7 @@ class RSSWebSocketNotifier:
     async def unsubscribe_from_feed(self, client_id: str, feed_id: str):
         """
         Unsubscribe client from specific feed updates.
-        
+
         Args:
             client_id: Client identifier
             feed_id: RSS feed identifier to unsubscribe from
@@ -347,7 +347,7 @@ class RSSWebSocketNotifier:
     async def get_notification_stats(self) -> Dict[str, Any]:
         """
         Get notification statistics.
-        
+
         Returns:
             Dictionary with notification statistics
         """

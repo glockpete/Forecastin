@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Import custom modules (absolute imports)
 from config_validation import (
@@ -16,9 +18,6 @@ from config_validation import (
     print_config_summary,
     validate_environment_variables,
 )
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from navigation_api.database.optimized_hierarchy_resolver import (
     OptimizedHierarchyResolver,
 )

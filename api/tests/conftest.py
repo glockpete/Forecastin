@@ -8,8 +8,8 @@ including test database, Redis, and proper mocking of unavailable services.
 import asyncio
 import sys
 from pathlib import Path
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock
 
 import fakeredis.aioredis
 import pytest
@@ -259,6 +259,7 @@ def mock_feature_flag_service():
 def client():
     """Provide FastAPI test client."""
     from fastapi.testclient import TestClient
+
     from main import app
 
     return TestClient(app)
@@ -268,6 +269,7 @@ def client():
 async def async_client():
     """Provide async FastAPI test client."""
     from httpx import AsyncClient
+
     from main import app
 
     async with AsyncClient(app=app, base_url="http://test") as ac:

@@ -2,7 +2,7 @@
 Real-time service with WebSocket support and safe orjson serialization.
 
 Implements the WebSocket patterns specified in AGENTS.md:
-- orjson serialization for WebSocket payloads 
+- orjson serialization for WebSocket payloads
 - Thread-safe operations with RLock synchronization
 - Error resilience with structured error handling
 - Message batching for performance optimization
@@ -164,16 +164,16 @@ class ConnectionManager:
 def safe_serialize_message(message: Dict[str, Any]) -> str:
     """
     CRITICAL: Safe serialization using orjson for WebSocket payloads.
-    
+
     Handles datetime/dataclass objects that crash standard json.dumps.
     Implements serialization error handling to prevent WebSocket connection crashes.
-    
+
     Args:
         message: Message dictionary to serialize
-        
+
     Returns:
         JSON string ready for WebSocket transmission
-        
+
     Raises:
         Exception: If serialization fails, returns structured error response
     """
@@ -199,11 +199,11 @@ def safe_serialize_message(message: Dict[str, Any]) -> str:
 class RealtimeService:
     """
     Real-time service with WebSocket support and caching integration.
-    
+
     This service implements the real-time notification system for the
     geopolitical intelligence platform, following the patterns specified
     in AGENTS.md for WebSocket resilience and performance optimization.
-    
+
     Features:
     - WebSocket connection management with orjson serialization
     - Integration with multi-tier cache service
@@ -224,7 +224,7 @@ class RealtimeService:
     def __init__(self, cache_service: Optional[CacheService] = None):
         """
         Initialize the real-time service.
-        
+
         Args:
             cache_service: Optional cache service for data synchronization
         """
@@ -273,14 +273,14 @@ class RealtimeService:
     ):
         """
         Notify clients of feature flag changes via WebSocket.
-        
+
         This method sends structured messages for feature flag updates
         to enable real-time UI updates and client-side state management.
-        
+
         Args:
             flag_name: Name of the changed feature flag
             old_value: Previous enabled state
-            new_value: New enabled state  
+            new_value: New enabled state
             rollout_percentage: Optional rollout percentage for gradual rollout
         """
         message = {
@@ -369,19 +369,6 @@ class RealtimeService:
                 'performance': 'EXCELLENT' if self._metrics['errors_encountered'] == 0 else 'GOOD'
             }
 
-    @asynccontextmanager
-    async def batch_messages(self, client_id: Optional[str] = None):
-        """
-        Context manager for batching multiple messages for efficient delivery.
-        
-        This implements the server-side debounce strategy for batching
-        small updates into single messages for performance optimization.
-        
-        Args:
-            client_id: Optional specific client to batch messages for
-        """
-        batch = []
-
     async def broadcast_layer_data_update(
         self,
         layer_id: str,
@@ -391,7 +378,7 @@ class RealtimeService:
     ):
         """
         Broadcast geospatial layer data update to all connected clients.
-        
+
         Args:
             layer_id: Unique identifier for the layer
             layer_type: Type of layer (point, polygon, heatmap, etc.)
@@ -431,7 +418,7 @@ class RealtimeService:
     ):
         """
         Broadcast GPU filter state synchronization to all connected clients.
-        
+
         Args:
             filter_id: Unique identifier for the filter
             filter_type: Type of filter (spatial, temporal, attribute, etc.)
@@ -473,7 +460,7 @@ class RealtimeService:
     ):
         """
         Convenience method to broadcast GeoJSON features for a layer.
-        
+
         Args:
             layer_id: Unique layer identifier
             layer_type: Layer type (point, polygon, heatmap)
@@ -494,7 +481,7 @@ class RealtimeService:
     ):
         """
         Convenience method to broadcast spatial filter application.
-        
+
         Args:
             filter_id: Unique filter identifier
             bounds: Spatial bounds {minLat, maxLat, minLng, maxLng}
@@ -518,10 +505,10 @@ class RealtimeService:
     ):
         """
         Receive and process layer performance report from frontend.
-        
+
         Implements backend reception of layer performance metrics
         for monitoring, analysis, and feature flag rollback decisions.
-        
+
         Args:
             report: Performance report from LayerPerformanceMonitor
         """
@@ -602,7 +589,7 @@ class RealtimeService:
     ):
         """
         Broadcast layer performance report to monitoring/admin clients.
-        
+
         Args:
             report: Performance report to broadcast
         """
@@ -624,10 +611,10 @@ class RealtimeService:
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Get performance history for layers.
-        
+
         Args:
             layer_id: Optional specific layer ID to get history for
-            
+
         Returns:
             Performance history for specified layer or all layers
         """
@@ -638,7 +625,7 @@ class RealtimeService:
     def get_layer_performance_summary(self) -> Dict[str, Any]:
         """
         Get summary of layer performance across all monitored layers.
-        
+
         Returns:
             Summary statistics of layer performance
         """
@@ -668,10 +655,10 @@ class RealtimeService:
     async def batch_messages(self, client_id: Optional[str] = None):
         """
         Context manager for batching multiple messages for efficient delivery.
-        
+
         This implements the server-side debounce strategy for batching
         small updates into single messages for performance optimization.
-        
+
         Args:
             client_id: Optional specific client to batch messages for
         """

@@ -160,7 +160,7 @@ class FeatureFlagMetrics:
 class FeatureFlagService:
     """
     Feature Flag Service with database integration and multi-tier caching.
-    
+
     This service implements comprehensive feature flag management with:
     - CRUD operations for feature flags
     - Multi-tier caching strategy (L1 Memory -> L2 Redis -> L3 DB)
@@ -168,7 +168,7 @@ class FeatureFlagService:
     - Gradual rollout support with percentage-based targeting
     - Thread-safe operations with RLock synchronization
     - Exponential backoff retry mechanism for database operations
-    
+
     Performance Targets:
     - <1.25ms average response time for flag lookups
     - 99.2% cache hit rate
@@ -192,7 +192,7 @@ class FeatureFlagService:
     ):
         """
         Initialize the Feature Flag Service.
-        
+
         Args:
             database_manager: Database manager for PostgreSQL operations
             cache_service: Optional cache service for multi-tier caching
@@ -293,13 +293,13 @@ class FeatureFlagService:
     async def create_flag(self, request: CreateFeatureFlagRequest) -> FeatureFlag:
         """
         Create a new feature flag.
-        
+
         Args:
             request: Feature flag creation request
-            
+
         Returns:
             Created feature flag
-            
+
         Raises:
             HTTPException: If flag creation fails or flag name already exists
         """
@@ -329,10 +329,10 @@ class FeatureFlagService:
                 # Create the feature flag
                 row = await self._retry_database_operation(
                     conn.fetchrow("""
-                        INSERT INTO feature_flags 
+                        INSERT INTO feature_flags
                         (flag_name, description, is_enabled, rollout_percentage)
                         VALUES ($1, $2, $3, $4)
-                        RETURNING id, flag_name, description, is_enabled, 
+                        RETURNING id, flag_name, description, is_enabled,
                                  rollout_percentage, created_at, updated_at
                     """, request.flag_name, request.description,
                                   request.is_enabled, request.rollout_percentage)
@@ -395,10 +395,10 @@ class FeatureFlagService:
     async def get_flag(self, flag_name: str) -> Optional[FeatureFlag]:
         """
         Get a feature flag by name with multi-tier caching.
-        
+
         Args:
             flag_name: Name of the feature flag
-            
+
         Returns:
             Feature flag or None if not found
         """
@@ -425,9 +425,9 @@ class FeatureFlagService:
             async with self.db_manager.get_connection() as conn:
                 row = await self._retry_database_operation(
                     conn.fetchrow("""
-                        SELECT id, flag_name, description, is_enabled, 
+                        SELECT id, flag_name, description, is_enabled,
                                rollout_percentage, created_at, updated_at
-                        FROM feature_flags 
+                        FROM feature_flags
                         WHERE flag_name = $1
                     """, flag_name)
                 )
@@ -465,11 +465,11 @@ class FeatureFlagService:
     async def get_all_flags(self) -> List[FeatureFlag]:
         """
         Get all feature flags with caching.
-        
+
         Returns:
             List of all feature flags
         """
-        start_time = time.time()
+        time.time()
         cache_key = self._get_all_flags_cache_key()
 
         try:
@@ -492,9 +492,9 @@ class FeatureFlagService:
             async with self.db_manager.get_connection() as conn:
                 rows = await self._retry_database_operation(
                     conn.fetch("""
-                        SELECT id, flag_name, description, is_enabled, 
+                        SELECT id, flag_name, description, is_enabled,
                                rollout_percentage, created_at, updated_at
-                        FROM feature_flags 
+                        FROM feature_flags
                         ORDER BY flag_name
                     """)
                 )
@@ -540,14 +540,14 @@ class FeatureFlagService:
     ) -> Optional[FeatureFlag]:
         """
         Update an existing feature flag.
-        
+
         Args:
             flag_name: Name of the feature flag to update
             request: Update request
-            
+
         Returns:
             Updated feature flag
-            
+
         Raises:
             HTTPException: If flag not found or update fails
         """
@@ -595,10 +595,10 @@ class FeatureFlagService:
             # Execute update
             async with self.db_manager.get_connection() as conn:
                 query = f"""
-                    UPDATE feature_flags 
+                    UPDATE feature_flags
                     SET {', '.join(updates)}
                     WHERE flag_name = ${param_count}
-                    RETURNING id, flag_name, description, is_enabled, 
+                    RETURNING id, flag_name, description, is_enabled,
                              rollout_percentage, created_at, updated_at
                 """
 
@@ -678,13 +678,13 @@ class FeatureFlagService:
     async def delete_flag(self, flag_name: str) -> bool:
         """
         Delete a feature flag.
-        
+
         Args:
             flag_name: Name of the feature flag to delete
-            
+
         Returns:
             True if flag was deleted, False if not found
-            
+
         Raises:
             HTTPException: If deletion fails
         """
@@ -779,12 +779,12 @@ class FeatureFlagService:
     async def is_flag_enabled(self, flag_name: str) -> bool:
         """
         Check if a feature flag is enabled.
-        
+
         This is a convenience method for quick flag status checks.
-        
+
         Args:
             flag_name: Name of the feature flag
-            
+
         Returns:
             True if flag is enabled, False otherwise
         """
@@ -794,14 +794,14 @@ class FeatureFlagService:
     async def get_flag_with_rollout(self, flag_name: str, user_id: Optional[str] = None) -> bool:
         """
         Check if a feature flag is enabled for a specific user/context.
-        
+
         This method implements gradual rollout logic, checking if the user
         should receive the feature based on the rollout percentage.
-        
+
         Args:
             flag_name: Name of the feature flag
             user_id: Optional user identifier for rollout targeting
-            
+
         Returns:
             True if feature should be enabled for the user/context
         """
@@ -857,13 +857,13 @@ class FeatureFlagService:
     async def get_geospatial_flag_status(self, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get comprehensive status of all geospatial feature flags.
-        
+
         This method checks all geospatial-related flags and returns their status,
         respecting dependencies (e.g., point_layer requires geospatial_layers).
-        
+
         Args:
             user_id: Optional user ID for rollout percentage targeting
-            
+
         Returns:
             Dictionary containing status of all geospatial features
         """
@@ -919,10 +919,10 @@ class FeatureFlagService:
     async def create_geospatial_flags(self) -> List[FeatureFlag]:
         """
         Create all geospatial feature flags with default settings.
-        
+
         This is a convenience method for initial setup of the geospatial layer system.
         All flags are created disabled (0% rollout) by default.
-        
+
         Returns:
             List of created feature flags
         """
@@ -976,15 +976,15 @@ class FeatureFlagService:
     ) -> Dict[str, bool]:
         """
         Update rollout percentage for geospatial feature flags in stages.
-        
+
         Implements gradual rollout pattern: 10% -> 25% -> 50% -> 100%
         Updates all geospatial flags together to maintain consistency.
-        
+
         Args:
             rollout_stage: Stage identifier ('core_layers', 'point_layers',
                           'websocket_integration', 'advanced_features')
             percentage: Rollout percentage (0-100)
-            
+
         Returns:
             Dictionary indicating success/failure for each flag
         """
@@ -1041,10 +1041,10 @@ class FeatureFlagService:
     async def create_automated_refresh_flag(self) -> FeatureFlag:
         """
         Create the automated materialized view refresh feature flag with default settings.
-        
+
         This flag controls the automated refresh system for materialized views
         to resolve ancestor resolution performance regression.
-        
+
         Returns:
             Created feature flag
         """
@@ -1086,7 +1086,7 @@ class FeatureFlagService:
     ) -> Optional[FeatureFlag]:
         """
         Update configuration for the automated refresh feature flag.
-        
+
         Args:
             enabled: Whether the feature is enabled
             rollout_percentage: Rollout percentage (0-100)
@@ -1094,7 +1094,7 @@ class FeatureFlagService:
             change_threshold: Number of changes to trigger refresh
             time_threshold_minutes: Time threshold to trigger refresh
             rollback_window_minutes: Rollback window in minutes
-            
+
         Returns:
             Updated feature flag or None if not found
         """
@@ -1144,10 +1144,10 @@ class FeatureFlagService:
     async def emergency_rollback_geospatial(self) -> Dict[str, bool]:
         """
         Emergency rollback - disable all geospatial feature flags immediately.
-        
+
         This method supports the rollback checklist requirement:
         "Disable flags first, then DB migration rollback scripts"
-        
+
         Returns:
             Dictionary indicating success/failure for each flag
         """

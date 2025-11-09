@@ -15,7 +15,7 @@ import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import List
 
 import pytest
 
@@ -126,7 +126,7 @@ class TestHierarchyResolutionPerformance(PerformanceTestBase):
             start_time = time.perf_counter()
             try:
                 # Resolve ancestors
-                ancestors = await self.hierarchy_resolver.get_ancestors(entity_id)
+                await self.hierarchy_resolver.get_ancestors(entity_id)
                 end_time = time.perf_counter()
                 times.append((end_time - start_time) * 1000)  # Convert to ms
             except Exception as e:

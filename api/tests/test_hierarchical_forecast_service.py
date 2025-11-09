@@ -12,13 +12,11 @@ Tests cover:
 Author: Forecastin Development Team
 """
 
-import asyncio
 
 # Mock pandas and prophet before importing the service
 import sys
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -320,7 +318,7 @@ class TestHierarchicalForecastManager:
             mock_pd.date_range = Mock(return_value=['2025-01-01', '2025-01-02'])
             mock_pd.DataFrame = Mock(return_value={'ds': [], 'y': []})
 
-            data = forecast_manager._generate_mock_historical_data(days=365)
+            forecast_manager._generate_mock_historical_data(days=365)
 
             assert mock_pd.DataFrame.called
 
