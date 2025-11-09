@@ -42,6 +42,7 @@ except ImportError as e:
 
 from services.cache_service import CacheService
 from services.realtime_service import RealtimeService, safe_serialize_message
+from services.database_manager import DatabaseManager
 from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
 
 
