@@ -23,9 +23,8 @@ env:
   # Ensure CI mode and strict checks
   CI: true
   NODE_ENV: test
-  # Ignore deprecation warnings but error on other warnings
-  PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,error"
-  # Treat warnings as errors for Python tools
+  # Note: PYTHONWARNINGS removed from global scope to allow pip installations
+  # It's set per-step for actual code checking (mypy, pytest, etc.)
   MYPY_FORCE_COLOR: 1
   PYTEST_ADDOPTS: "--strict-markers --strict-config"
 
@@ -61,8 +60,6 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install Python linting tools
-        env:
-          PYTHONWARNINGS: "default"
         run: |
           python -m pip install --upgrade pip
           pip install ruff black isort mypy bandit
@@ -73,6 +70,8 @@ jobs:
           npm ci --legacy-peer-deps
 
       - name: Run backend linting (ruff)
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,error"
         run: |
           cd api
           ruff check . --config ../pyproject.toml
@@ -122,14 +121,14 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install dependencies
-        env:
-          PYTHONWARNINGS: "default"
         run: |
           python -m pip install --upgrade pip
           pip install mypy types-redis
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
       - name: Run mypy type checking
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,error"
         run: |
           cd api
           mypy . --config-file ../pyproject.toml --warn-unused-ignores --warn-redundant-casts --no-implicit-optional
@@ -226,8 +225,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install backend dependencies
-        env:
-          PYTHONWARNINGS: "default"
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio pytest-cov pytest-benchmark
@@ -239,13 +236,14 @@ jobs:
           npm ci --legacy-peer-deps
 
       - name: Run backend unit tests
-        run: |
-          cd api
-          pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml --tb=short --strict-markers --strict-config -m "not integration and not slow"
         env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,error"
           TESTING: true
           DATABASE_URL: postgresql://test:test@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
+        run: |
+          cd api
+          pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml --tb=short --strict-markers --strict-config -m "not integration and not slow"
         # CRITICAL: Fail if any test fails. Coverage threshold enforced by pyproject.toml
 
       - name: Run frontend unit tests
@@ -343,8 +341,6 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install dependencies
-        env:
-          PYTHONWARNINGS: "default"
         run: |
           python -m pip install --upgrade pip
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
