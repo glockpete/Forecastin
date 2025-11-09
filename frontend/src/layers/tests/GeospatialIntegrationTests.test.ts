@@ -19,6 +19,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { layerFeatureFlags } from '../../config/feature-flags';
 import { LayerRegistry } from '../registry/LayerRegistry';
 import { PointLayer } from '../implementations/PointLayer';
+import { LayerWebSocketIntegration } from '../../integrations/LayerWebSocketIntegration';
 import type {
   EntityDataPoint,
   LayerPerformanceMetrics,
@@ -89,25 +90,25 @@ const MOCK_ENTITIES: EntityDataPoint[] = [
 
 describe('Geospatial Integration Tests - Feature Flag Rollout', () => {
   let layerRegistry: LayerRegistry;
-  let wsIntegration: LayerWebSocketIntegration;
+  let wsIntegration: any;
   let performanceMetrics: LayerPerformanceMetrics[] = [];
   let auditLog: ComplianceAuditEntry[] = [];
 
-  beforeEach(() => {
-    // Reset to safe state
-    layerFeatureFlags.emergencyRollback();
-    
-    layerRegistry = new LayerRegistry();
-    wsIntegration = new LayerWebSocketIntegration({
-      url: 'ws://localhost:9000/ws/layers',
-      onPerformanceMetrics: (metrics) => performanceMetrics.push(metrics),
-      onComplianceEvent: (auditEntry) => auditLog.push(auditEntry)
+  
+    beforeEach(() => {
+      // Reset to safe state
+      layerFeatureFlags.emergencyRollback();
+      
+      layerRegistry = new LayerRegistry();
+      wsIntegration = new LayerWebSocketIntegration({
+        url: 'ws://localhost:9000/ws/layers',
+        onPerformanceMetrics: (metrics: any) => performanceMetrics.push(metrics),
+        onComplianceEvent: (auditEntry: any) => auditLog.push(auditEntry)
+      });
+      
+      performanceMetrics = [];
+      auditLog = [];
     });
-    
-    performanceMetrics = [];
-    auditLog = [];
-  });
-
   afterEach(() => {
     layerFeatureFlags.emergencyRollback();
     layerRegistry.destroy();
@@ -252,8 +253,7 @@ describe('Real-time WebSocket Data Synchronization', () => {
 
   test('Batch updates use server-side debouncing', async () => {
     wsIntegration = new LayerWebSocketIntegration({
-      url: 'ws://localhost:9000/ws/layers',
-      debounceMs: 100
+      url: 'ws://localhost:9000/ws/layers'
     });
     
     await wsIntegration.connect();
@@ -314,7 +314,9 @@ describe('Real-time WebSocket Data Synchronization', () => {
       data: { entityId: 'entity_001', changes: { confidence: 0.99 } }
     };
     
-    wsIntegration.handleIncomingMessage(mockMessage);
+    // Simulate WebSocket message event
+    const messageEvent = new MessageEvent('message', { data: JSON.stringify(mockMessage) });
+    wsIntegration['handleMessage'](messageEvent);
     
     expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['entities', 'layer-data']

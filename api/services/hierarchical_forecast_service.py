@@ -187,7 +187,7 @@ class HierarchicalForecastManager:
         cache_service: CacheService,
         realtime_service: RealtimeService,
         hierarchy_resolver: OptimizedHierarchyResolver,
-        db_pool=None
+        database_manager: Optional[DatabaseManager] = None
     ):
         """
         Initialize hierarchical forecast manager.
@@ -196,12 +196,12 @@ class HierarchicalForecastManager:
             cache_service: Multi-tier cache service (L1→L2)
             realtime_service: WebSocket service with orjson serialization
             hierarchy_resolver: LTREE hierarchy resolver
-            db_pool: Database connection pool
+            database_manager: Optional database manager for direct queries
         """
         self.cache_service = cache_service
         self.realtime_service = realtime_service
         self.hierarchy_resolver = hierarchy_resolver
-        self.db_pool = db_pool
+        self.database_manager = database_manager
         self.logger = logging.getLogger(__name__)
         
         # L1: Thread-safe Prophet model cache with RLock
@@ -627,19 +627,19 @@ class HierarchicalForecastManager:
         
         Returns DataFrame with columns: 'ds' (datetime), 'y' (value)
         """
-        if not self.db_pool or pd is None:
+        if not self.database_manager or pd is None:
             # Mock data for testing
             return self._generate_mock_historical_data(days)
         
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                conn = self.db_pool.getconn()
+                conn = self.database_manager.getconn()
                 try:
                     with conn.cursor() as cur:
                         # Query historical data from database
                         cur.execute("""
-                            SELECT 
+                            SELECT
                                 date_recorded as ds,
                                 metric_value as y
                             FROM entity_metrics
@@ -655,7 +655,7 @@ class HierarchicalForecastManager:
                         return None
                 
                 finally:
-                    self.db_pool.putconn(conn)
+                    self.database_manager.putconn(conn)
             
             except Exception as e:
                 if attempt == max_retries - 1:

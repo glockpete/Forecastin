@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/glockpete/Forecastin/tree/main/docs
+    about: Check our comprehensive documentation for setup guides and troubleshooting
+  - name: 🐛 Bug Reports
+    url: https://github.com/glockpete/Forecastin/blob/main/checks/bug_report.md
+    about: Review our top 25 defects and their solutions
+  - name: 🚀 Performance Issues
+    url: https://github.com/glockpete/Forecastin/blob/main/docs/PERFORMANCE_OPTIMIZATION_REPORT.md
+    about: Check performance optimization guides and SLOs

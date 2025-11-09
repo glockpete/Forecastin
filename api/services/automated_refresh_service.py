@@ -26,9 +26,9 @@ logger.setLevel(logging.INFO)
 class AutomatedRefreshService:
     """Service for automated materialized view refresh with smart triggers and cache coordination."""
     
-    def __init__(self, db_manager: DatabaseManager, cache_service: CacheService, 
+    def __init__(self, database_manager: DatabaseManager, cache_service: CacheService,
                  feature_flag_service: FeatureFlagService):
-        self.db_manager = db_manager
+        self.database_manager = database_manager
         self.cache_service = cache_service
         self.feature_flag_service = feature_flag_service
         
@@ -121,7 +121,7 @@ class AutomatedRefreshService:
                 WHERE auto_refresh_enabled = true
             """
             
-            with self.db_manager.get_connection() as conn:
+            with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query)
                     views = cur.fetchall()
@@ -145,7 +145,7 @@ class AutomatedRefreshService:
                 GROUP BY view_name
             """
             
-            with self.db_manager.get_connection() as conn:
+            with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query, (self.time_threshold_minutes,))
                     results = cur.fetchall()
@@ -178,7 +178,7 @@ class AutomatedRefreshService:
                 start_time = time.time()
                 
                 # Call database function to perform refresh
-                with self.db_manager.get_connection() as conn:
+                with self.database_manager.get_connection() as conn:
                     with conn.cursor() as cur:
                         cur.execute(
                             "SELECT automated_refresh_materialized_view(%s, %s, %s)",
@@ -268,10 +268,10 @@ class AutomatedRefreshService:
     def _store_metrics_in_db(self, metric: Dict):
         """Store metrics in the database."""
         try:
-            with self.db_manager.get_connection() as conn:
+            with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO refresh_metrics 
+                        INSERT INTO refresh_metrics
                         (view_name, refresh_duration_ms, success, created_at)
                         VALUES (%s, %s, %s, NOW())
                     """, (
@@ -340,7 +340,7 @@ class AutomatedRefreshService:
     def get_refresh_performance_summary(self) -> Dict:
         """Get a summary of refresh performance metrics."""
         try:
-            with self.db_manager.get_connection() as conn:
+            with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT get_refresh_performance_summary()")
                     result = cur.fetchone()[0]
@@ -363,7 +363,7 @@ class AutomatedRefreshService:
         try:
             batch_id = str(uuid.uuid4())
             
-            with self.db_manager.get_connection() as conn:
+            with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT automated_refresh_all_materialized_views(%s)", (batch_id,))
                     result = cur.fetchone()[0]
@@ -386,13 +386,13 @@ def get_automated_refresh_service() -> AutomatedRefreshService:
         raise RuntimeError("Automated refresh service not initialized")
     return _automated_refresh_service
     
-def initialize_automated_refresh_service(db_manager: DatabaseManager, 
+def initialize_automated_refresh_service(database_manager: DatabaseManager,
                                        cache_service: CacheService,
                                        feature_flag_service: FeatureFlagService) -> AutomatedRefreshService:
     """Initialize the global automated refresh service instance."""
     global _automated_refresh_service
     if _automated_refresh_service is None:
         _automated_refresh_service = AutomatedRefreshService(
-            db_manager, cache_service, feature_flag_service
+            database_manager, cache_service, feature_flag_service
         )
     return _automated_refresh_service

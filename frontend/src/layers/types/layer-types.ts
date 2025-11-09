@@ -1252,7 +1252,7 @@ export interface PolygonEntityDataPointFixed extends BaseEntityDataPoint<Polygon
  * Type guard to check if a value is LayerData
  */
 export function isLayerData(value: unknown): value is LayerData {
-  if (!value || typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
 
@@ -1270,7 +1270,7 @@ export function isLayerData(value: unknown): value is LayerData {
  * Type guard to check if a value is VisualChannel
  */
 export function isVisualChannel(value: unknown): value is VisualChannel {
-  if (!value || typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
 
@@ -1287,7 +1287,7 @@ export function isVisualChannel(value: unknown): value is VisualChannel {
  * Type guard to check if a value is GPUFilterConfig
  */
 export function isGPUFilterConfig(value: unknown): value is GPUFilterConfig {
-  if (!value || typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false;
   }
 

@@ -1095,6 +1095,111 @@ class OptimizedHierarchyResolver:
             self.logger.error(f"Failed to get all entities: {e}")
             return []
 
+    async def get_hierarchy_with_depth(
+        self,
+        entity_path: str,
+        max_depth: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Get hierarchical structure with specified depth for Miller's Columns UI.
+        
+        Args:
+            entity_path: LTREE path of the entity to get hierarchy for
+            max_depth: Maximum depth to fetch (1-5)
+            
+        Returns:
+            Dictionary containing current_level and children for Miller's Columns
+        """
+        if not self.db_pool:
+            return {"current_level": [], "children": []}
+        
+        try:
+            conn = self.db_pool.getconn()
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Get current level entities (direct children of the given path)
+                    cur.execute("""
+                        SELECT
+                            e.id as entity_id,
+                            e.path,
+                            e.path_depth,
+                            e.confidence_score
+                        FROM entities e
+                        WHERE e.path ~ %s::lquery
+                        AND e.path_depth <= %s
+                        ORDER BY e.path
+                    """, (f"{entity_path}.*{{1}}", max_depth))
+                    
+                    rows = cur.fetchall()
+                    
+                    # Extract current level and children
+                    current_level = []
+                    children = []
+                    
+                    for row in rows:
+                        path_parts = row['path'].split('.')
+                        if len(path_parts) <= max_depth:
+                            # Add to current level if this is at the target depth
+                            if len(path_parts) == max_depth:
+                                current_level.append({
+                                    "id": row['entity_id'],
+                                    "path": row['path'],
+                                    "confidence_score": row['confidence_score']
+                                })
+                            # Add to children if this is one level deeper
+                            elif len(path_parts) == max_depth + 1:
+                                children.append({
+                                    "id": row['entity_id'],
+                                    "path": row['path'],
+                                    "confidence_score": row['confidence_score']
+                                })
+                    
+                    return {
+                        "current_level": current_level,
+                        "children": children
+                    }
+            
+            finally:
+                self.db_pool.putconn(conn)
+        
+        except Exception as e:
+            self.logger.error(f"Failed to get hierarchy with depth for {entity_path}: {e}")
+            return {"current_level": [], "children": []}
+
+    async def get_entity_hierarchy(self, entity_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get entity hierarchy information as a dictionary.
+        
+        This method is a wrapper around get_hierarchy that returns a dictionary
+        representation suitable for JSON serialization.
+        
+        Args:
+            entity_id: The entity ID to resolve hierarchy for
+            
+        Returns:
+            Dictionary containing hierarchy information or None if entity not found
+        """
+        node = self.get_hierarchy(entity_id)
+        if not node:
+            return None
+            
+        return {
+            "entity_id": node.entity_id,
+            "path": node.path,
+            "path_depth": node.path_depth,
+            "path_hash": node.path_hash,
+            "ancestors": node.ancestors,
+            "descendants": node.descendants,
+            "confidence_score": node.confidence_score,
+            "entity_type": node.entity_type,
+            "is_rss_entity": node.is_rss_entity,
+            "rss_entity_id": node.rss_entity_id,
+            "rss_article_id": node.rss_article_id,
+            "rss_feed_id": node.rss_feed_id,
+            "location_lat": node.location_lat,
+            "location_lon": node.location_lon
+        }
+
     async def get_rss_entities_in_hierarchy(
         self,
         parent_entity_id: Optional[str] = None,

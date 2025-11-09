@@ -350,7 +350,7 @@ export class LayerRegistry {
   private initializeWebSocketIntegration(): void {
     try {
       this.webSocketIntegration = new LayerWebSocketIntegration({
-        url: process.env.REACT_APP_WS_URL || 'ws://localhost:9000/ws',
+        url: import.meta.env.VITE_WS_URL || 'ws://localhost:9000/ws',
         onLayerMessage: this.handleWebSocketLayerMessage.bind(this),
         onError: this.handleWebSocketError.bind(this),
         onConnectionError: this.handleWebSocketConnectionError.bind(this),

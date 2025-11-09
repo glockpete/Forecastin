@@ -386,7 +386,7 @@ export class RealtimeMessageProcessor {
       if (cached) return cached;
 
       // Fallback to API call
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:9000/api'}/entities/${entityId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:9000/api'}/entities/${entityId}`);
       if (!response.ok) return null;
       
       const entity = await response.json();
