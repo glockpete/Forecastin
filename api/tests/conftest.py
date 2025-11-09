@@ -5,13 +5,14 @@ This file ensures proper test environment setup for all tests,
 including test database, Redis, and proper mocking of unavailable services.
 """
 
-import sys
 import asyncio
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
-import pytest
-import fakeredis.aioredis
 from typing import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import fakeredis.aioredis
+import pytest
 
 # Add the api directory to Python path to enable imports
 api_dir = Path(__file__).parent.parent
@@ -20,6 +21,7 @@ if str(api_dir) not in sys.path:
 
 # Mock redis module to use fakeredis properly
 import fakeredis.aioredis as fake_aioredis
+
 
 # Create a simple mock ConnectionPool since fakeredis doesn't provide one
 class FakeConnectionPool:

@@ -1,8 +1,11 @@
 
 import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+
 from api.main import ConnectionManager
+
 
 @pytest.mark.asyncio
 async def test_disconnect_race_condition():

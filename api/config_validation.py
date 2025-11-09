@@ -3,10 +3,10 @@ Configuration Validation
 Validates required environment variables at startup to fail fast
 """
 
+import logging
 import os
 import sys
-import logging
-from typing import List, Dict, Optional
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 

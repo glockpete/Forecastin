@@ -12,15 +12,15 @@ Usage:
 import asyncio
 import logging
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from api.services.feature_flag_service import (
-    FeatureFlagService,
-    CreateFeatureFlagRequest,
-    FeatureFlagType
-)
-from api.services.database_manager import DatabaseManager
 from api.services.cache_service import CacheService
+from api.services.database_manager import DatabaseManager
+from api.services.feature_flag_service import (
+    CreateFeatureFlagRequest,
+    FeatureFlagService,
+    FeatureFlagType,
+)
 from api.services.realtime_service import RealtimeService
 
 # Configure logging
@@ -156,41 +156,41 @@ async def initialize_phase6_feature_flags():
 
     database_manager = DatabaseManager(database_url)
     await database_manager.initialize()
-    
+
     cache_service = CacheService()
     await cache_service.initialize()
-    
+
     realtime_service = RealtimeService(cache_service)
     await realtime_service.initialize()
-    
+
     feature_flag_service = FeatureFlagService(
         database_manager=database_manager,
         cache_service=cache_service,
         realtime_service=realtime_service
     )
     await feature_flag_service.initialize()
-    
+
     logger.info("Services initialized successfully")
     logger.info("")
-    
+
     # Create Phase 6 feature flags
     created_flags = []
     existing_flags = []
     failed_flags = []
-    
+
     for flag_config in PHASE6_FLAGS:
         flag_name = flag_config["name"]
         logger.info(f"Processing flag: {flag_name}")
-        
+
         try:
             # Check if flag already exists
             existing_flag = await feature_flag_service.get_flag(flag_name)
-            
+
             if existing_flag:
                 logger.warning(f"  ⚠️  Flag '{flag_name}' already exists (skipping)")
                 existing_flags.append(flag_name)
                 continue
-            
+
             # Create new flag
             flag_request = CreateFeatureFlagRequest(
                 name=flag_config["name"],
@@ -200,18 +200,18 @@ async def initialize_phase6_feature_flags():
                 rollout_percentage=flag_config["rollout_percentage"],
                 metadata=flag_config["metadata"]
             )
-            
+
             created_flag = await feature_flag_service.create_flag(flag_request)
             logger.info(f"  ✅ Created: {flag_name}")
             logger.info(f"     - Type: {created_flag.flag_type}")
             logger.info(f"     - Enabled: {created_flag.is_enabled}")
             logger.info(f"     - Rollout: {created_flag.rollout_percentage}%")
             created_flags.append(flag_name)
-            
+
         except Exception as e:
             logger.error(f"  ❌ Failed to create '{flag_name}': {e}")
             failed_flags.append(flag_name)
-    
+
     # Summary
     logger.info("")
     logger.info("=" * 80)
@@ -220,17 +220,17 @@ async def initialize_phase6_feature_flags():
     logger.info(f"✅ Created: {len(created_flags)} flags")
     for flag_name in created_flags:
         logger.info(f"   - {flag_name}")
-    
+
     if existing_flags:
         logger.info(f"⚠️  Existing: {len(existing_flags)} flags (skipped)")
         for flag_name in existing_flags:
             logger.info(f"   - {flag_name}")
-    
+
     if failed_flags:
         logger.info(f"❌ Failed: {len(failed_flags)} flags")
         for flag_name in failed_flags:
             logger.info(f"   - {flag_name}")
-    
+
     logger.info("")
     logger.info("=" * 80)
     logger.info("Gradual Rollout Instructions")
@@ -265,13 +265,13 @@ async def initialize_phase6_feature_flags():
     logger.info("  PUT /api/feature-flags/ff.prophet_forecasting")
     logger.info("  PUT /api/feature-flags/ff.scenario_construction")
     logger.info("")
-    
+
     # Cleanup
     await feature_flag_service.cleanup()
     await realtime_service.cleanup()
     await cache_service.close()
     await database_manager.close()
-    
+
     logger.info("Phase 6 feature flag initialization complete")
     logger.info("=" * 80)
 
@@ -298,26 +298,26 @@ async def verify_phase6_flags():
 
     database_manager = DatabaseManager(database_url)
     await database_manager.initialize()
-    
+
     cache_service = CacheService()
     await cache_service.initialize()
-    
+
     realtime_service = RealtimeService(cache_service)
     await realtime_service.initialize()
-    
+
     feature_flag_service = FeatureFlagService(
         database_manager=database_manager,
         cache_service=cache_service,
         realtime_service=realtime_service
     )
     await feature_flag_service.initialize()
-    
+
     # Verify each flag
     verification_results = []
     for flag_config in PHASE6_FLAGS:
         flag_name = flag_config["name"]
         flag = await feature_flag_service.get_flag(flag_name)
-        
+
         if flag:
             verification_results.append({
                 "name": flag_name,
@@ -330,7 +330,7 @@ async def verify_phase6_flags():
                 "name": flag_name,
                 "exists": False
             })
-    
+
     # Print verification results
     logger.info("")
     logger.info("Verification Results:")
@@ -343,7 +343,7 @@ async def verify_phase6_flags():
         else:
             logger.info(f"❌ {result['name']} - NOT FOUND")
     logger.info("-" * 80)
-    
+
     # Cleanup
     await feature_flag_service.cleanup()
     await realtime_service.cleanup()
@@ -353,7 +353,7 @@ async def verify_phase6_flags():
 
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "verify":
         asyncio.run(verify_phase6_flags())
     else:

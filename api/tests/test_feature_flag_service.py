@@ -10,16 +10,17 @@ Tests cover:
 - WebSocket notifications
 """
 
-import pytest
 import asyncio
-from uuid import uuid4
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
+import pytest
 
 from services.feature_flag_service import (
-    FeatureFlagService,
-    FeatureFlag,
     CreateFeatureFlagRequest,
+    FeatureFlag,
+    FeatureFlagService,
     UpdateFeatureFlagRequest,
     to_camel,
 )

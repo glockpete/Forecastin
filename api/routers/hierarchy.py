@@ -3,9 +3,10 @@ Hierarchy API Routes
 Handles entity hierarchy navigation, breadcrumbs, and tree operations
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List
 import logging
+from typing import Optional
+
+from fastapi import APIRouter, Query
 
 router = APIRouter(
     prefix="/api/hierarchy",

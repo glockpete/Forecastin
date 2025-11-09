@@ -5,9 +5,10 @@ Provides comprehensive health monitoring for all services
 
 import logging
 import time
+from typing import Any, Dict
+
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Dict, Any
 
 router = APIRouter(tags=["health"])
 
@@ -25,7 +26,7 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Comprehensive health check endpoint"""
-    from main import hierarchy_resolver, cache_service, connection_manager
+    from main import cache_service, connection_manager, hierarchy_resolver
 
     services_status = {}
 

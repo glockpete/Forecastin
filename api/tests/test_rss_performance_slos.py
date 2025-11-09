@@ -10,11 +10,12 @@ Tests the performance requirements for the RSS ingestion service:
 Run: pytest api/tests/test_rss_performance_slos.py -v
 """
 
-import pytest
-import time
-from typing import List, Dict, Any
-from unittest.mock import Mock, AsyncMock, patch
 import asyncio
+import time
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 
 class TestRSSIngestionSLOs:

@@ -12,10 +12,11 @@ Tests cover:
 - Pool utilization tracking
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
 from typing import Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 from services.database_manager import DatabaseManager
 

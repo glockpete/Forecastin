@@ -3,35 +3,53 @@ Forecastin Geopolitical Intelligence Platform - Phase 0 FastAPI Application
 Implements core requirements from GOLDEN_SOURCE.md with architectural constraints from AGENTS.md
 """
 
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
 import uvicorn
+
+# Import custom modules (absolute imports)
+from config_validation import (
+    ConfigValidationError,
+    print_config_summary,
+    validate_environment_variables,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import custom modules (absolute imports)
-from config_validation import validate_environment_variables, print_config_summary, ConfigValidationError
-from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
-from services.cache_service import CacheService
-from services.database_manager import DatabaseManager
-from services.realtime_service import RealtimeService
-from services.feature_flag_service import FeatureFlagService
-from services.hierarchical_forecast_service import HierarchicalForecastManager
-from services.scenario_service import (
-    ScenarioCollaborationService,
-    MultiFactorAnalysisEngine,
-    CursorPaginator
+from navigation_api.database.optimized_hierarchy_resolver import (
+    OptimizedHierarchyResolver,
 )
-from services.automated_refresh_service import AutomatedRefreshService, initialize_automated_refresh_service
-from services.rss.rss_ingestion_service import RSSIngestionService, RSSIngestionConfig
-from services.background_services import start_background_services
 
 # Import routers
-from routers import health, entities, hierarchy_refresh, feature_flags, test_data, scenarios, rss_ingestion, websocket
+from routers import (
+    entities,
+    feature_flags,
+    health,
+    hierarchy_refresh,
+    rss_ingestion,
+    scenarios,
+    test_data,
+    websocket,
+)
+from services.automated_refresh_service import (
+    AutomatedRefreshService,
+    initialize_automated_refresh_service,
+)
+from services.background_services import start_background_services
+from services.cache_service import CacheService
+from services.database_manager import DatabaseManager
+from services.feature_flag_service import FeatureFlagService
+from services.hierarchical_forecast_service import HierarchicalForecastManager
+from services.realtime_service import RealtimeService
+from services.rss.rss_ingestion_service import RSSIngestionConfig, RSSIngestionService
+from services.scenario_service import (
+    CursorPaginator,
+    MultiFactorAnalysisEngine,
+    ScenarioCollaborationService,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +64,6 @@ ALLOWED_ORIGINS = os.getenv(
 logger.info(f"[CORS_CONFIG] Configured CORS for origins: {ALLOWED_ORIGINS}")
 
 # Re-export WebSocket configuration and classes for backward compatibility with tests
-from routers.websocket import WS_PING_INTERVAL, WS_PING_TIMEOUT, ConnectionManager
 
 # Global instances
 hierarchy_resolver: Optional[OptimizedHierarchyResolver] = None

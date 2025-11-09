@@ -18,15 +18,14 @@ import asyncio
 import logging
 import threading
 import time
-from typing import Any, Dict, List, Optional, Set, Union, Callable
-from dataclasses import dataclass, field
-from enum import Enum
 from collections import OrderedDict
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import orjson
 import redis.asyncio as aioredis
-from redis.asyncio import Redis, ConnectionPool
-
+from redis.asyncio import ConnectionPool, Redis
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +141,7 @@ class LRUCacheEntry:
     access_count: int = 0
     ttl: Optional[int] = None  # Time to live in seconds
     key_type: Optional[CacheKeyType] = None  # Track key type for RSS metrics
-    
+
 
 class LRUMemoryCache:
     """
@@ -153,7 +152,7 @@ class LRUMemoryCache:
     
     Performance: Uses OrderedDict for O(1) LRU operations instead of list-based O(n).
     """
-    
+
     def __init__(self, max_size: int = 10000):
         """
         Initialize LRU memory cache.
@@ -164,16 +163,16 @@ class LRUMemoryCache:
         self.max_size = max_size
         # OrderedDict maintains insertion order and provides O(1) move_to_end()
         self._cache: OrderedDict[str, LRUCacheEntry] = OrderedDict()
-        
+
         # Use RLock instead of standard Lock for thread safety
         self._lock = threading.RLock()
-        
+
         # Metrics
         self._metrics = CacheMetrics()
-        
+
         # Cache invalidation hooks for multi-tier coordination
         self._invalidation_hooks: List[callable] = []
-    
+
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache with LRU tracking and RSS metrics."""
         with self._lock:
@@ -210,7 +209,7 @@ class LRUMemoryCache:
                     self._metrics.rss_entity_hits += 1
 
             return entry.value
-    
+
     def set(self, key: str, value: Any, ttl: Optional[int] = None,
             key_type: Optional[CacheKeyType] = None) -> None:
         """Set value in cache with LRU eviction and RSS key type tracking."""
@@ -243,33 +242,33 @@ class LRUMemoryCache:
 
             # Trigger invalidation hooks for multi-tier coordination
             self._trigger_invalidation_hooks(key, value)
-    
+
     def delete(self, key: str) -> bool:
         """Delete value from cache."""
         with self._lock:
             return self._delete(key)
-    
+
     def _delete(self, key: str) -> bool:
         """Internal delete method (assumes lock is held)."""
         if key in self._cache:
             del self._cache[key]
             return True
         return False
-    
+
     def _evict_lru(self) -> None:
         """Evict least recently used entry. OrderedDict keeps oldest items first."""
         if self._cache:
             # popitem(last=False) removes the first (oldest) item - O(1)
             lru_key, _ = self._cache.popitem(last=False)
             self._metrics.evictions += 1
-    
+
     def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
             eviction_count = len(self._cache)
             self._cache.clear()
             self._metrics.evictions += eviction_count
-    
+
     def get_metrics(self) -> CacheMetrics:
         """Get cache performance metrics including RSS-specific counters."""
         with self._lock:
@@ -288,11 +287,11 @@ class LRUMemoryCache:
                 invalidations=self._metrics.invalidations,
                 cascade_invalidations=self._metrics.cascade_invalidations
             )
-    
+
     def add_invalidation_hook(self, hook: callable) -> None:
         """Add cache invalidation hook for multi-tier coordination."""
         self._invalidation_hooks.append(hook)
-    
+
     def _trigger_invalidation_hooks(self, key: str, value: Any) -> None:
         """Trigger all invalidation hooks."""
         for hook in self._invalidation_hooks:
@@ -300,12 +299,12 @@ class LRUMemoryCache:
                 hook(key, value)
             except Exception as e:
                 logger.warning(f"Cache invalidation hook failed: {e}")
-    
+
     def get_keys(self) -> Set[str]:
         """Get all cache keys."""
         with self._lock:
             return set(self._cache.keys())
-    
+
     def get_size(self) -> int:
         """Get current cache size."""
         with self._lock:
@@ -322,7 +321,7 @@ class CacheService:
     - L3: Database PostgreSQL buffer cache (handled by DB layer)
     - L4: Materialized views (handled by DB layer)
     """
-    
+
     def __init__(
         self,
         redis_url: str = "redis://localhost:6379/0",
@@ -344,23 +343,23 @@ class CacheService:
         self.redis_url = redis_url
         self.default_ttl = default_ttl
         self.enable_metrics = enable_metrics
-        
+
         # L1: Memory LRU cache with RLock synchronization
         self._memory_cache = LRUMemoryCache(max_size=max_memory_cache_size)
-        
+
         # L2: Redis connection pool with exponential backoff
         self._redis_pool: Optional[ConnectionPool] = None
         self._redis: Optional[Redis] = None
         self._redis_pool_size = redis_pool_size
         self._redis_connected = False
-        
+
         # Retry configuration for Redis operations
         self._redis_retry_attempts = 3
         self._redis_retry_delays = [0.5, 1.0, 2.0]
-        
+
         # Performance metrics
         self._metrics = CacheMetrics()
-    
+
     async def initialize(self) -> None:
         """Initialize Redis connection pool."""
         try:
@@ -373,29 +372,29 @@ class CacheService:
                 socket_keepalive=True,
                 socket_keepalive_options={}
             )
-            
+
             # Test connection
             self._redis = aioredis.Redis(connection_pool=self._redis_pool)
             await self._redis.ping()
-            
+
             self._redis_connected = True
             logger.info("Cache service Redis connection initialized")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Redis connection: {e}")
             self._redis_connected = False
             raise
-    
+
     async def close(self) -> None:
         """Close Redis connections."""
         if self._redis:
             await self._redis.close()
         if self._redis_pool:
             await self._redis_pool.disconnect()
-        
+
         self._redis_connected = False
         logger.info("Cache service Redis connections closed")
-    
+
     async def get(self, key: str) -> Optional[Any]:
         """
         Get value from cache (L1 memory first, then L2 Redis).
@@ -407,24 +406,24 @@ class CacheService:
             Cached value or None
         """
         start_time = time.time()
-        
+
         # L1: Try memory cache first
         value = self._memory_cache.get(key)
         self._metrics.memory_operations += 1
-        
+
         if value is not None:
             if self.enable_metrics:
                 self._metrics.hits += 1
                 self._metrics.total_response_time += time.time() - start_time
             return value
-        
+
         # L2: Try Redis cache
         if self._redis_connected and self._redis:
             try:
                 redis_value = await self._retry_redis_operation(
                     self._redis.get(key)
                 )
-                
+
                 if redis_value is not None:
                     # Deserialize with orjson (2-5x faster than standard json) and store in L1
                     try:
@@ -432,27 +431,27 @@ class CacheService:
                     except (ValueError, UnicodeDecodeError):
                         # orjson raises ValueError for decode errors, not JSONDecodeError
                         value = redis_value  # Store as bytes if deserialization fails
-                    
+
                     # Store in memory cache for faster subsequent access
                     self._memory_cache.set(key, value, self.default_ttl)
-                    
+
                     self._metrics.redis_operations += 1
                     if self.enable_metrics:
                         self._metrics.hits += 1
                         self._metrics.total_response_time += time.time() - start_time
-                    
+
                     return value
-                    
+
             except Exception as e:
                 logger.warning(f"Redis get failed for key {key}: {e}")
-        
+
         # Cache miss
         if self.enable_metrics:
             self._metrics.misses += 1
             self._metrics.total_response_time += time.time() - start_time
-        
+
         return None
-    
+
     async def set(
         self,
         key: str,
@@ -501,7 +500,7 @@ class CacheService:
         # Trigger invalidation in other tiers if requested
         if invalidate_tiers:
             await self._invalidate_higher_tiers(key, value)
-    
+
     async def delete(self, key: str) -> bool:
         """
         Delete value from cache (L1 and L2).
@@ -513,12 +512,12 @@ class CacheService:
             True if key was deleted, False otherwise
         """
         deleted = False
-        
+
         # L1: Delete from memory cache
         if self._memory_cache.delete(key):
             deleted = True
         self._metrics.memory_operations += 1
-        
+
         # L2: Delete from Redis
         if self._redis_connected and self._redis:
             try:
@@ -530,15 +529,15 @@ class CacheService:
                 self._metrics.redis_operations += 1
             except Exception as e:
                 logger.warning(f"Redis delete failed for key {key}: {e}")
-        
+
         return deleted
-    
+
     async def clear(self) -> None:
         """Clear all cache entries (L1 and L2)."""
         # L1: Clear memory cache
         self._memory_cache.clear()
         self._metrics.memory_operations += 1
-        
+
         # L2: Clear Redis cache (be careful in production!)
         if self._redis_connected and self._redis:
             try:
@@ -546,7 +545,7 @@ class CacheService:
                 self._metrics.redis_operations += 1
             except Exception as e:
                 logger.warning(f"Redis clear failed: {e}")
-    
+
     async def exists(self, key: str) -> bool:
         """
         Check if key exists in cache.
@@ -560,7 +559,7 @@ class CacheService:
         # Check L1 first
         if self._memory_cache.get(key) is not None:
             return True
-        
+
         # Check L2 Redis
         if self._redis_connected and self._redis:
             try:
@@ -570,9 +569,9 @@ class CacheService:
                 return result > 0
             except Exception as e:
                 logger.warning(f"Redis exists check failed for key {key}: {e}")
-        
+
         return False
-    
+
     async def _retry_redis_operation(self, coro):
         """
         Execute Redis operation with exponential backoff retry.
@@ -584,7 +583,7 @@ class CacheService:
             Operation result
         """
         last_exception = None
-        
+
         for attempt in range(self._redis_retry_attempts):
             try:
                 return await coro
@@ -593,17 +592,17 @@ class CacheService:
                 logger.warning(
                     f"Redis operation attempt {attempt + 1} failed: {e}"
                 )
-                
+
                 if attempt == self._redis_retry_attempts - 1:
                     # Last attempt failed
                     break
-                
+
                 # Wait before retry (exponential backoff)
                 await asyncio.sleep(self._redis_retry_delays[attempt])
-        
+
         # All attempts failed
         raise last_exception
-    
+
     async def _invalidate_higher_tiers(self, key: str, value: Any) -> None:
         """
         Invalidate higher-tier caches (L3 Database, L4 Materialized Views).
@@ -613,11 +612,11 @@ class CacheService:
         self._memory_cache._trigger_invalidation_hooks(key, value)
 
         # L3/L4 invalidation is handled through specific invalidation methods below
-    
+
     def add_invalidation_hook(self, hook: callable) -> None:
         """Add cache invalidation hook for multi-tier coordination."""
         self._memory_cache.add_invalidation_hook(hook)
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """Get comprehensive cache performance metrics with RSS-specific tracking."""
         memory_metrics = self._memory_cache.get_metrics()
@@ -654,7 +653,7 @@ class CacheService:
                 "avg_response_time_ms": self._metrics.avg_response_time * 1000
             }
         }
-    
+
     def invalidate_l1_cache(self, key_pattern: str = None) -> None:
         """
         Invalidate L1 cache entries, optionally matching a pattern.
@@ -673,9 +672,9 @@ class CacheService:
         else:
             # Clear entire cache
             self._memory_cache.clear()
-        
+
         logger.info(f"L1 cache invalidated {'partially' if key_pattern else 'fully'}")
-    
+
     async def invalidate_l2_cache(self, key_pattern: str = None) -> None:
         """
         Invalidate L2 (Redis) cache entries, optionally matching a pattern.
@@ -878,7 +877,7 @@ class CacheService:
 
         self.add_invalidation_hook(wrapper)
         logger.info(f"Registered materialized view hook for: {view_name}")
-    
+
     async def health_check(self) -> Dict[str, Any]:
         """Perform cache service health check."""
         health_status = {

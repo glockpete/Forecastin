@@ -18,9 +18,8 @@ Author: Forecastin Testing Infrastructure Team
 Created: 2025-11-09
 """
 
-from typing import Any, Dict, Optional, Type, TypeVar, Callable, List
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 from unittest.mock import AsyncMock, Mock
-
 
 T = TypeVar('T')
 

@@ -18,25 +18,26 @@ Performance Targets:
 Author: Forecastin Development Team
 """
 
-import asyncio
 import hashlib
 import logging
 import threading
 import time
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from decimal import Decimal
 from collections import OrderedDict
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
-from uuid import UUID, uuid4
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
+from navigation_api.database.optimized_hierarchy_resolver import (
+    OptimizedHierarchyResolver,
+)
 from services.cache_service import CacheService
+from services.hierarchical_forecast_service import (
+    HierarchicalForecast,
+    HierarchicalForecastManager,
+)
 from services.realtime_service import RealtimeService, safe_serialize_message
-from services.hierarchical_forecast_service import HierarchicalForecastManager, HierarchicalForecast
-from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
-from services.database_manager import DatabaseManager
-
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class RiskProfile:
     mitigation_strategies: List[str]
     confidence_score: float  # 0.0-1.0
     assessed_at: datetime = field(default_factory=datetime.now)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'risk_level': self.risk_level.value,
@@ -85,7 +86,7 @@ class CollaborationState:
     change_count: int
     conflict_count: int
     version: int
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'active_users': self.active_users,
@@ -118,7 +119,7 @@ class ScenarioEntity:
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -159,7 +160,7 @@ class AnalysisResult:
     warnings: List[str]
     generated_at: datetime
     generation_time_ms: float
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'scenario_id': self.scenario_id,
@@ -181,14 +182,14 @@ class CursorPaginator:
     More efficient than offset-based pagination for large datasets.
     Implements cursor encoding/decoding with timestamp-based pagination.
     """
-    
+
     @staticmethod
     def encode_cursor(timestamp: datetime) -> str:
         """Encode timestamp as base64 cursor"""
         import base64
         cursor_str = timestamp.isoformat()
         return base64.b64encode(cursor_str.encode()).decode()
-    
+
     @staticmethod
     def decode_cursor(cursor: str) -> Optional[datetime]:
         """Decode base64 cursor to timestamp"""
@@ -199,7 +200,7 @@ class CursorPaginator:
         except Exception as e:
             logger.warning(f"Failed to decode cursor: {e}")
             return None
-    
+
     async def paginate_forecast_data(
         self,
         forecast: HierarchicalForecast,
@@ -218,11 +219,11 @@ class CursorPaginator:
             Paginated forecast data with next_cursor and has_more flags
         """
         start_time = time.time()
-        
+
         # Get forecast dates and values
         forecast_dates = forecast.root_node.forecast_dates
         forecast_values = forecast.root_node.forecast_values
-        
+
         # Decode cursor to starting index
         start_index = 0
         if cursor:
@@ -233,26 +234,26 @@ class CursorPaginator:
                     if datetime.fromisoformat(date_str) >= start_timestamp:
                         start_index = i
                         break
-        
+
         # Slice data for current page
         end_index = start_index + page_size + 1
         page_dates = forecast_dates[start_index:end_index]
         page_values = forecast_values[start_index:end_index]
-        
+
         # Check if there are more pages
         has_more = len(page_dates) > page_size
         if has_more:
             page_dates = page_dates[:page_size]
             page_values = page_values[:page_size]
-        
+
         # Generate next cursor
         next_cursor = None
         if has_more and page_dates:
             last_date = datetime.fromisoformat(page_dates[-1])
             next_cursor = self.encode_cursor(last_date + timedelta(days=1))
-        
+
         pagination_time_ms = (time.time() - start_time) * 1000
-        
+
         return {
             'data': [
                 {'date': date, 'value': value}
@@ -273,7 +274,7 @@ class MultiFactorAnalysisEngine:
     Integrates with existing geospatial, temporal, and entity extraction
     systems for comprehensive scenario analysis.
     """
-    
+
     def __init__(
         self,
         cache_service: CacheService,
@@ -284,12 +285,12 @@ class MultiFactorAnalysisEngine:
         self.realtime_service = realtime_service
         self.hierarchy_resolver = hierarchy_resolver
         self.logger = logging.getLogger(__name__)
-        
+
         # L1: Thread-safe analysis cache with RLock
         self._analysis_cache: Dict[str, AnalysisResult] = OrderedDict()
         self._lock = threading.RLock()
         self._max_cache_size = 1000
-        
+
         # Performance metrics
         self._metrics = {
             'analyses_performed': 0,
@@ -298,14 +299,14 @@ class MultiFactorAnalysisEngine:
             'avg_analysis_time_ms': 0.0,
             'total_analysis_time_ms': 0.0
         }
-    
+
     def _generate_cache_key(self, scenario_id: str, factors: List[AnalysisFactor]) -> str:
         """Generate cache key for analysis"""
         factors_hash = hashlib.md5(
             str([(f.factor_type, f.factor_name, f.weight) for f in factors]).encode()
         ).hexdigest()[:8]
         return f"analysis:{scenario_id}:{factors_hash}"
-    
+
     async def analyze_scenario_factors(
         self,
         scenario_id: str,
@@ -327,10 +328,10 @@ class MultiFactorAnalysisEngine:
         Performance Target: <200ms with caching
         """
         start_time = time.time()
-        
+
         # Generate cache key
         cache_key = self._generate_cache_key(scenario_id, factors)
-        
+
         # L1: Check memory cache
         with self._lock:
             if cache_key in self._analysis_cache:
@@ -338,7 +339,7 @@ class MultiFactorAnalysisEngine:
                 result = self._analysis_cache[cache_key]
                 self.logger.debug(f"L1 cache hit for analysis: {scenario_id}")
                 return result
-        
+
         # L2: Check Redis cache
         if self.cache_service:
             try:
@@ -350,19 +351,19 @@ class MultiFactorAnalysisEngine:
                     return self._deserialize_analysis(cached_data)
             except Exception as e:
                 self.logger.warning(f"L2 cache lookup error: {e}")
-        
+
         with self._lock:
             self._metrics['cache_misses'] += 1
-        
+
         # Perform analysis
         analysis_result = await self._execute_analysis(scenario_id, factors)
-        
+
         # Cache results across all tiers
         await self._cache_analysis_result(cache_key, analysis_result)
-        
+
         # Broadcast real-time update via WebSocket
         await self._broadcast_analysis_update(scenario_id, analysis_result)
-        
+
         # Update metrics
         analysis_time_ms = (time.time() - start_time) * 1000
         with self._lock:
@@ -372,16 +373,16 @@ class MultiFactorAnalysisEngine:
                 self._metrics['total_analysis_time_ms'] /
                 self._metrics['analyses_performed']
             )
-        
+
         analysis_result.generation_time_ms = analysis_time_ms
-        
+
         self.logger.info(
             f"Completed multi-factor analysis for {scenario_id}: "
             f"{analysis_time_ms:.2f}ms, {len(factors)} factors"
         )
-        
+
         return analysis_result
-    
+
     async def _execute_analysis(
         self,
         scenario_id: str,
@@ -391,7 +392,7 @@ class MultiFactorAnalysisEngine:
         factor_scores = {}
         recommendations = []
         warnings = []
-        
+
         # Analyze each factor
         for factor in factors:
             try:
@@ -406,9 +407,9 @@ class MultiFactorAnalysisEngine:
                 else:
                     score = 0.5  # Default neutral score
                     warnings.append(f"Unknown factor type: {factor.factor_type}")
-                
+
                 factor_scores[factor.factor_name] = score
-                
+
                 # Generate recommendations based on scores
                 if score < 0.3:
                     warnings.append(
@@ -418,12 +419,12 @@ class MultiFactorAnalysisEngine:
                     recommendations.append(
                         f"High confidence factor '{factor.factor_name}' supports scenario"
                     )
-                    
+
             except Exception as e:
                 self.logger.error(f"Error analyzing factor {factor.factor_name}: {e}")
                 factor_scores[factor.factor_name] = 0.0
                 warnings.append(f"Analysis failed for factor '{factor.factor_name}'")
-        
+
         # Calculate weighted overall confidence
         if factors:
             total_weight = sum(f.weight for f in factors)
@@ -433,7 +434,7 @@ class MultiFactorAnalysisEngine:
             ) / total_weight if total_weight > 0 else 0.0
         else:
             overall_confidence = 0.0
-        
+
         return AnalysisResult(
             scenario_id=scenario_id,
             analysis_id=f"analysis_{uuid4().hex[:16]}",
@@ -445,7 +446,7 @@ class MultiFactorAnalysisEngine:
             generated_at=datetime.now(),
             generation_time_ms=0.0  # Will be set by caller
         )
-    
+
     async def _analyze_geospatial_factor(self, factor: AnalysisFactor) -> float:
         """
         Analyze geospatial factor (placeholder for GPU filtering integration)
@@ -501,7 +502,7 @@ class MultiFactorAnalysisEngine:
         Returns: Mock confidence score (0.65) until integration is complete
         """
         return 0.65
-    
+
     async def _cache_analysis_result(self, cache_key: str, result: AnalysisResult):
         """Cache analysis result across L1 and L2 tiers"""
         # L1: Memory cache with LRU eviction
@@ -510,9 +511,9 @@ class MultiFactorAnalysisEngine:
                 self._analysis_cache.pop(cache_key)
             elif len(self._analysis_cache) >= self._max_cache_size:
                 self._analysis_cache.popitem(last=False)
-            
+
             self._analysis_cache[cache_key] = result
-        
+
         # L2: Redis cache
         if self.cache_service:
             try:
@@ -520,17 +521,17 @@ class MultiFactorAnalysisEngine:
                 await self.cache_service.set(cache_key, serialized, ttl=3600)
             except Exception as e:
                 self.logger.warning(f"Failed to cache analysis result: {e}")
-    
+
     def _serialize_analysis(self, result: AnalysisResult) -> Dict[str, Any]:
         """Serialize analysis result for caching"""
         return result.to_dict()
-    
+
     def _deserialize_analysis(self, data: Dict[str, Any]) -> AnalysisResult:
         """Deserialize analysis result from cache"""
         factors = [
             AnalysisFactor(**f) for f in data['factors']
         ]
-        
+
         return AnalysisResult(
             scenario_id=data['scenario_id'],
             analysis_id=data['analysis_id'],
@@ -542,7 +543,7 @@ class MultiFactorAnalysisEngine:
             generated_at=datetime.fromisoformat(data['generated_at']),
             generation_time_ms=data['generation_time_ms']
         )
-    
+
     async def _broadcast_analysis_update(
         self,
         scenario_id: str,
@@ -551,7 +552,7 @@ class MultiFactorAnalysisEngine:
         """Broadcast analysis update via WebSocket with orjson serialization"""
         if not self.realtime_service:
             return
-        
+
         try:
             message = {
                 'type': 'scenario_analysis_update',
@@ -566,19 +567,19 @@ class MultiFactorAnalysisEngine:
                 },
                 'timestamp': time.time()
             }
-            
+
             # Use safe_serialize_message for WebSocket resilience
             serialized_message = safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(
                 message
             )
-            
+
             self.logger.debug(f"Broadcasted analysis update for scenario {scenario_id}")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to broadcast analysis update: {e}")
             # Don't re-raise - WebSocket errors shouldn't fail analysis
-    
+
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get analysis engine performance metrics"""
         with self._lock:
@@ -587,7 +588,7 @@ class MultiFactorAnalysisEngine:
                 self._metrics['cache_hits'] / total_requests
                 if total_requests > 0 else 0.0
             )
-            
+
             return {
                 'analyses_performed': self._metrics['analyses_performed'],
                 'cache': {
@@ -610,7 +611,7 @@ class MultiFactorAnalysisEngine:
             with self._lock:
                 self._analysis_cache.clear()
                 self.logger.info("Cleared analysis cache during cleanup")
-            
+
             # Log final metrics
             final_metrics = self.get_performance_metrics()
             self.logger.info(
@@ -619,7 +620,7 @@ class MultiFactorAnalysisEngine:
                 f"avg_analysis_time_ms={final_metrics['performance']['avg_analysis_time_ms']:.2f}, "
                 f"cache_hit_rate={final_metrics['cache']['hit_rate']:.2%}"
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error during MultiFactorAnalysisEngine cleanup: {e}")
             # Don't re-raise - cleanup errors shouldn't prevent shutdown
@@ -641,7 +642,7 @@ class ValidationResult:
     validation_timestamp: datetime = field(default_factory=datetime.now)
     ml_confidence: Optional[float] = None  # From ML A/B testing
     validation_layers: Dict[str, bool] = field(default_factory=dict)  # Layer -> passed
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'is_valid': self.is_valid,
@@ -670,7 +671,7 @@ class ScenarioValidationEngine:
     
     Performance Target: <50ms validation latency with 99.2% cache hit rate
     """
-    
+
     def __init__(
         self,
         cache_service: CacheService,
@@ -683,13 +684,13 @@ class ScenarioValidationEngine:
         self.hierarchy_resolver = hierarchy_resolver
         self.forecast_manager = forecast_manager
         self.logger = logging.getLogger(__name__)
-        
+
         # L1: Thread-safe validation cache with RLock
         self._validation_cache: Dict[str, ValidationResult] = OrderedDict()
         self._lock = threading.RLock()
         self._max_cache_size = 5000
         self._cache_ttl = 300  # 5 minutes
-        
+
         # Performance metrics
         self._metrics = {
             'validations_performed': 0,
@@ -704,7 +705,7 @@ class ScenarioValidationEngine:
                 'critical': 0
             }
         }
-    
+
     def _generate_cache_key(self, scenario: ScenarioEntity) -> str:
         """Generate cache key for validation result"""
         data_hash = hashlib.md5(
@@ -716,7 +717,7 @@ class ScenarioValidationEngine:
             )).encode()
         ).hexdigest()[:12]
         return f"validation:{scenario.scenario_id}:{data_hash}"
-    
+
     async def validate_scenario_comprehensive(
         self,
         scenario: ScenarioEntity
@@ -739,10 +740,10 @@ class ScenarioValidationEngine:
         Performance Target: <50ms with caching
         """
         start_time = time.time()
-        
+
         # Generate cache key
         cache_key = self._generate_cache_key(scenario)
-        
+
         # L1: Check memory cache
         with self._lock:
             if cache_key in self._validation_cache:
@@ -756,7 +757,7 @@ class ScenarioValidationEngine:
                 else:
                     # Cache expired, remove it
                     self._validation_cache.pop(cache_key)
-        
+
         # L2: Check Redis cache
         if self.cache_service:
             try:
@@ -768,19 +769,19 @@ class ScenarioValidationEngine:
                     return self._deserialize_validation(cached_data)
             except Exception as e:
                 self.logger.warning(f"L2 cache lookup error: {e}")
-        
+
         with self._lock:
             self._metrics['cache_misses'] += 1
-        
+
         # Perform validation across all layers
         validation_result = await self._execute_layered_validation(scenario)
-        
+
         # Cache results across all tiers
         await self._cache_validation_result(cache_key, validation_result)
-        
+
         # Broadcast real-time update via WebSocket
         await self._broadcast_validation_update(scenario.scenario_id, validation_result)
-        
+
         # Update metrics
         validation_time_ms = (time.time() - start_time) * 1000
         with self._lock:
@@ -791,15 +792,15 @@ class ScenarioValidationEngine:
                 self._metrics['validations_performed']
             )
             self._metrics['risk_assessments'][validation_result.risk_level.value] += 1
-        
+
         self.logger.info(
             f"Completed validation for {scenario.scenario_id}: "
             f"{validation_time_ms:.2f}ms, risk={validation_result.risk_level.value}, "
             f"valid={validation_result.is_valid}"
         )
-        
+
         return validation_result
-    
+
     async def _execute_layered_validation(
         self,
         scenario: ScenarioEntity
@@ -808,7 +809,7 @@ class ScenarioValidationEngine:
         errors: Dict[str, List[str]] = {}
         warnings: Dict[str, List[str]] = {}
         validation_layers: Dict[str, bool] = {}
-        
+
         # Layer 1: Field-level validation (data types, ranges)
         try:
             await self._validate_field_level(scenario)
@@ -817,7 +818,7 @@ class ScenarioValidationEngine:
             validation_layers['field_level'] = False
             errors['field_level'] = [str(e)]
             self.logger.error(f"Field-level validation failed: {e}")
-        
+
         # Layer 2: Model-level validation (multi-field logic)
         try:
             model_warnings = await self._validate_model_level(scenario)
@@ -828,7 +829,7 @@ class ScenarioValidationEngine:
             validation_layers['model_level'] = False
             errors['model_level'] = [str(e)]
             self.logger.error(f"Model-level validation failed: {e}")
-        
+
         # Layer 3: Unique constraints (LTREE path uniqueness)
         try:
             await self._validate_unique_constraints(scenario)
@@ -837,7 +838,7 @@ class ScenarioValidationEngine:
             validation_layers['unique_constraints'] = False
             errors['unique_constraints'] = [str(e)]
             self.logger.error(f"Unique constraints validation failed: {e}")
-        
+
         # Layer 4: General constraints (business rules)
         try:
             business_warnings = await self._validate_general_constraints(scenario)
@@ -848,23 +849,23 @@ class ScenarioValidationEngine:
             validation_layers['general_constraints'] = False
             errors['general_constraints'] = [str(e)]
             self.logger.error(f"General constraints validation failed: {e}")
-        
+
         # Aggregate validation results
         is_valid = len(errors) == 0
-        
+
         # Calculate confidence score
         confidence_score = await self._calculate_validation_confidence(
             scenario, validation_layers, len(errors), len(warnings)
         )
-        
+
         # Assess risk level
         risk_level = await self._assess_risk_level(
             scenario, confidence_score, errors, warnings
         )
-        
+
         # Get ML confidence (if available)
         ml_confidence = await self._get_ml_validation_confidence(scenario)
-        
+
         return ValidationResult(
             is_valid=is_valid,
             confidence_score=confidence_score,
@@ -875,41 +876,41 @@ class ScenarioValidationEngine:
             ml_confidence=ml_confidence,
             validation_layers=validation_layers
         )
-    
+
     async def _validate_field_level(self, scenario: ScenarioEntity):
         """Layer 1: Field-level validation (data types, ranges)"""
         # LTREE path validation
         if not scenario.path or not isinstance(scenario.path, str):
             raise ValueError("Invalid LTREE path: must be non-empty string")
-        
+
         # Validate LTREE path format (labels separated by dots)
         if not all(label.replace('_', '').isalnum() for label in scenario.path.split('.')):
             raise ValueError(f"Invalid LTREE path format: {scenario.path}")
-        
+
         # Confidence score range (0.0-1.0)
         if not 0.0 <= scenario.confidence_score <= 1.0:
             raise ValueError(
                 f"Confidence score must be between 0.0 and 1.0, got {scenario.confidence_score}"
             )
-        
+
         # Timestamp validation (not future dates)
         if scenario.created_at > datetime.now():
             raise ValueError("Created timestamp cannot be in the future")
-        
+
         if scenario.updated_at > datetime.now():
             raise ValueError("Updated timestamp cannot be in the future")
-        
+
         # Path depth consistency
         expected_depth = len(scenario.path.split('.'))
         if scenario.path_depth != expected_depth:
             raise ValueError(
                 f"Path depth mismatch: expected {expected_depth}, got {scenario.path_depth}"
             )
-    
+
     async def _validate_model_level(self, scenario: ScenarioEntity) -> List[str]:
         """Layer 2: Model-level validation (multi-field logic)"""
         warnings = []
-        
+
         # Scenario consistency (parent-child relationships)
         if '.' in scenario.path:
             parent_path = '.'.join(scenario.path.split('.')[:-1])
@@ -922,23 +923,23 @@ class ScenarioValidationEngine:
                     )
             except Exception as e:
                 warnings.append(f"Failed to verify parent path: {e}")
-        
+
         # Risk threshold compliance
         if scenario.risk_assessment.risk_level == RiskLevel.CRITICAL:
             if scenario.confidence_score > 0.5:
                 warnings.append(
                     "Critical risk scenario has unexpectedly high confidence score"
                 )
-        
+
         # Validation status consistency
         if scenario.validation_status == ValidationStatus.FAILED:
             if scenario.confidence_score > 0.7:
                 warnings.append(
                     "Failed validation scenario has high confidence score"
                 )
-        
+
         return warnings
-    
+
     async def _validate_unique_constraints(self, scenario: ScenarioEntity):
         """Layer 3: Unique constraints (LTREE path uniqueness)"""
         # Check LTREE path uniqueness
@@ -950,31 +951,31 @@ class ScenarioValidationEngine:
                 raise ValueError(
                     f"LTREE path '{scenario.path}' already exists with different scenario ID"
                 )
-        except Exception as e:
+        except Exception:
             # Path doesn't exist - that's fine for new scenarios
             pass
-    
+
     async def _validate_general_constraints(self, scenario: ScenarioEntity) -> List[str]:
         """Layer 4: General constraints (business rules)"""
         warnings = []
-        
+
         # Forecast horizon limits (1-365 days)
         # This would check associated forecast data if available
-        
+
         # Multi-factor confidence scoring rules
         if scenario.confidence_score < 0.3:
             warnings.append(
                 "Low confidence score (<0.3) - scenario may require additional validation"
             )
-        
+
         # Collaboration data consistency
         if scenario.collaboration_data.conflict_count > 5:
             warnings.append(
                 f"High conflict count ({scenario.collaboration_data.conflict_count}) detected"
             )
-        
+
         return warnings
-    
+
     async def _calculate_validation_confidence(
         self,
         scenario: ScenarioEntity,
@@ -987,20 +988,20 @@ class ScenarioValidationEngine:
         passed_layers = sum(1 for passed in validation_layers.values() if passed)
         total_layers = len(validation_layers)
         layer_confidence = passed_layers / total_layers if total_layers > 0 else 0.0
-        
+
         # Penalty for errors and warnings
         error_penalty = min(error_count * 0.2, 0.8)
         warning_penalty = min(warning_count * 0.05, 0.2)
-        
+
         # Incorporate scenario's own confidence score
         combined_confidence = (
             layer_confidence * 0.4 +
             scenario.confidence_score * 0.4 +
             (1.0 - error_penalty - warning_penalty) * 0.2
         )
-        
+
         return max(0.0, min(1.0, combined_confidence))
-    
+
     async def _assess_risk_level(
         self,
         scenario: ScenarioEntity,
@@ -1019,22 +1020,22 @@ class ScenarioValidationEngine:
         """
         error_count = sum(len(errs) for errs in errors.values())
         warning_count = sum(len(warns) for warns in warnings.values())
-        
+
         # Critical: Low confidence or multiple validation failures
         if confidence_score < 0.50 or error_count >= 3:
             return RiskLevel.CRITICAL
-        
+
         # High: Medium-low confidence or validation errors
         if confidence_score < 0.70 or error_count > 0:
             return RiskLevel.HIGH
-        
+
         # Medium: Good confidence but has warnings
         if confidence_score < 0.85 or warning_count > 2:
             return RiskLevel.MEDIUM
-        
+
         # Low: High confidence, no errors, minimal warnings
         return RiskLevel.LOW
-    
+
     async def _get_ml_validation_confidence(
         self,
         scenario: ScenarioEntity
@@ -1044,7 +1045,7 @@ class ScenarioValidationEngine:
         # This would use the persistent Test Registry (Redis/DB)
         # and 7 configurable risk conditions for automatic rollback
         return None
-    
+
     async def _cache_validation_result(
         self,
         cache_key: str,
@@ -1057,9 +1058,9 @@ class ScenarioValidationEngine:
                 self._validation_cache.pop(cache_key)
             elif len(self._validation_cache) >= self._max_cache_size:
                 self._validation_cache.popitem(last=False)
-            
+
             self._validation_cache[cache_key] = result
-        
+
         # L2: Redis cache
         if self.cache_service:
             try:
@@ -1067,11 +1068,11 @@ class ScenarioValidationEngine:
                 await self.cache_service.set(cache_key, serialized, ttl=self._cache_ttl)
             except Exception as e:
                 self.logger.warning(f"Failed to cache validation result: {e}")
-    
+
     def _serialize_validation(self, result: ValidationResult) -> Dict[str, Any]:
         """Serialize validation result for caching"""
         return result.to_dict()
-    
+
     def _deserialize_validation(self, data: Dict[str, Any]) -> ValidationResult:
         """Deserialize validation result from cache"""
         return ValidationResult(
@@ -1084,7 +1085,7 @@ class ScenarioValidationEngine:
             ml_confidence=data.get('ml_confidence'),
             validation_layers=data.get('validation_layers', {})
         )
-    
+
     async def _broadcast_validation_update(
         self,
         scenario_id: str,
@@ -1093,7 +1094,7 @@ class ScenarioValidationEngine:
         """Broadcast validation update via WebSocket with orjson serialization"""
         if not self.realtime_service:
             return
-        
+
         try:
             message = {
                 'type': 'scenario_validation_update',
@@ -1108,19 +1109,19 @@ class ScenarioValidationEngine:
                 },
                 'timestamp': time.time()
             }
-            
+
             # Use safe_serialize_message for WebSocket resilience
             serialized_message = safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(
                 message
             )
-            
+
             self.logger.debug(f"Broadcasted validation update for scenario {scenario_id}")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to broadcast validation update: {e}")
             # Don't re-raise - WebSocket errors shouldn't fail validation
-    
+
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get validation engine performance metrics"""
         with self._lock:
@@ -1129,7 +1130,7 @@ class ScenarioValidationEngine:
                 self._metrics['cache_hits'] / total_requests
                 if total_requests > 0 else 0.0
             )
-            
+
             return {
                 'validations_performed': self._metrics['validations_performed'],
                 'cache': {
@@ -1157,15 +1158,15 @@ class ScenarioCollaborationService:
     - User presence indicators
     - orjson serialization for WebSocket safety
     """
-    
+
     def __init__(self, realtime_service: RealtimeService):
         self.realtime_service = realtime_service
         self.logger = logging.getLogger(__name__)
-        
+
         # Track active collaborations
         self._active_collaborations: Dict[str, CollaborationState] = {}
         self._lock = threading.RLock()
-    
+
     async def collaborate_on_scenario(
         self,
         scenario_id: str,
@@ -1195,19 +1196,19 @@ class ScenarioCollaborationService:
                         conflict_count=0,
                         version=1
                     )
-                
+
                 collab_state = self._active_collaborations[scenario_id]
-                
+
                 # Add user to active users if not present
                 if user_id not in collab_state.active_users:
                     collab_state.active_users.append(user_id)
-                
+
                 # Update modification tracking
                 collab_state.last_modified_by = user_id
                 collab_state.last_modified_at = datetime.now()
                 collab_state.change_count += 1
                 collab_state.version += 1
-            
+
             # Broadcast collaboration update via WebSocket
             message = {
                 'type': 'scenario_collaboration',
@@ -1217,24 +1218,24 @@ class ScenarioCollaborationService:
                 'collaboration_state': collab_state.to_dict(),
                 'timestamp': datetime.now().isoformat()
             }
-            
+
             # Use safe_serialize_message for WebSocket resilience
             serialized_message = safe_serialize_message(message)
             await self.realtime_service.connection_manager.broadcast_message(message)
-            
+
             self.logger.info(
                 f"Collaboration update for scenario {scenario_id} by user {user_id}"
             )
-            
+
             return {
                 'success': True,
                 'collaboration_state': collab_state.to_dict(),
                 'conflicts_detected': False
             }
-            
+
         except Exception as e:
             self.logger.error(f"Collaboration error for scenario {scenario_id}: {e}")
-            
+
             # Send error message to user
             error_message = safe_serialize_message({
                 'type': 'collaboration_error',
@@ -1242,18 +1243,18 @@ class ScenarioCollaborationService:
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
             })
-            
+
             await self.realtime_service.connection_manager.send_personal_message(
                 {'type': 'collaboration_error', 'error': str(e)},
                 user_id
             )
-            
+
             return {
                 'success': False,
                 'error': str(e),
                 'conflicts_detected': False
             }
-    
+
     async def user_join_collaboration(self, scenario_id: str, user_id: str):
         """User joins scenario collaboration session"""
         with self._lock:
@@ -1261,7 +1262,7 @@ class ScenarioCollaborationService:
                 collab_state = self._active_collaborations[scenario_id]
                 if user_id not in collab_state.active_users:
                     collab_state.active_users.append(user_id)
-        
+
         # Broadcast presence update
         message = {
             'type': 'user_joined_collaboration',
@@ -1270,7 +1271,7 @@ class ScenarioCollaborationService:
             'timestamp': time.time()
         }
         await self.realtime_service.connection_manager.broadcast_message(message)
-    
+
     async def user_leave_collaboration(self, scenario_id: str, user_id: str):
         """User leaves scenario collaboration session"""
         with self._lock:
@@ -1278,7 +1279,7 @@ class ScenarioCollaborationService:
                 collab_state = self._active_collaborations[scenario_id]
                 if user_id in collab_state.active_users:
                     collab_state.active_users.remove(user_id)
-        
+
         # Broadcast presence update
         message = {
             'type': 'user_left_collaboration',
@@ -1287,12 +1288,12 @@ class ScenarioCollaborationService:
             'timestamp': time.time()
         }
         await self.realtime_service.connection_manager.broadcast_message(message)
-    
+
     def get_collaboration_state(self, scenario_id: str) -> Optional[CollaborationState]:
         """Get current collaboration state for scenario"""
         with self._lock:
             return self._active_collaborations.get(scenario_id)
-    
+
     async def cleanup(self):
         """Clean up collaboration resources during application shutdown"""
         try:
@@ -1301,9 +1302,9 @@ class ScenarioCollaborationService:
                 active_count = len(self._active_collaborations)
                 self._active_collaborations.clear()
                 self.logger.info(f"Cleared {active_count} active collaborations during cleanup")
-            
+
             self.logger.info("ScenarioCollaborationService cleanup completed successfully")
-            
+
         except Exception as e:
             self.logger.error(f"Error during ScenarioCollaborationService cleanup: {e}")
             # Don't re-raise - cleanup errors shouldn't prevent shutdown

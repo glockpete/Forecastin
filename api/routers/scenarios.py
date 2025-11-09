@@ -5,10 +5,12 @@ Handles scenario analysis, forecasting, and hierarchical navigation
 
 import logging
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from services.scenario_service import ScenarioEntity, RiskLevel
+
+from services.scenario_service import RiskLevel, ScenarioEntity
 
 router = APIRouter(
     prefix="/api",  # Routes include versioned paths: /v3/scenarios/..., /v6/scenarios/...
@@ -31,7 +33,7 @@ async def get_scenario_forecasts(
     Feature flag: ff.ml.prophet_forecasting
     """
     try:
-        from main import feature_flag_service, forecast_manager, cursor_paginator
+        from main import cursor_paginator, feature_flag_service, forecast_manager
 
         # Check feature flag
         if not await feature_flag_service.is_flag_enabled("ff.ml.prophet_forecasting"):
@@ -216,7 +218,7 @@ async def get_scenario_analysis(scenario_id: str):
     Feature flag: ff.scenario.construction
     """
     try:
-        from main import feature_flag_service, analysis_engine
+        from main import analysis_engine, feature_flag_service
 
         # Check feature flag
         if not await feature_flag_service.is_flag_enabled("ff.scenario.construction"):

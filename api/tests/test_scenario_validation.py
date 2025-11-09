@@ -8,25 +8,28 @@ Author: Forecastin Development Team
 """
 
 import asyncio
-import pytest
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Any
-from unittest.mock import Mock, AsyncMock, patch
+from typing import Any, Dict
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
+from api.navigation_api.database.optimized_hierarchy_resolver import (
+    OptimizedHierarchyResolver,
+)
+from api.services.cache_service import CacheService
+from api.services.hierarchical_forecast_service import HierarchicalForecastManager
+from api.services.realtime_service import RealtimeService
 from api.services.scenario_service import (
+    CollaborationState,
+    RiskLevel,
+    RiskProfile,
     ScenarioEntity,
     ScenarioValidationEngine,
     ValidationResult,
     ValidationStatus,
-    RiskLevel,
-    RiskProfile,
-    CollaborationState
 )
-from api.services.cache_service import CacheService
-from api.services.realtime_service import RealtimeService
-from api.navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
-from api.services.hierarchical_forecast_service import HierarchicalForecastManager
 
 
 @pytest.fixture
@@ -143,7 +146,7 @@ def invalid_scenario_path():
 
 class TestValidationResult:
     """Test ValidationResult dataclass"""
-    
+
     def test_validation_result_creation(self):
         """Test creating ValidationResult"""
         result = ValidationResult(
@@ -154,12 +157,12 @@ class TestValidationResult:
             risk_level=RiskLevel.LOW,
             ml_confidence=0.85
         )
-        
+
         assert result.is_valid is True
         assert result.confidence_score == 0.9
         assert result.risk_level == RiskLevel.LOW
         assert result.ml_confidence == 0.85
-    
+
     def test_validation_result_to_dict(self):
         """Test ValidationResult serialization"""
         result = ValidationResult(
@@ -169,9 +172,9 @@ class TestValidationResult:
             warnings={},
             risk_level=RiskLevel.HIGH
         )
-        
+
         result_dict = result.to_dict()
-        
+
         assert result_dict['is_valid'] is False
         assert result_dict['confidence_score'] == 0.4
         assert result_dict['risk_level'] == 'high'
@@ -180,80 +183,80 @@ class TestValidationResult:
 
 class TestFieldLevelValidation:
     """Test Layer 1: Field-level validation"""
-    
+
     @pytest.mark.asyncio
     async def test_valid_ltree_path(self, validation_engine, valid_scenario):
         """Test validation of valid LTREE path"""
         # Should not raise exception
         await validation_engine._validate_field_level(valid_scenario)
-    
+
     @pytest.mark.asyncio
     async def test_invalid_ltree_path_format(self, validation_engine, valid_scenario):
         """Test validation catches invalid LTREE path format"""
         scenario = valid_scenario
         scenario.path = "world.asia.japan@invalid"  # Invalid character
-        
+
         with pytest.raises(ValueError, match="Invalid LTREE path format"):
             await validation_engine._validate_field_level(scenario)
-    
+
     @pytest.mark.asyncio
     async def test_confidence_score_out_of_range(self, validation_engine, valid_scenario):
         """Test validation catches confidence score out of range"""
         scenario = valid_scenario
         scenario.confidence_score = 1.5  # Invalid: > 1.0
-        
+
         with pytest.raises(ValueError, match="Confidence score must be between"):
             await validation_engine._validate_field_level(scenario)
-    
+
     @pytest.mark.asyncio
     async def test_future_timestamp_rejected(self, validation_engine, valid_scenario):
         """Test validation rejects future timestamps"""
         scenario = valid_scenario
         scenario.created_at = datetime.now() + timedelta(days=1)
-        
+
         with pytest.raises(ValueError, match="cannot be in the future"):
             await validation_engine._validate_field_level(scenario)
-    
+
     @pytest.mark.asyncio
     async def test_path_depth_mismatch(self, validation_engine, valid_scenario):
         """Test validation catches path depth mismatch"""
         scenario = valid_scenario
         scenario.path_depth = 5  # Incorrect: actual depth is 3
-        
+
         with pytest.raises(ValueError, match="Path depth mismatch"):
             await validation_engine._validate_field_level(scenario)
 
 
 class TestModelLevelValidation:
     """Test Layer 2: Model-level validation"""
-    
+
     @pytest.mark.asyncio
     async def test_model_level_warnings(self, validation_engine, valid_scenario):
         """Test model-level validation generates warnings"""
         scenario = valid_scenario
         scenario.risk_assessment.risk_level = RiskLevel.CRITICAL
         scenario.confidence_score = 0.9  # High confidence with critical risk
-        
+
         warnings = await validation_engine._validate_model_level(scenario)
-        
+
         assert len(warnings) > 0
         assert any("unexpectedly high confidence" in w for w in warnings)
-    
+
     @pytest.mark.asyncio
     async def test_validation_status_consistency(self, validation_engine, valid_scenario):
         """Test validation status consistency check"""
         scenario = valid_scenario
         scenario.validation_status = ValidationStatus.FAILED
         scenario.confidence_score = 0.8  # High confidence but failed
-        
+
         warnings = await validation_engine._validate_model_level(scenario)
-        
+
         assert any("Failed validation" in w for w in warnings)
 
 
 class TestUniqueConstraints:
     """Test Layer 3: Unique constraints validation"""
-    
+
     @pytest.mark.asyncio
     async def test_unique_path_constraint(self, validation_engine, valid_scenario, mock_hierarchy_resolver):
         """Test LTREE path uniqueness constraint"""
@@ -261,10 +264,10 @@ class TestUniqueConstraints:
         existing_entity = Mock()
         existing_entity.entity_id = "different_id"
         mock_hierarchy_resolver.get_hierarchy.return_value = existing_entity
-        
+
         with pytest.raises(ValueError, match="already exists"):
             await validation_engine._validate_unique_constraints(valid_scenario)
-    
+
     @pytest.mark.asyncio
     async def test_same_scenario_path_allowed(self, validation_engine, valid_scenario, mock_hierarchy_resolver):
         """Test same scenario can keep its own path"""
@@ -272,128 +275,128 @@ class TestUniqueConstraints:
         existing_entity = Mock()
         existing_entity.entity_id = valid_scenario.scenario_id
         mock_hierarchy_resolver.get_hierarchy.return_value = existing_entity
-        
+
         # Should not raise exception
         await validation_engine._validate_unique_constraints(valid_scenario)
 
 
 class TestGeneralConstraints:
     """Test Layer 4: General constraints validation"""
-    
+
     @pytest.mark.asyncio
     async def test_low_confidence_warning(self, validation_engine, valid_scenario):
         """Test warning for low confidence score"""
         scenario = valid_scenario
         scenario.confidence_score = 0.25  # Low confidence
-        
+
         warnings = await validation_engine._validate_general_constraints(scenario)
-        
+
         assert any("Low confidence score" in w for w in warnings)
-    
+
     @pytest.mark.asyncio
     async def test_high_conflict_count_warning(self, validation_engine, valid_scenario):
         """Test warning for high conflict count"""
         scenario = valid_scenario
         scenario.collaboration_data.conflict_count = 10  # High conflicts
-        
+
         warnings = await validation_engine._validate_general_constraints(scenario)
-        
+
         assert any("High conflict count" in w for w in warnings)
 
 
 class TestRiskAssessment:
     """Test automated risk assessment"""
-    
+
     @pytest.mark.asyncio
     async def test_risk_level_critical(self, validation_engine, valid_scenario):
         """Test critical risk level assessment"""
         errors = {"field_level": ["error1", "error2", "error3"]}
         warnings = {}
-        
+
         risk_level = await validation_engine._assess_risk_level(
             valid_scenario,
             confidence_score=0.4,
             errors=errors,
             warnings=warnings
         )
-        
+
         assert risk_level == RiskLevel.CRITICAL
-    
+
     @pytest.mark.asyncio
     async def test_risk_level_high(self, validation_engine, valid_scenario):
         """Test high risk level assessment"""
         errors = {"field_level": ["error1"]}
         warnings = {}
-        
+
         risk_level = await validation_engine._assess_risk_level(
             valid_scenario,
             confidence_score=0.65,
             errors=errors,
             warnings=warnings
         )
-        
+
         assert risk_level == RiskLevel.HIGH
-    
+
     @pytest.mark.asyncio
     async def test_risk_level_medium(self, validation_engine, valid_scenario):
         """Test medium risk level assessment"""
         errors = {}
         warnings = {"model_level": ["warning1", "warning2", "warning3"]}
-        
+
         risk_level = await validation_engine._assess_risk_level(
             valid_scenario,
             confidence_score=0.80,
             errors=errors,
             warnings=warnings
         )
-        
+
         assert risk_level == RiskLevel.MEDIUM
-    
+
     @pytest.mark.asyncio
     async def test_risk_level_low(self, validation_engine, valid_scenario):
         """Test low risk level assessment"""
         errors = {}
         warnings = {}
-        
+
         risk_level = await validation_engine._assess_risk_level(
             valid_scenario,
             confidence_score=0.90,
             errors=errors,
             warnings=warnings
         )
-        
+
         assert risk_level == RiskLevel.LOW
 
 
 class TestPerformanceMetrics:
     """Test performance monitoring and SLO compliance"""
-    
+
     @pytest.mark.asyncio
     async def test_validation_latency_target(self, validation_engine, valid_scenario):
         """Test validation meets <50ms latency target"""
         start_time = time.time()
         await validation_engine.validate_scenario_comprehensive(valid_scenario)
         latency_ms = (time.time() - start_time) * 1000
-        
+
         # First validation might be slower, check metrics instead
         metrics = validation_engine.get_performance_metrics()
-        
+
         # After cache warming, average should be well below 50ms
         assert latency_ms < 200  # Generous first-run allowance
-    
+
     def test_performance_metrics_structure(self, validation_engine):
         """Test performance metrics structure"""
         metrics = validation_engine.get_performance_metrics()
-        
+
         assert 'validations_performed' in metrics
         assert 'cache' in metrics
         assert 'performance' in metrics
         assert 'risk_assessments' in metrics
-        
+
         assert 'hits' in metrics['cache']
         assert 'misses' in metrics['cache']
         assert 'hit_rate' in metrics['cache']
-        
+
         assert 'avg_validation_time_ms' in metrics['performance']
         assert 'meets_slo' in metrics['performance']
 

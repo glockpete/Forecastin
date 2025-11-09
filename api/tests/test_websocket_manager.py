@@ -13,20 +13,21 @@ Tests cover:
 - Error handling and graceful degradation
 """
 
-import pytest
 import asyncio
 import json
 import time
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 from services.websocket_manager import (
+    ConnectionStats,
+    SerializationError,
     WebSocketManager,
     WebSocketMessage,
-    ConnectionStats,
     safe_serialize_message,
-    SerializationError
 )
 
 

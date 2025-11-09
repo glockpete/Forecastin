@@ -23,21 +23,21 @@ Thread Safety:
 Author: Forecastin Development Team
 """
 
-import threading
-import time
-import logging
-import os
-from typing import List, Dict, Optional, Any, Tuple
-from dataclasses import dataclass
-from collections import OrderedDict
 import hashlib
 import json
+import logging
+import os
+import threading
+import time
+from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 try:
+    import psycopg2
     import redis
     from psycopg2 import pool as psycopg2_pool
     from psycopg2.extras import RealDictCursor
-    import psycopg2
 except ImportError as e:
     logging.warning(f"Database dependencies not available: {e}")
     redis = None
@@ -102,18 +102,18 @@ class ThreadSafeLRUCache:
     to prevent deadlocks in complex query scenarios, as specified in
     the project requirements.
     """
-    
+
     def __init__(self, maxsize: int = 1000):
         if maxsize <= 0:
             raise ValueError("maxsize must be positive")
-        
+
         self._maxsize = maxsize
         self._cache = OrderedDict()
         # Use RLock for re-entrant locking as specified
         self._lock = threading.RLock()
         self._hits = 0
         self._misses = 0
-    
+
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache, return None if not found."""
         with self._lock:
@@ -126,7 +126,7 @@ class ThreadSafeLRUCache:
             else:
                 self._misses += 1
                 return None
-    
+
     def put(self, key: str, value: Any) -> None:
         """Put value into cache, evicting oldest if necessary."""
         with self._lock:
@@ -140,17 +140,17 @@ class ThreadSafeLRUCache:
                     # Evict oldest (least recently used)
                     self._cache.popitem(last=False)
                 self._cache[key] = value
-    
+
     def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
             self._cache.clear()
-    
+
     def size(self) -> int:
         """Get current cache size."""
         with self._lock:
             return len(self._cache)
-    
+
     def hit_ratio(self) -> float:
         """Calculate cache hit ratio."""
         total = self._hits + self._misses
@@ -176,13 +176,13 @@ class OptimizedHierarchyResolver:
     - Exponential backoff retry for database connections
     - TCP keepalives to prevent firewall drops
     """
-    
+
     # Cache configuration
     L1_MAX_SIZE = 1000
     L2_DEFAULT_TTL = 3600  # 1 hour
     L3_QUERY_TIMEOUT = 5.0  # seconds
     L4_REFRESH_INTERVAL = 300  # 5 minutes
-    
+
     # Database configuration with TCP keepalives
     DB_CONFIG = {
         'host': os.getenv('DATABASE_HOST', 'localhost'),
@@ -198,7 +198,7 @@ class OptimizedHierarchyResolver:
         'connect_timeout': 10,
         'options': '-c statement_timeout=5000'
     }
-    
+
     # Redis configuration
     REDIS_CONFIG = {
         'host': os.getenv('REDIS_HOST', 'localhost'),
@@ -210,7 +210,7 @@ class OptimizedHierarchyResolver:
         'retry_on_timeout': True,
         'max_connections': 50
     }
-    
+
     def __init__(self, db_config: Optional[Dict] = None, redis_config: Optional[Dict] = None):
         """
         Initialize the hierarchy resolver with database and Redis configurations.
@@ -220,43 +220,43 @@ class OptimizedHierarchyResolver:
             redis_config: Optional Redis configuration override
         """
         self.logger = logging.getLogger(__name__)
-        
+
         # Update configurations if provided
         if db_config:
             self.DB_CONFIG.update(db_config)
         if redis_config:
             self.REDIS_CONFIG.update(redis_config)
-        
+
         # Initialize cache metrics
         self.metrics = CacheMetrics()
-        
+
         # Initialize L1 cache (in-memory LRU with RLock)
         self.l1_cache = ThreadSafeLRUCache(maxsize=self.L1_MAX_SIZE)
-        
+
         # Initialize L2 cache (Redis)
         self._init_redis_cache()
-        
+
         # Initialize L3 cache (Database connection pool)
         self._init_database_pool()
-        
+
         # L4 cache is materialized views in database (handled via refresh)
         self.last_mv_refresh = 0
-        
+
         # Background thread for pool health monitoring
         self._start_pool_monitor()
-        
+
         self.logger.info("OptimizedHierarchyResolver initialized with four-tier caching")
-    
+
     def _init_redis_cache(self) -> None:
         """Initialize Redis connection pool with exponential backoff."""
         # CRITICAL: Initialize redis_client attribute first to prevent AttributeError
         self.redis_client = None
         self.redis_pool = None
-        
+
         if not redis:
             self.logger.warning("Redis not available, L2 cache disabled")
             return
-        
+
         try:
             # Initialize Redis connection pool with retry logic
             max_retries = 3
@@ -279,21 +279,21 @@ class OptimizedHierarchyResolver:
                         wait_time = 0.5 * (2 ** attempt)
                         self.logger.warning(f"Redis connection failed (attempt {attempt + 1}), retrying in {wait_time}s...")
                         time.sleep(wait_time)
-        
+
         except Exception as e:
             self.logger.error(f"Unexpected error initializing Redis: {e}")
             self.redis_pool = None
             self.redis_client = None
-    
+
     def _init_database_pool(self) -> None:
         """Initialize PostgreSQL connection pool with health checks."""
         # CRITICAL: Initialize db_pool attribute first to prevent AttributeError
         self.db_pool = None
-        
+
         if not psycopg2_pool:
             self.logger.warning("psycopg2 not available, L3 cache disabled")
             return
-        
+
         try:
             self.db_pool = psycopg2_pool.ThreadedConnectionPool(
                 minconn=self.DB_CONFIG['minconn'],
@@ -301,11 +301,11 @@ class OptimizedHierarchyResolver:
                 **self.DB_CONFIG
             )
             self.logger.info("Database L3 cache initialized successfully")
-        
+
         except Exception as e:
             self.logger.error(f"Failed to initialize database pool: {e}")
             self.db_pool = None
-    
+
     def _start_pool_monitor(self) -> None:
         """Start background thread to monitor connection pool health."""
         def monitor_pools():
@@ -317,7 +317,7 @@ class OptimizedHierarchyResolver:
                             self.redis_client.ping()
                         except Exception as e:
                             self.logger.warning(f"Redis health check failed: {e}")
-                    
+
                     # Check database pool health
                     if hasattr(self, 'db_pool') and self.db_pool:
                         try:
@@ -327,20 +327,20 @@ class OptimizedHierarchyResolver:
                             self.db_pool.putconn(conn)
                         except Exception as e:
                             self.logger.warning(f"Database health check failed: {e}")
-                    
+
                     time.sleep(30)  # Check every 30 seconds
-                
+
                 except Exception as e:
                     self.logger.error(f"Pool monitoring error: {e}")
                     time.sleep(30)
-        
+
         monitor_thread = threading.Thread(target=monitor_pools, daemon=True)
         monitor_thread.start()
-    
+
     def _get_redis_key(self, entity_id: str) -> str:
         """Generate Redis cache key for entity."""
         return f"hierarchy:{entity_id}:{hashlib.md5(entity_id.encode()).hexdigest()[:8]}"
-    
+
     def _serialize_hierarchy(self, node: HierarchyNode) -> str:
         """Serialize hierarchy node to JSON string."""
         return json.dumps({
@@ -352,12 +352,12 @@ class OptimizedHierarchyResolver:
             'descendants': node.descendants,
             'confidence_score': node.confidence_score
         })
-    
+
     def _deserialize_hierarchy(self, data: str) -> HierarchyNode:
         """Deserialize JSON string to hierarchy node."""
         obj = json.loads(data)
         return HierarchyNode(**obj)
-    
+
     def get_hierarchy(self, entity_id: str) -> Optional[HierarchyNode]:
         """
         Get hierarchy information for an entity using four-tier cache strategy.
@@ -489,7 +489,7 @@ class OptimizedHierarchyResolver:
 
         self.logger.debug(f"Hierarchy not found for entity {entity_id}")
         return None
-    
+
     def _query_database_hierarchy(self, entity_id: str) -> Optional[HierarchyNode]:
         """
         Query database directly using optimized LTREE queries.
@@ -499,7 +499,7 @@ class OptimizedHierarchyResolver:
         """
         if not self.db_pool:
             return None
-        
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -522,7 +522,7 @@ class OptimizedHierarchyResolver:
                             WHERE e.id = %s
                             LIMIT 1
                         """, (entity_id,))
-                        
+
                         row = cur.fetchone()
                         if row:
                             return HierarchyNode(
@@ -535,10 +535,10 @@ class OptimizedHierarchyResolver:
                                 confidence_score=row['confidence_score']
                             )
                         return None
-                
+
                 finally:
                     self.db_pool.putconn(conn)
-            
+
             except (psycopg2.OperationalError, psycopg2.DatabaseError) as e:
                 if attempt == max_retries - 1:
                     self.logger.error(f"Database query failed after {max_retries} attempts: {e}")
@@ -548,13 +548,13 @@ class OptimizedHierarchyResolver:
                     wait_time = 0.5 * (2 ** attempt)
                     self.logger.warning(f"Database query failed (attempt {attempt + 1}), retrying in {wait_time}s...")
                     time.sleep(wait_time)
-            
+
             except Exception as e:
                 self.logger.error(f"Unexpected database error: {e}")
                 return None
-        
+
         return None
-    
+
     def _query_materialized_views(self, entity_id: str) -> Optional[HierarchyNode]:
         """
         Query materialized views for pre-computed hierarchy data.
@@ -564,7 +564,7 @@ class OptimizedHierarchyResolver:
         """
         if not self.db_pool:
             return None
-        
+
         try:
             conn = self.db_pool.getconn()
             try:
@@ -618,14 +618,14 @@ class OptimizedHierarchyResolver:
                         # No row returned - could be JOIN failure or entity not found
                         self.logger.warning(f"No data returned for entity {entity_id} from materialized view query - possible JOIN failure or missing entity")
                     return None
-            
+
             finally:
                 self.db_pool.putconn(conn)
-        
+
         except Exception as e:
             self.logger.warning(f"Materialized view query failed: {e}")
             return None
-    
+
     def refresh_materialized_view(self, view_name: str = "mv_entity_ancestors") -> bool:
         """
         Manually trigger a refresh of the underlying LTREE materialized view.
@@ -646,7 +646,7 @@ class OptimizedHierarchyResolver:
         if not self.db_pool:
             self.logger.error("Database pool not available for materialized view refresh")
             return False
-        
+
         try:
             conn = self.db_pool.getconn()
             try:
@@ -654,35 +654,35 @@ class OptimizedHierarchyResolver:
                     # Refresh materialized view with concurrent option to minimize locking
                     cur.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view_name}")
                     conn.commit()
-                    
+
                     self.last_mv_refresh = time.time()
                     self.logger.info(f"Successfully refreshed materialized view: {view_name}")
                     return True
-            
+
             except Exception as e:
                 # If concurrent refresh fails, try regular refresh
                 self.logger.warning(f"Concurrent refresh failed, trying regular refresh: {e}")
-                
+
                 try:
                     with conn.cursor() as cur:
                         cur.execute(f"REFRESH MATERIALIZED VIEW {view_name}")
                         conn.commit()
-                        
+
                         self.last_mv_refresh = time.time()
                         self.logger.info(f"Successfully refreshed materialized view (regular): {view_name}")
                         return True
-                
+
                 except Exception as e2:
                     self.logger.error(f"Regular refresh also failed: {e2}")
                     return False
-            
+
             finally:
                 self.db_pool.putconn(conn)
-        
+
         except Exception as e:
             self.logger.error(f"Failed to refresh materialized view {view_name}: {e}")
             return False
-    
+
     def refresh_all_materialized_views(self) -> Dict[str, bool]:
         """
         Refresh all hierarchy-related materialized views.
@@ -695,13 +695,13 @@ class OptimizedHierarchyResolver:
             "mv_descendant_counts",
             "mv_entity_hierarchy_stats"
         ]
-        
+
         results = {}
         for view in views:
             results[view] = self.refresh_materialized_view(view)
-        
+
         return results
-    
+
     def get_cache_performance_metrics(self) -> Dict[str, Any]:
         """
         Get comprehensive cache performance metrics for monitoring and optimization.
@@ -715,26 +715,26 @@ class OptimizedHierarchyResolver:
         with self.l1_cache._lock:
             total_requests = (self.metrics.l1_hits + self.metrics.l1_misses)
             l1_hit_ratio = self.metrics.l1_hits / total_requests if total_requests > 0 else 0.0
-        
+
         l2_total = self.metrics.l2_hits + self.metrics.l2_misses
         l2_hit_ratio = self.metrics.l2_hits / l2_total if l2_total > 0 else 0.0
-        
+
         l3_total = self.metrics.l3_hits + self.metrics.l3_misses
         l3_hit_ratio = self.metrics.l3_hits / l3_total if l3_total > 0 else 0.0
-        
+
         l4_total = self.metrics.l4_hits + self.metrics.l4_misses
         l4_hit_ratio = self.metrics.l4_hits / l4_total if l4_total > 0 else 0.0
-        
+
         # Overall cache efficiency
-        total_hits = (self.metrics.l1_hits + self.metrics.l2_hits + 
+        total_hits = (self.metrics.l1_hits + self.metrics.l2_hits +
                      self.metrics.l3_hits + self.metrics.l4_hits)
-        total_requests = (self.metrics.l1_hits + self.metrics.l1_misses + 
+        total_requests = (self.metrics.l1_hits + self.metrics.l1_misses +
                          self.metrics.l2_hits + self.metrics.l2_misses +
                          self.metrics.l3_hits + self.metrics.l3_misses +
                          self.metrics.l4_hits + self.metrics.l4_misses)
-        
+
         overall_hit_ratio = total_hits / total_requests if total_requests > 0 else 0.0
-        
+
         return {
             'l1_cache': {
                 'hits': self.metrics.l1_hits,
@@ -767,12 +767,12 @@ class OptimizedHierarchyResolver:
                 'total_requests': total_requests,
                 'total_hits': total_hits,
                 'overall_hit_ratio': overall_hit_ratio,
-                'cache_efficiency': 'EXCELLENT' if overall_hit_ratio > 0.95 else 
-                                 'GOOD' if overall_hit_ratio > 0.90 else 
+                'cache_efficiency': 'EXCELLENT' if overall_hit_ratio > 0.95 else
+                                 'GOOD' if overall_hit_ratio > 0.90 else
                                  'FAIR' if overall_hit_ratio > 0.80 else 'POOR'
             }
         }
-    
+
     def clear_cache(self, tier: Optional[str] = None) -> None:
         """
         Clear cache for specified tier or all tiers.
@@ -783,7 +783,7 @@ class OptimizedHierarchyResolver:
         if tier is None or tier.lower() == 'l1':
             self.l1_cache.clear()
             self.logger.info("L1 cache cleared")
-        
+
         if tier is None or tier.lower() == 'l2':
             if self.redis_client:
                 try:
@@ -794,11 +794,11 @@ class OptimizedHierarchyResolver:
                     self.logger.info(f"L2 cache cleared: {len(keys)} keys removed")
                 except Exception as e:
                     self.logger.error(f"Failed to clear L2 cache: {e}")
-        
+
         if tier is None or tier.lower() in ['l3', 'l4']:
             # Database cache clearing is handled by connection pool management
             self.logger.info(f"{tier.upper() if tier else 'L3/L4'} cache cleared (DB cache managed by connection pool)")
-    
+
     async def link_rss_entity_async(
         self,
         rss_entity_id: str,
@@ -1042,7 +1042,7 @@ class OptimizedHierarchyResolver:
         """
         if not self.db_pool:
             return []
-        
+
         try:
             conn = self.db_pool.getconn()
             try:
@@ -1066,9 +1066,9 @@ class OptimizedHierarchyResolver:
                         ORDER BY e.path_depth ASC, e.id
                         LIMIT %s
                     """, (limit,))
-                    
+
                     rows = cur.fetchall()
-                    
+
                     results = []
                     for row in rows:
                         node = HierarchyNode(
@@ -1085,12 +1085,12 @@ class OptimizedHierarchyResolver:
                             location_lon=row.get('location_lon')
                         )
                         results.append(node)
-                    
+
                     return results
-            
+
             finally:
                 self.db_pool.putconn(conn)
-        
+
         except Exception as e:
             self.logger.error(f"Failed to get all entities: {e}")
             return []
@@ -1263,8 +1263,8 @@ class OptimizedHierarchyResolver:
 
 
 # Performance testing utilities
-def benchmark_hierarchy_resolution(resolver: OptimizedHierarchyResolver, 
-                                 test_entities: List[str], 
+def benchmark_hierarchy_resolution(resolver: OptimizedHierarchyResolver,
+                                 test_entities: List[str],
                                  iterations: int = 1000) -> Dict[str, float]:
     """
     Benchmark hierarchy resolution performance.
@@ -1286,10 +1286,10 @@ def benchmark_hierarchy_resolution(resolver: OptimizedHierarchyResolver,
         Dictionary containing benchmark results
     """
     import statistics
-    
+
     latencies = []
     cache_hit_ratios = []
-    
+
     for _ in range(iterations):
         start_time = time.perf_counter()
 
@@ -1305,26 +1305,26 @@ def benchmark_hierarchy_resolution(resolver: OptimizedHierarchyResolver,
         requests = len(test_entities)  # Number of requests in THIS iteration
         avg_latency_ms = (total_time / requests) * 1000
         latencies.append(avg_latency_ms)
-        
+
         # Get cache metrics
         metrics = resolver.get_cache_performance_metrics()
         cache_hit_ratios.append(metrics['overall']['overall_hit_ratio'])
-    
+
     # Calculate statistics
     avg_latency = statistics.mean(latencies)
     p95_latency = statistics.quantiles(latencies, n=20)[18]  # 95th percentile
     throughput_rps = 1000 / avg_latency if avg_latency > 0 else 0
     avg_cache_hit_ratio = statistics.mean(cache_hit_ratios)
-    
+
     return {
         'avg_latency_ms': avg_latency,
         'p95_latency_ms': p95_latency,
         'throughput_rps': throughput_rps,
         'cache_hit_ratio': avg_cache_hit_ratio,
         'meets_performance_slos': (
-            avg_latency < 1.25 and 
-            p95_latency < 1.87 and 
-            throughput_rps > 42726 and 
+            avg_latency < 1.25 and
+            p95_latency < 1.87 and
+            throughput_rps > 42726 and
             avg_cache_hit_ratio > 0.992
         )
     }
@@ -1337,32 +1337,32 @@ if __name__ == "__main__":
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    
+
     # Initialize resolver
     resolver = OptimizedHierarchyResolver()
-    
+
     # Test hierarchy resolution
     test_entities = ["entity_001", "entity_002", "entity_003"]
-    
+
     print("Testing hierarchy resolution...")
     for entity_id in test_entities:
         result = resolver.get_hierarchy(entity_id)
         print(f"Entity {entity_id}: {result}")
-    
+
     # Get performance metrics
     metrics = resolver.get_cache_performance_metrics()
     print("\nCache Performance Metrics:")
     print(json.dumps(metrics, indent=2))
-    
+
     # Test materialized view refresh
     refresh_success = resolver.refresh_materialized_view()
     print(f"\nMaterialized view refresh: {'Success' if refresh_success else 'Failed'}")
-    
+
     # Run performance benchmark
     if test_entities:
         benchmark_results = benchmark_hierarchy_resolution(resolver, test_entities, 100)
         print("\nPerformance Benchmark Results:")
         print(json.dumps(benchmark_results, indent=2))
-    
+
     # Cleanup
     resolver.clear_cache()

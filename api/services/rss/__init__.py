@@ -11,7 +11,7 @@ Main module for RSS feed ingestion with RSSHub-inspired patterns:
 Following AGENTS.md patterns for performance and reliability.
 """
 
-from .rss_ingestion_service import RSSIngestionService, RSSIngestionConfig
+from .rss_ingestion_service import RSSIngestionConfig, RSSIngestionService
 
 __all__ = [
     "RSSIngestionService",

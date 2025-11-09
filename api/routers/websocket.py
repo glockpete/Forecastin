@@ -6,13 +6,16 @@ Handles real-time WebSocket connections for updates, echo server, and health mon
 import asyncio
 import logging
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 import orjson
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from models.websocket_schemas import validate_websocket_message, validate_outgoing_message
+from models.websocket_schemas import (
+    validate_outgoing_message,
+    validate_websocket_message,
+)
 
 router = APIRouter(tags=["websocket"])
 
@@ -128,7 +131,6 @@ async def websocket_endpoint(websocket: WebSocket):
     - Enhanced error handling and diagnostics
     """
 
-    from models.serializers import safe_serialize_message
 
     # Generate unique client_id server-side
     client_id = f"ws_client_{int(time.time() * 1000)}_{id(websocket)}"
@@ -152,8 +154,8 @@ async def websocket_endpoint(websocket: WebSocket):
     # Detect connection scheme (ws vs wss)
     connection_scheme = 'wss' if x_forwarded_proto == 'https' else 'ws'
 
-    logger.info(f"[WS_DIAGNOSTICS] ===== CONNECTION ATTEMPT START =====")
-    logger.info(f"[WS_DIAGNOSTICS] URL path: /ws")
+    logger.info("[WS_DIAGNOSTICS] ===== CONNECTION ATTEMPT START =====")
+    logger.info("[WS_DIAGNOSTICS] URL path: /ws")
     logger.info(f"[WS_DIAGNOSTICS] Generated client_id: '{client_id}'")
     logger.info(f"[WS_DIAGNOSTICS] Client address: {client_ip}:{client_port}")
     logger.info(f"[WS_DIAGNOSTICS] Origin: {origin}")
@@ -263,7 +265,7 @@ async def websocket_endpoint(websocket: WebSocket):
         error_time = time.time()
         logger.error(f"[WS_DIAGNOSTICS] Failed to accept WebSocket connection: {e}")
         logger.error(f"[WS_DIAGNOSTICS] Failed connection details - error_type: {type(e).__name__}, duration_ms={(error_time - connection_start_time)*1000:.2f}")
-        logger.info(f"[WS_DIAGNOSTICS] ===== CONNECTION ATTEMPT END (FAILED) =====")
+        logger.info("[WS_DIAGNOSTICS] ===== CONNECTION ATTEMPT END (FAILED) =====")
 
     finally:
         final_time = time.time()
@@ -548,7 +550,6 @@ async def websocket_scenario_forecasts(websocket: WebSocket, path: str):
     Uses orjson serialization for datetime/dataclass objects
     P95 <200ms latency requirement
     """
-    from models.serializers import safe_serialize_message
 
     client_id = f"scenario_{path}_{time.time()}"
     await connection_manager.connect(websocket, client_id)

@@ -13,12 +13,13 @@ Tests cover:
 - Thread-safe operations with RLock
 """
 
-import pytest
-import time
 import threading
-from unittest.mock import AsyncMock, MagicMock, patch, Mock, call
+import time
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+
+import pytest
 
 from services.automated_refresh_service import AutomatedRefreshService
 

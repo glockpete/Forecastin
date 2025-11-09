@@ -19,9 +19,7 @@ import time
 import weakref
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Union, Callable
-from datetime import datetime
-import traceback
+from typing import Any, Dict, Optional, Set, Union
 
 try:
     import orjson
@@ -42,7 +40,7 @@ class WebSocketMessage:
     timestamp: Optional[float] = None
     client_id: Optional[str] = None
     message_id: Optional[str] = None
-    
+
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = time.time()
@@ -60,14 +58,14 @@ class ConnectionStats:
     last_activity: Optional[float] = None
     connect_time: Optional[float] = None
     errors: int = 0
-    
+
     @property
     def is_alive(self) -> bool:
         """Check if connection is still alive."""
         if not self.last_activity:
             return False
         return time.time() - self.last_activity < 300  # 5 minutes timeout
-    
+
     @property
     def connection_age(self) -> float:
         """Get connection age in seconds."""
@@ -119,22 +117,22 @@ def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]
         elif not isinstance(message, dict):
             # Wrap primitive types in a standard format
             message = {"type": "data", "data": message, "timestamp": time.time()}
-        
+
         # Add timestamp if not present
         if "timestamp" not in message:
             message["timestamp"] = time.time()
-        
+
         # Try orjson first if available (preferred for datetime/dataclass objects)
         if ORJSON_AVAILABLE:
             try:
                 # Use orjson options for datetime handling
                 return orjson.dumps(
-                    message, 
+                    message,
                     option=orjson.OPT_NON_STR_KEYS | orjson.OPT_NAIVE_UTC
                 ).decode('utf-8')
             except Exception as orjson_error:
                 logger.warning(f"orjson serialization failed: {orjson_error}, falling back to json.dumps")
-        
+
         # Fallback to standard json.dumps with custom encoder
         class CustomJSONEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -151,7 +149,7 @@ def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]
                 elif hasattr(obj, '__slots__'):
                     # Handle objects with __slots__
                     return {attr: getattr(obj, attr) for attr in obj.__slots__ if hasattr(obj, attr)}
-                
+
                 # For complex objects, try to extract useful information
                 if isinstance(obj, (list, tuple, set)):
                     return list(obj)
@@ -160,12 +158,12 @@ def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]
                 else:
                     # Return string representation as last resort
                     return str(obj)
-        
+
         return json.dumps(message, cls=CustomJSONEncoder, separators=(',', ':'))
-        
+
     except Exception as e:
         logger.error(f"All serialization methods failed: {e}")
-        
+
         # Return a structured error message instead of crashing
         error_message = {
             "type": "serialization_error",
@@ -174,13 +172,13 @@ def safe_serialize_message(message: Union[WebSocketMessage, Dict[str, Any], Any]
             "timestamp": time.time(),
             "fallback": True
         }
-        
+
         try:
             return json.dumps(error_message)
         except Exception:
             # Last resort: basic string error
             return json.dumps({
-                "type": "serialization_error", 
+                "type": "serialization_error",
                 "message": "Message could not be serialized",
                 "timestamp": time.time()
             })
@@ -198,7 +196,7 @@ class WebSocketManager:
     - Graceful error handling
     - Performance metrics
     """
-    
+
     def __init__(
         self,
         max_connections: int = 1000,
@@ -225,20 +223,20 @@ class WebSocketManager:
         self.heartbeat_interval = heartbeat_interval
         self.max_message_size = max_message_size
         self.enable_metrics = enable_metrics
-        
+
         # Connected WebSocket clients
         self._clients: Dict[str, Any] = {}  # client_id -> websocket connection
         self._client_stats: Dict[str, ConnectionStats] = {}
         self._client_weakrefs: weakref.WeakSet = weakref.WeakSet()
-        
+
         # Message batching queues
         self._batching_enabled = True
         self._message_batches: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
         self._batch_timers: Dict[str, asyncio.Task] = {}
-        
+
         # Broadcasting channels
         self._broadcast_channels: Dict[str, Set[str]] = defaultdict(set)  # channel -> client_ids
-        
+
         # Metrics
         self._total_messages_sent = 0
         self._total_messages_received = 0
@@ -247,27 +245,27 @@ class WebSocketManager:
         self._serialization_errors = 0
         self._connection_errors = 0
         self._start_time = time.time()
-        
+
         # Heartbeat task
         self._heartbeat_task: Optional[asyncio.Task] = None
         self._running = False
-    
+
     async def start(self) -> None:
         """Start the WebSocket manager."""
         if self._running:
             return
-        
+
         self._running = True
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         logger.info("WebSocket manager started")
-    
+
     async def stop(self) -> None:
         """Stop the WebSocket manager."""
         if not self._running:
             return
-        
+
         self._running = False
-        
+
         # Cancel heartbeat
         if self._heartbeat_task:
             self._heartbeat_task.cancel()
@@ -275,13 +273,13 @@ class WebSocketManager:
                 await self._heartbeat_task
             except asyncio.CancelledError:
                 pass
-        
+
         # Cancel all batch timers
         for timer in self._batch_timers.values():
             timer.cancel()
-        
+
         logger.info("WebSocket manager stopped")
-    
+
     async def connect(self, websocket: Any, client_id: str) -> None:
         """
         Register a new WebSocket connection.
@@ -292,24 +290,24 @@ class WebSocketManager:
         """
         if len(self._clients) >= self.max_connections:
             raise ConnectionError(f"Maximum connections ({self.max_connections}) reached")
-        
+
         self._clients[client_id] = websocket
         self._client_weakrefs.add(websocket)
-        
+
         self._client_stats[client_id] = ConnectionStats(
             connect_time=time.time(),
             last_activity=time.time()
         )
-        
+
         logger.info(f"WebSocket client connected: {client_id}")
-        
+
         # Send welcome message
         await self.send_to_client(client_id, {
             "type": "connection_established",
             "client_id": client_id,
             "timestamp": time.time()
         })
-    
+
     async def disconnect(self, client_id: str, reason: str = "Client disconnected") -> None:
         """
         Unregister a WebSocket connection.
@@ -320,19 +318,19 @@ class WebSocketManager:
         """
         if client_id in self._clients:
             del self._clients[client_id]
-        
+
         if client_id in self._client_stats:
             del self._client_stats[client_id]
-        
+
         # Remove from all channels
         for channel in self._broadcast_channels.values():
             channel.discard(client_id)
-        
+
         logger.info(f"WebSocket client disconnected: {client_id} - {reason}")
-    
+
     async def send_to_client(
-        self, 
-        client_id: str, 
+        self,
+        client_id: str,
         message: Union[WebSocketMessage, Dict[str, Any], Any],
         use_batch: bool = True
     ) -> bool:
@@ -349,17 +347,17 @@ class WebSocketManager:
         """
         if client_id not in self._clients:
             return False
-        
+
         websocket = self._clients[client_id]
-        
+
         # Check message size
         serialized = safe_serialize_message(message)
         message_size = len(serialized.encode('utf-8'))
-        
+
         if message_size > self.max_message_size:
             logger.warning(f"Message too large for client {client_id}: {message_size} bytes")
             return False
-        
+
         try:
             if use_batch and self._batching_enabled:
                 # Add to batch queue
@@ -368,23 +366,23 @@ class WebSocketManager:
                 # Send immediately
                 await websocket.send(serialized)
                 self._update_client_stats(client_id, len(serialized), 0)
-            
+
             if self.enable_metrics:
                 self._total_messages_sent += 1
                 self._total_bytes_sent += message_size
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to send message to client {client_id}: {e}")
             self._connection_errors += 1
-            
+
             # Mark client as potentially disconnected
             if client_id in self._client_stats:
                 self._client_stats[client_id].errors += 1
-            
+
             return False
-    
+
     async def broadcast(
         self,
         message: Union[WebSocketMessage, Dict[str, Any], Any],
@@ -405,30 +403,30 @@ class WebSocketManager:
             Dictionary of client_id -> success status
         """
         target_clients = set()
-        
+
         if channel:
             # Send to channel subscribers
             target_clients.update(self._broadcast_channels.get(channel, set()))
         else:
             # Send to all clients
             target_clients.update(self._clients.keys())
-        
+
         # Exclude specific client if requested
         if exclude_client:
             target_clients.discard(exclude_client)
-        
+
         results = {}
-        
+
         # Batch send to all target clients
         if use_batch and self._batching_enabled:
             serialized = safe_serialize_message(message)
-            
+
             tasks = []
             for client_id in target_clients:
                 if client_id in self._clients:
                     task = self._add_to_batch(client_id, serialized)
                     tasks.append((client_id, task))
-            
+
             # Wait for all batch operations to complete
             for client_id, task in tasks:
                 try:
@@ -445,9 +443,9 @@ class WebSocketManager:
                     results[client_id] = success
                 else:
                     results[client_id] = False
-        
+
         return results
-    
+
     async def subscribe_to_channel(self, client_id: str, channel: str) -> bool:
         """
         Subscribe client to a broadcast channel.
@@ -464,7 +462,7 @@ class WebSocketManager:
             logger.info(f"Client {client_id} subscribed to channel {channel}")
             return True
         return False
-    
+
     async def unsubscribe_from_channel(self, client_id: str, channel: str) -> bool:
         """
         Unsubscribe client from a broadcast channel.
@@ -479,29 +477,29 @@ class WebSocketManager:
         self._broadcast_channels[channel].discard(client_id)
         logger.info(f"Client {client_id} unsubscribed from channel {channel}")
         return True
-    
+
     async def _add_to_batch(self, client_id: str, serialized_message: str) -> None:
         """Add message to batch queue for client."""
         self._message_batches[client_id].append(serialized_message)
-        
+
         # Start batch timer if not already running
         if client_id not in self._batch_timers:
             self._batch_timers[client_id] = asyncio.create_task(
                 self._process_batch(client_id)
             )
-    
+
     async def _process_batch(self, client_id: str) -> None:
         """Process batched messages for client."""
         try:
             await asyncio.sleep(self.batch_timeout)
-            
+
             if client_id not in self._clients:
                 return
-            
+
             batch = self._message_batches[client_id]
             if not batch:
                 return
-            
+
             # Combine messages (you could also send as array)
             combined_messages = []
             while batch:
@@ -510,67 +508,67 @@ class WebSocketManager:
                     combined_messages.append(message)
                 except IndexError:
                     break
-            
+
             if combined_messages:
                 websocket = self._clients[client_id]
-                
+
                 # Send as array of messages
                 batch_data = f'[{",".join(combined_messages)}]'
                 await websocket.send(batch_data)
-                
+
                 total_size = len(batch_data.encode('utf-8'))
                 self._update_client_stats(client_id, total_size, 0)
-                
+
                 if self.enable_metrics:
                     self._total_messages_sent += len(combined_messages)
                     self._total_bytes_sent += total_size
-        
+
         except Exception as e:
             logger.error(f"Failed to process batch for client {client_id}: {e}")
             self._serialization_errors += 1
-        
+
         finally:
             # Clean up batch timer
             if client_id in self._batch_timers:
                 del self._batch_timers[client_id]
-    
+
     async def _heartbeat_loop(self) -> None:
         """Send heartbeat messages to maintain connections."""
         while self._running:
             try:
                 await asyncio.sleep(self.heartbeat_interval)
-                
+
                 # Send heartbeat to all clients
                 heartbeat_message = {
                     "type": "heartbeat",
                     "timestamp": time.time()
                 }
-                
+
                 await self.broadcast(
-                    heartbeat_message, 
+                    heartbeat_message,
                     use_batch=True
                 )
-                
+
                 # Clean up dead connections
                 await self._cleanup_dead_connections()
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Heartbeat loop error: {e}")
-    
+
     async def _cleanup_dead_connections(self) -> None:
         """Clean up dead WebSocket connections."""
         dead_clients = []
-        
+
         for client_id, stats in self._client_stats.items():
             if not stats.is_alive:
                 dead_clients.append(client_id)
-        
+
         for client_id in dead_clients:
             logger.info(f"Cleaning up dead connection: {client_id}")
             await self.disconnect(client_id, "Connection timeout")
-    
+
     def _update_client_stats(self, client_id: str, bytes_sent: int, bytes_received: int) -> None:
         """Update client connection statistics."""
         if client_id in self._client_stats:
@@ -579,7 +577,7 @@ class WebSocketManager:
             stats.bytes_sent += bytes_sent
             stats.bytes_received += bytes_received
             stats.last_activity = time.time()
-    
+
     async def handle_message(self, client_id: str, message_data: str) -> None:
         """
         Handle incoming WebSocket message from client.
@@ -593,9 +591,9 @@ class WebSocketManager:
             if self.enable_metrics:
                 self._total_messages_received += 1
                 self._total_bytes_received += len(message_data.encode('utf-8'))
-            
+
             self._update_client_stats(client_id, 0, len(message_data.encode('utf-8')))
-            
+
             # Parse message
             try:
                 message_dict = json.loads(message_data)
@@ -607,34 +605,34 @@ class WebSocketManager:
                     "timestamp": time.time()
                 })
                 return
-            
+
             # Process message based on type
             message_type = message_dict.get("type", "unknown")
-            
+
             if message_type == "ping":
                 await self.send_to_client(client_id, {
                     "type": "pong",
                     "timestamp": time.time()
                 })
-            
+
             elif message_type == "subscribe":
                 channel = message_dict.get("channel")
                 if channel:
                     await self.subscribe_to_channel(client_id, channel)
-            
+
             elif message_type == "unsubscribe":
                 channel = message_dict.get("channel")
                 if channel:
                     await self.unsubscribe_from_channel(client_id, channel)
-            
+
             else:
                 # Handle custom message types
                 logger.info(f"Received {message_type} message from client {client_id}")
-            
+
         except Exception as e:
             logger.error(f"Error handling message from client {client_id}: {e}")
             self._serialization_errors += 1
-            
+
             # Send error message to client
             try:
                 await self.send_to_client(client_id, {
@@ -645,18 +643,18 @@ class WebSocketManager:
             except Exception as send_error:
                 # Client might be disconnected, log and continue
                 logger.debug(f"Failed to send error message to client {client_id}: {send_error}")
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """Get WebSocket manager performance metrics."""
         uptime = time.time() - self._start_time
-        
+
         # Calculate average message size
         avg_sent_size = (self._total_bytes_sent / self._total_messages_sent) if self._total_messages_sent > 0 else 0
         avg_received_size = (self._total_bytes_received / self._total_messages_received) if self._total_messages_received > 0 else 0
-        
+
         # Connection health
         healthy_connections = sum(1 for stats in self._client_stats.values() if stats.is_alive)
-        
+
         return {
             "connections": {
                 "total": len(self._clients),
@@ -692,7 +690,7 @@ class WebSocketManager:
                 "subscribers_per_channel": {channel: len(clients) for channel, clients in self._broadcast_channels.items()}
             }
         }
-    
+
     async def health_check(self) -> Dict[str, Any]:
         """Perform WebSocket manager health check."""
         health_status = {
@@ -701,16 +699,16 @@ class WebSocketManager:
             "batching": {"healthy": True},
             "errors": {"healthy": True}
         }
-        
+
         # Check connection health
         if len(self._clients) > self.max_connections:
             health_status["connections"]["error"] = "Too many connections"
             health_status["status"] = "degraded"
-        
+
         # Check error rate
         error_rate = (self._serialization_errors + self._connection_errors) / max(self._total_messages_sent + self._total_messages_received, 1)
         if error_rate > 0.1:  # 10% error rate
             health_status["errors"]["error"] = f"High error rate: {error_rate:.2%}"
             health_status["status"] = "degraded"
-        
+
         return health_status

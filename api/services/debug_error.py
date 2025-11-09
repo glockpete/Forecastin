@@ -3,11 +3,13 @@ Debug the error handling in safe_serialize_message
 """
 
 import json
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from websocket_manager import safe_serialize_message
+
 
 class BadObject:
     def __getattr__(self, name):

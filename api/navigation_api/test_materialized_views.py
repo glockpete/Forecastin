@@ -3,8 +3,9 @@ Test materialized views for navigation hierarchy.
 Tests LTREE-based materialized view performance and accuracy.
 """
 
-import pytest
 import argparse
+
+import pytest
 
 
 def test_materialized_view_creation():

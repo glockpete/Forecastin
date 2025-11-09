@@ -14,18 +14,19 @@ WebSocket issues including 1006 close codes and idle timeouts.
 
 import asyncio
 import json
+import os
+
+# Import the FastAPI app
+import sys
 import time
 from typing import Any, Dict
 
 import pytest
 from fastapi.testclient import TestClient
 
-# Import the FastAPI app
-import sys
-import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from main import app, WS_PING_INTERVAL, WS_PING_TIMEOUT
+from main import WS_PING_INTERVAL, WS_PING_TIMEOUT, app
 
 
 class TestWebSocketHealth:

@@ -8,20 +8,17 @@ Implements the WebSocket patterns specified in AGENTS.md:
 - Message batching for performance optimization
 """
 
-import asyncio
-import json
 import logging
 import threading
 import time
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 import orjson
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 from services.cache_service import CacheService
-
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +35,7 @@ class WebSocketMessage:
 
 class ConnectionManager:
     """WebSocket connection manager for real-time updates."""
-    
+
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.connection_stats = {
@@ -49,22 +46,22 @@ class ConnectionManager:
             'batched_messages': 0,
             'errors_handled': 0
         }
-        
+
         # Use RLock for thread safety as specified
         self._lock = threading.RLock()
-    
+
     async def connect(self, websocket: WebSocket, client_id: str):
         """Connect a new WebSocket client."""
         await websocket.accept()
-        
+
         with self._lock:
             self.active_connections[client_id] = websocket
             self.connection_stats['total_connections'] += 1
             self.connection_stats['active_connections'] += 1
             self.connection_stats['last_activity'] = time.time()
-            
+
         logger.info(f"WebSocket client {client_id} connected. Active: {self.connection_stats['active_connections']}")
-    
+
     def disconnect(self, client_id: str):
         """Disconnect a WebSocket client."""
         with self._lock:
@@ -72,85 +69,85 @@ class ConnectionManager:
                 del self.active_connections[client_id]
                 self.connection_stats['active_connections'] -= 1
                 self.connection_stats['last_activity'] = time.time()
-                
+
         logger.info(f"WebSocket client {client_id} disconnected. Active: {self.connection_stats['active_connections']}")
-    
+
     async def send_personal_message(self, message: Dict[str, Any], client_id: str):
         """Send message to specific client with orjson serialization."""
         if client_id not in self.active_connections:
             return
-        
+
         websocket = self.active_connections[client_id]
         try:
             serialized_message = safe_serialize_message(message)
             await websocket.send_text(serialized_message)
-            
+
             with self._lock:
                 self.connection_stats['messages_sent'] += 1
                 self.connection_stats['last_activity'] = time.time()
-                
+
         except Exception as e:
             logger.error(f"Failed to send message to client {client_id}: {e}")
             self.connection_stats['errors_handled'] += 1
             self.disconnect(client_id)
-    
+
     async def broadcast_message(self, message: Dict[str, Any]):
         """Broadcast message to all connected clients with orjson serialization."""
         if not self.active_connections:
             return
-        
+
         try:
             serialized_message = safe_serialize_message(message)
             disconnected_clients = []
-            
+
             with self._lock:
                 active_clients = list(self.active_connections.items())
-            
+
             for client_id, websocket in active_clients:
                 try:
                     await websocket.send_text(serialized_message)
-                    
+
                     with self._lock:
                         self.connection_stats['messages_sent'] += 1
                 except Exception as e:
                     logger.error(f"Failed to broadcast to client {client_id}: {e}")
                     disconnected_clients.append(client_id)
-            
+
             # Clean up disconnected clients
             for client_id in disconnected_clients:
                 self.disconnect(client_id)
-                
+
                 with self._lock:
                     self.connection_stats['errors_handled'] += 1
-            
+
             with self._lock:
                 self.connection_stats['last_activity'] = time.time()
-                
+
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}")
             with self._lock:
                 self.connection_stats['errors_handled'] += 1
-    
+
     async def send_batched_message(self, messages: List[Dict[str, Any]], client_id: Optional[str] = None):
         """Send multiple messages as a batch for performance optimization."""
         if not messages:
             return
-        
+
         batch_message = {
             "type": "batch",
             "data": messages,
             "timestamp": time.time(),
             "batch_size": len(messages)
         }
-        
+
         if client_id:
             await self.send_personal_message(batch_message, client_id)
         else:
             await self.broadcast_message(batch_message)
-            
+
             with self._lock:
                 self.connection_stats['batched_messages'] += 1
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get connection statistics."""
         with self._lock:
@@ -194,7 +191,7 @@ def safe_serialize_message(message: Dict[str, Any]) -> str:
         }
         try:
             return orjson.dumps(error_response).decode('utf-8')
-        except Exception as serialize_error:
+        except Exception:
             # If even error serialization fails, return minimal response
             return '{"type": "serialization_error", "error": "Failed to serialize error response"}'
 
@@ -215,7 +212,7 @@ class RealtimeService:
     - Thread-safe operations with RLock synchronization
     - Layer data and GPU filter synchronization
     """
-    
+
     # Message type constants
     MSG_TYPE_FEATURE_FLAG_CHANGE = "feature_flag_change"
     MSG_TYPE_FEATURE_FLAG_CREATED = "feature_flag_created"
@@ -223,7 +220,7 @@ class RealtimeService:
     MSG_TYPE_LAYER_DATA_UPDATE = "layer_data_update"
     MSG_TYPE_GPU_FILTER_SYNC = "gpu_filter_sync"
     MSG_TYPE_LAYER_PERFORMANCE_REPORT = "layer_performance_report"
-    
+
     def __init__(self, cache_service: Optional[CacheService] = None):
         """
         Initialize the real-time service.
@@ -234,7 +231,7 @@ class RealtimeService:
         self.cache_service = cache_service
         self.connection_manager = ConnectionManager()
         self.logger = logging.getLogger(__name__)
-        
+
         # Performance metrics
         self._metrics = {
             'messages_processed': 0,
@@ -245,32 +242,32 @@ class RealtimeService:
             'filter_syncs_sent': 0,
             'performance_reports_received': 0
         }
-        
+
         # Layer performance tracking
         self._layer_performance_history: Dict[str, List[Dict[str, Any]]] = {}
-        
+
         # Use RLock for thread safety
         self._lock = threading.RLock()
-    
+
     async def initialize(self) -> None:
         """Initialize the real-time service."""
         self.logger.info("Real-time service initialized")
-    
+
     async def cleanup(self) -> None:
         """Cleanup the real-time service."""
         # Close all WebSocket connections
         with self._lock:
             client_ids = list(self.connection_manager.active_connections.keys())
-        
+
         for client_id in client_ids:
             self.connection_manager.disconnect(client_id)
-        
+
         self.logger.info("Real-time service cleanup completed")
-    
+
     async def notify_feature_flag_change(
-        self, 
-        flag_name: str, 
-        old_value: bool, 
+        self,
+        flag_name: str,
+        old_value: bool,
         new_value: bool,
         rollout_percentage: Optional[int] = None
     ):
@@ -297,18 +294,18 @@ class RealtimeService:
             },
             "timestamp": time.time()
         }
-        
+
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
             self._metrics['broadcasts_sent'] += 1
-        
+
         self.logger.debug(
             f"Broadcasted feature flag change: {flag_name} "
             f"{old_value} -> {new_value} (rollout: {rollout_percentage}%)"
         )
-    
+
     async def notify_flag_created(self, flag_data: Dict[str, Any]):
         """Notify clients of new feature flag creation."""
         message = {
@@ -316,13 +313,13 @@ class RealtimeService:
             "data": flag_data,
             "timestamp": time.time()
         }
-        
+
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
             self._metrics['broadcasts_sent'] += 1
-    
+
     async def notify_flag_deleted(self, flag_name: str):
         """Notify clients of feature flag deletion."""
         message = {
@@ -333,33 +330,33 @@ class RealtimeService:
             },
             "timestamp": time.time()
         }
-        
+
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
             self._metrics['broadcasts_sent'] += 1
-    
+
     async def send_personal_notification(self, client_id: str, message: Dict[str, Any]):
         """Send a personal notification to a specific client."""
         await self.connection_manager.send_personal_message(message, client_id)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
-    
+
     async def get_connection_stats(self) -> Dict[str, Any]:
         """Get WebSocket connection statistics."""
         connection_stats = self.connection_manager.get_stats()
-        
+
         with self._lock:
             service_metrics = self._metrics.copy()
-        
+
         return {
             "connection_stats": connection_stats,
             "service_metrics": service_metrics,
             "cache_enabled": self.cache_service is not None
         }
-    
+
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get performance metrics for monitoring."""
         with self._lock:
@@ -371,7 +368,7 @@ class RealtimeService:
                 'uptime': time.time(),  # Could track service start time
                 'performance': 'EXCELLENT' if self._metrics['errors_encountered'] == 0 else 'GOOD'
             }
-    
+
     @asynccontextmanager
     async def batch_messages(self, client_id: Optional[str] = None):
         """
@@ -384,7 +381,7 @@ class RealtimeService:
             client_id: Optional specific client to batch messages for
         """
         batch = []
-    
+
     async def broadcast_layer_data_update(
         self,
         layer_id: str,
@@ -412,18 +409,18 @@ class RealtimeService:
             },
             "timestamp": time.time()
         }
-        
+
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
             self._metrics['broadcasts_sent'] += 1
             self._metrics['layer_updates_sent'] += 1
-        
+
         self.logger.debug(
             f"Broadcasted layer data update: {layer_id} (type: {layer_type})"
         )
-    
+
     async def broadcast_gpu_filter_sync(
         self,
         filter_id: str,
@@ -454,19 +451,19 @@ class RealtimeService:
             },
             "timestamp": time.time()
         }
-        
+
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['messages_processed'] += 1
             self._metrics['broadcasts_sent'] += 1
             self._metrics['filter_syncs_sent'] += 1
-        
+
         self.logger.debug(
             f"Broadcasted GPU filter sync: {filter_id} (type: {filter_type}, "
             f"status: {status}, layers: {len(affected_layers)})"
         )
-    
+
     async def broadcast_layer_features(
         self,
         layer_id: str,
@@ -488,7 +485,7 @@ class RealtimeService:
             "features": features
         }
         await self.broadcast_layer_data_update(layer_id, layer_type, geojson_data, bbox)
-    
+
     async def broadcast_spatial_filter(
         self,
         filter_id: str,
@@ -514,7 +511,7 @@ class RealtimeService:
             affected_layers,
             "applied"
         )
-    
+
     async def receive_layer_performance_report(
         self,
         report: Dict[str, Any]
@@ -533,23 +530,23 @@ class RealtimeService:
             if not layer_id:
                 self.logger.error('Layer performance report missing layerId')
                 return
-            
+
             # Store performance history
             if layer_id not in self._layer_performance_history:
                 self._layer_performance_history[layer_id] = []
-            
+
             # Add timestamp if not present
             report['received_at'] = time.time()
-            
+
             # Store report (keep last 100 reports per layer)
             history = self._layer_performance_history[layer_id]
             history.append(report)
             if len(history) > 100:
                 history.pop(0)
-            
+
             with self._lock:
                 self._metrics['performance_reports_received'] += 1
-            
+
             # Log key metrics
             self.logger.info(
                 f"Layer performance report received: {layer_id} - "
@@ -558,18 +555,18 @@ class RealtimeService:
                 f"Cache Hit: {report.get('cacheStats', {}).get('overallHitRate', 0):.1f}%, "
                 f"Compliance: {report.get('sloCompliance', {}).get('overallCompliance', 0):.1f}%"
             )
-            
+
             # Check for critical degradation warnings
             warnings = report.get('degradationWarnings', [])
             if warnings:
                 self.logger.warning(
                     f"Layer {layer_id} performance degradation: {warnings}"
                 )
-            
+
             # Check SLO compliance for feature flag rollback
             slo_compliance = report.get('sloCompliance', {})
             overall_compliance = slo_compliance.get('overallCompliance', 100)
-            
+
             if overall_compliance < 95:  # Critical threshold
                 self.logger.error(
                     f"CRITICAL: Layer {layer_id} SLO compliance at {overall_compliance:.1f}% "
@@ -589,16 +586,16 @@ class RealtimeService:
                 #     reason=f"SLO compliance below threshold: {overall_compliance:.1f}%",
                 #     compliance_score=overall_compliance
                 # )
-            
+
             # Optionally broadcast performance report to monitoring clients
             if report.get('broadcastToMonitoring', False):
                 await self.broadcast_layer_performance_to_monitors(report)
-                
+
         except Exception as e:
             self.logger.error(f"Failed to process layer performance report: {e}")
             with self._lock:
                 self._metrics['errors_encountered'] += 1
-    
+
     async def broadcast_layer_performance_to_monitors(
         self,
         report: Dict[str, Any]
@@ -614,13 +611,13 @@ class RealtimeService:
             "data": report,
             "timestamp": time.time()
         }
-        
+
         # This would broadcast only to clients subscribed to monitoring channel
         await self.connection_manager.broadcast_message(message)
-        
+
         with self._lock:
             self._metrics['broadcasts_sent'] += 1
-    
+
     def get_layer_performance_history(
         self,
         layer_id: Optional[str] = None
@@ -637,7 +634,7 @@ class RealtimeService:
         if layer_id:
             return {layer_id: self._layer_performance_history.get(layer_id, [])}
         return dict(self._layer_performance_history)
-    
+
     def get_layer_performance_summary(self) -> Dict[str, Any]:
         """
         Get summary of layer performance across all monitored layers.
@@ -650,11 +647,11 @@ class RealtimeService:
             'total_reports_received': self._metrics['performance_reports_received'],
             'layers': {}
         }
-        
+
         for layer_id, history in self._layer_performance_history.items():
             if not history:
                 continue
-                
+
             latest_report = history[-1]
             summary['layers'][layer_id] = {
                 'latest_p95_render_time': latest_report.get('p95RenderTime', 0),
@@ -664,9 +661,9 @@ class RealtimeService:
                 'report_count': len(history),
                 'last_received': latest_report.get('received_at', 0)
             }
-        
+
         return summary
-        
+
     @asynccontextmanager
     async def batch_messages(self, client_id: Optional[str] = None):
         """
@@ -679,16 +676,16 @@ class RealtimeService:
             client_id: Optional specific client to batch messages for
         """
         batch = []
-        
+
         try:
             yield batch
         finally:
             if batch:
                 await self.connection_manager.send_batched_message(batch, client_id)
-                
+
                 with self._lock:
                     self._metrics['batches_created'] += 1
-                
+
                 self.logger.debug(f"Sent batch of {len(batch)} messages")
 
 

@@ -4,9 +4,9 @@ Validate performance against SLOs from AGENTS.md.
 Final validation step in CI/CD pipeline.
 """
 
+import argparse
 import json
 import sys
-import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -49,12 +49,12 @@ def validate_slos(
         "overall_status": "passed"
     }
 
-    print(f"\nValidation Targets:")
+    print("\nValidation Targets:")
     print(f"  - Ancestor Resolution: <{ancestor_resolution_target}ms")
     print(f"  - Throughput: >{throughput_target} RPS")
     print(f"  - Cache Hit Rate: >{cache_hit_rate_target}%")
 
-    print(f"\nValidated Performance (AGENTS.md baseline):")
+    print("\nValidated Performance (AGENTS.md baseline):")
 
     # Validate ancestor resolution
     if validated_performance["ancestor_resolution_ms"] <= ancestor_resolution_target:
@@ -84,7 +84,7 @@ def validate_slos(
         results["overall_status"] = "failed"
 
     # Additional metrics
-    print(f"\nAdditional Validated Metrics:")
+    print("\nAdditional Validated Metrics:")
     print(f"  - P95 Ancestor Resolution: {validated_performance['ancestor_resolution_p95_ms']}ms")
     print(f"  - Descendant Retrieval: {validated_performance['descendant_retrieval_ms']}ms")
     print(f"  - P99 Descendant Retrieval: {validated_performance['descendant_retrieval_p99_ms']}ms")

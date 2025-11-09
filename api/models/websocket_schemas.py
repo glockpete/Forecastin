@@ -9,10 +9,10 @@ These schemas provide backend validation matching frontend TypeScript types.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Union, Literal, Tuple
-from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ============================================================================
 # Base Types

@@ -12,16 +12,17 @@ Tests cover:
 - Confidence-based entity merging
 """
 
-import pytest
 import asyncio
 import hashlib
-from unittest.mock import AsyncMock, MagicMock, Mock
 from datetime import datetime
 from typing import List
+from unittest.mock import AsyncMock, MagicMock, Mock
+
+import pytest
 
 from services.rss.deduplication.deduplicator import (
+    DeduplicationAuditEntry,
     RSSDeduplicator,
-    DeduplicationAuditEntry
 )
 
 

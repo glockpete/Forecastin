@@ -11,16 +11,17 @@ Tests cover:
 - Pattern-based entity recognition
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, Mock
 from datetime import datetime
 from typing import List
+from unittest.mock import AsyncMock, MagicMock, Mock
+
+import pytest
 
 from services.rss.entity_extraction.extractor import (
-    RSSEntityExtractor,
+    RSSArticle,
     RSSEntity,
-    RSSArticle
+    RSSEntityExtractor,
 )
 
 

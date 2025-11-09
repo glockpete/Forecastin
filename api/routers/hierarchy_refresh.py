@@ -5,6 +5,7 @@ Manages automated refresh of LTREE materialized views
 
 import logging
 import time
+
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter(
@@ -47,7 +48,7 @@ async def refresh_hierarchy_views():
             logger.warning(f"Some materialized views failed to refresh: {failed_views}")
             return {
                 "status": "partial_success",
-                "message": f"Refresh completed with failures",
+                "message": "Refresh completed with failures",
                 "results": refresh_results,
                 "duration_ms": duration_ms,
                 "failed_views": failed_views
@@ -70,7 +71,7 @@ async def refresh_hierarchy_views():
 async def get_refresh_status():
     """Get status of materialized view refresh operations"""
     try:
-        from main import hierarchy_resolver, automated_refresh_service
+        from main import automated_refresh_service, hierarchy_resolver
         if not hierarchy_resolver:
             raise HTTPException(status_code=503, detail="Service not initialized")
 

@@ -14,19 +14,13 @@ Usage:
 
 import asyncio
 import sys
-import os
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from services.feature_flag_service import (
-    FeatureFlagService,
-    CreateFeatureFlagRequest
-)
 from services.database_manager import DatabaseManager
-from services.cache_service import CacheService
-from services.realtime_service import RealtimeService
+from services.feature_flag_service import CreateFeatureFlagRequest, FeatureFlagService
 
 
 async def init_geospatial_flags():
@@ -34,15 +28,15 @@ async def init_geospatial_flags():
     print("=" * 60)
     print("GEOSPATIAL FEATURE FLAGS INITIALIZATION")
     print("=" * 60)
-    
+
     # Initialize services
     db_manager = DatabaseManager()
     await db_manager.initialize()
-    
+
     # Optional: Initialize cache and realtime services
     cache_service = None  # CacheService() if available
     realtime_service = None  # RealtimeService() if available
-    
+
     try:
         # Initialize feature flag service
         ff_service = FeatureFlagService(
@@ -50,9 +44,9 @@ async def init_geospatial_flags():
             cache_service=cache_service,
             realtime_service=realtime_service
         )
-        
+
         await ff_service.initialize()
-        
+
         # Define the three required geospatial flags
         geospatial_flags = [
             CreateFeatureFlagRequest(
@@ -80,16 +74,16 @@ async def init_geospatial_flags():
                 dependencies=["ff.geo.layers_enabled"]
             )
         ]
-        
+
         created_count = 0
         skipped_count = 0
-        
+
         # Create each flag
         for flag_request in geospatial_flags:
             try:
                 # Check if flag already exists
                 existing = await ff_service.get_flag(flag_request.flag_name)
-                
+
                 if existing:
                     print(f"⏭️  Skipped: {flag_request.flag_name} (already exists)")
                     skipped_count += 1
@@ -98,10 +92,10 @@ async def init_geospatial_flags():
                     flag = await ff_service.create_flag(flag_request)
                     print(f"✅ Created: {flag.flag_name}")
                     created_count += 1
-                    
+
             except Exception as e:
                 print(f"❌ Failed to create {flag_request.flag_name}: {e}")
-        
+
         # Display summary
         print("\n" + "=" * 60)
         print("SUMMARY")
@@ -109,12 +103,12 @@ async def init_geospatial_flags():
         print(f"Created: {created_count}")
         print(f"Skipped: {skipped_count}")
         print(f"Total:   {created_count + skipped_count}")
-        
+
         # Display current status
         print("\n" + "=" * 60)
         print("CURRENT STATUS")
         print("=" * 60)
-        
+
         for flag_request in geospatial_flags:
             flag = await ff_service.get_flag(flag_request.flag_name)
             if flag:
@@ -124,7 +118,7 @@ async def init_geospatial_flags():
                 print(f"  Enabled: {flag.is_enabled}")
                 print(f"  Rollout: {flag.rollout_percentage}%")
                 print(f"  Dependencies: {deps_str}")
-        
+
         print("\n" + "=" * 60)
         print("✅ INITIALIZATION COMPLETE")
         print("=" * 60)
@@ -133,7 +127,7 @@ async def init_geospatial_flags():
         print("2. Enable ff.geo.layers_enabled with 10% rollout")
         print("3. Monitor performance and gradually increase rollout")
         print("4. Enable GPU rendering and point layer features")
-        
+
     finally:
         await ff_service.cleanup()
         await db_manager.cleanup()

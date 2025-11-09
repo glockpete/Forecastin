@@ -4,9 +4,14 @@ Handles feature flag management and queries
 """
 
 import logging
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from services.feature_flag_service import CreateFeatureFlagRequest, UpdateFeatureFlagRequest
+
+from services.feature_flag_service import (
+    CreateFeatureFlagRequest,
+    UpdateFeatureFlagRequest,
+)
 
 router = APIRouter(
     prefix="/api/feature-flags",

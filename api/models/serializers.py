@@ -5,7 +5,7 @@ Handles safe serialization of WebSocket messages with orjson
 
 import logging
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 import orjson
 

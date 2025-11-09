@@ -1,7 +1,7 @@
 """
 RSS Deduplication Package
 """
-from .deduplicator import RSSDeduplicator, DeduplicationAuditEntry
+from .deduplicator import DeduplicationAuditEntry, RSSDeduplicator
 
 __all__ = [
     "RSSDeduplicator",

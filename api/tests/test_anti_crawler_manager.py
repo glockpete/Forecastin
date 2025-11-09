@@ -13,19 +13,20 @@ Tests cover:
 - Performance metrics and health checks
 """
 
-import pytest
 import asyncio
 import time
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
-from typing import Dict, Any
+
+import pytest
 
 from services.rss.anti_crawler.manager import (
     AntiCrawlerManager,
     DomainStats,
-    UserAgent,
     SmartRetryStrategy,
+    UserAgent,
+    apply_intelligent_delay,
     create_anti_crawler_manager,
-    apply_intelligent_delay
 )
 
 
