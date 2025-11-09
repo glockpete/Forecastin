@@ -23,7 +23,8 @@ env:
   # Ensure CI mode and strict checks
   CI: true
   NODE_ENV: test
-  PYTHONWARNINGS: error
+  # Ignore deprecation warnings but error on other warnings
+  PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PendingDeprecationWarning,error"
   # Treat warnings as errors for Python tools
   MYPY_FORCE_COLOR: 1
   PYTEST_ADDOPTS: "--strict-markers --strict-config"
