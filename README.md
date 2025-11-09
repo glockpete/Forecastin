@@ -316,6 +316,27 @@ Assess country risk, monitor policy changes, and understand macroeconomic forces
 
 ## 📚 Documentation
 
+### **Rebuild Dossier (Complete Technical Audit)**
+📖 **[Rebuild Dossier 2025-11-09](REBUILD_DOSSIER/20251109-0521/00_INDEX.md)** - Evidence-led technical audit and rebuild strategy
+
+The Rebuild Dossier is a comprehensive, evidence-based analysis of the Forecastin codebase:
+- **19 findings** with PATH:line citations and confidence scores
+- **6 antipatterns** identified with detection heuristics
+- **25 tasks** in phased 16-week rebuild plan
+- **Complete traceability** from evidence → architecture → implementation
+
+**Key Documents:**
+- [00_INDEX.md](REBUILD_DOSSIER/20251109-0521/00_INDEX.md) - Start here (Executive summary, system diagram)
+- [02_FINDINGS.md](REBUILD_DOSSIER/20251109-0521/02_FINDINGS.md) - All issues with evidence
+- [04_TARGET_ARCHITECTURE.md](REBUILD_DOSSIER/20251109-0521/04_TARGET_ARCHITECTURE.md) - Target design
+- [05_REBUILD_PLAN.csv](REBUILD_DOSSIER/20251109-0521/05_REBUILD_PLAN.csv) - Machine-readable task list
+- [18_DEVELOPER_HANDBOOK.md](REBUILD_DOSSIER/20251109-0521/18_DEVELOPER_HANDBOOK.md) - Onboarding guide
+
+**Critical Immediate Actions:**
+- **T-0001** (15 min): Remove hardcoded password (F-0002 CRITICAL)
+- **T-0002** (15 min): Fix TypeScript compilation (F-0001)
+- **T-0004** (30 min): Fix test fixtures (F-0003)
+
 ### **Getting Started**
 - [Developer Setup Guide](docs/DEVELOPER_SETUP.md) - Complete local development setup
 - [Startup Procedures & Error Patterns](docs/STARTUP_PROCEDURES_AND_ERROR_PATTERNS.md) - Comprehensive startup guide with troubleshooting

@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://forecastin.example.com/schemas/layer_update_event.schema.json",
+  "title": "LayerUpdateEvent",
+  "description": "WebSocket layer update event (F-0003: includes required layer_id)",
+  "type": "object",
+  "required": [
+    "version",
+    "event_id",
+    "timestamp",
+    "type",
+    "layer_id",
+    "action",
+    "features",
+    "affected_count"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Event schema version"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID for idempotency"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp (ISO 8601)"
+    },
+    "correlation_id": {
+      "type": ["string", "null"],
+      "description": "Correlation ID for request tracing (F-0010)"
+    },
+    "type": {
+      "type": "string",
+      "const": "layer_update",
+      "description": "Event type discriminator"
+    },
+    "layer_id": {
+      "type": "string",
+      "description": "Layer identifier (F-0003: REQUIRED property)"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["add", "update", "remove"],
+      "description": "Update action"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "GeoJSON features"
+    },
+    "affected_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of features affected"
+    }
+  }
+}

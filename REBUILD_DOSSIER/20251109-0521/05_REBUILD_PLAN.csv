@@ -1,0 +1,28 @@
+id,title,phase,effort_hours,dependencies,files,status,evidence_ids,labels,exit_criteria
+T-0001,Remove hardcoded database password,0,0.25,,scripts/testing/direct_performance_test.py,pending,F-0002,"code-only,security,critical",gitleaks returns zero findings
+T-0002,Export missing contract functions,0,0.25,,frontend/src/types/contracts.generated.ts,pending,F-0001,"code-only,build,critical",npm run build succeeds
+T-0003,Delete deprecated file,0,0.03,,frontend/src/types/zod/messages.ts.deprecated,pending,F-0017,"code-only,cleanup",File removed from repository
+T-0004,Fix test fixture schema mismatches,0,0.5,,api/tests/conftest.py;api/tests/test_rss_entity_extractor.py,pending,F-0003,"code-only,testing,critical",All tests pass
+T-0101,Create BaseService abstract class,1,4,T-0004,api/services/base.py;api/services/registry.py,pending,"F-0006,Antipattern-1","code-only,architecture",100% test coverage for BaseService
+T-0102,Migrate WebSocketManager to BaseService,1,2,T-0101,api/services/websocket_manager.py,pending,"F-0007,Antipattern-1","code-only,backend",WebSocketManager inherits from BaseService
+T-0103,Convert AutomatedRefreshService to async,1,6,T-0101,api/services/automated_refresh_service.py,pending,"F-0007,Antipattern-2","code-only,backend,performance",Shutdown completes in <5 seconds
+T-0104,Replace global instances with registry,1,4,T-0101,api/main.py;api/routers/*.py,pending,"Antipattern-4,F-0006","code-only,architecture",Zero global service variables
+T-0201,Improve contract generator,2,8,T-0002,scripts/dev/generate_contracts_v2.py,pending,"F-0004,Antipattern-3","code-only,contracts",Zero any types in generated contracts
+T-0202,Add missing response properties,2,2,T-0201,api/contracts/responses.py,pending,F-0005,"code-only,contracts",npm run build succeeds
+T-0203,Create contract test suite,2,6,T-0201,tests/contracts/test_contract_generator.py,pending,,"code-only,testing",100% contract type coverage
+T-0301,Create FeatureGate HOC,3,4,T-0002,frontend/src/components/FeatureGate/FeatureGate.tsx,pending,"F-0008,Antipattern-5","code-only,frontend",Components can be wrapped with flags
+T-0302,Integrate ff.point_layer,3,2,T-0301,frontend/src/layers/implementations/PointLayer.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0303,Integrate ff.polygon_layer,3,2,T-0301,frontend/src/layers/implementations/PolygonLayer.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0304,Integrate ff.gpu_filtering,3,2,T-0301,frontend/src/components/Map/GeospatialView.tsx,pending,F-0008,"code-only,frontend,performance",GPU/CPU fallback tested
+T-0305,Integrate ff.websocket_layers,3,2,T-0301,frontend/src/integrations/LayerWebSocketIntegration.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0306,Integrate ff.heatmap_layer,3,2,T-0301,frontend/src/layers/implementations/HeatmapLayer.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0307,Integrate ff.clustering_enabled,3,2,T-0301,frontend/src/layers/utils/clustering.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0308,Integrate ff.geospatial_layers,3,2,T-0301,frontend/src/layers/registry/LayerRegistry.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0309,Integrate ff.realtime_updates,3,2,T-0301,frontend/src/hooks/useWebSocket.ts,pending,F-0008,"code-only,frontend",Flag tested at multiple rollout %
+T-0401,Implement structured logging,4,6,T-0001,api/services/observability/logging.py;api/middleware/correlation_id.py,pending,"F-0010,F-0011","code-only,observability",All logs output as JSON in production
+T-0402,Integrate error monitoring (Sentry),4,4,T-0401,api/main.py;frontend/src/utils/sentry.ts,pending,F-0011,"requires-infra,observability",Errors sent to Sentry
+T-0501,Remove deprecated env variables,5,2,T-0202,frontend/.env.example,pending,F-0013,"code-only,cleanup",No REACT_APP_* variables in codebase
+T-0502,Refactor any types,5,16,T-0201,Multiple TypeScript files,pending,F-0009,"code-only,frontend,type-safety",<20 any types remaining
+T-0503,Add ESLint rule for path aliases,5,2,T-0201,frontend/.eslintrc.js,pending,F-0012,"code-only,frontend,dx",Zero deep relative imports
+T-0601,Update CONTRIBUTING.md,6,4,T-0104;T-0203;T-0401,CONTRIBUTING.md;docs/DEVELOPER_HANDBOOK.md,pending,,"docs",All patterns documented
+T-0602,Conduct team training,6,8,T-0601,,pending,,"docs",All team members trained

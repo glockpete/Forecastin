@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://forecastin.example.com/schemas/entity_response.schema.json",
+  "title": "EntityResponse",
+  "description": "Entity response contract - single entity data",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "entity_type",
+    "path",
+    "path_depth",
+    "confidence_score",
+    "children_count",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Entity UUID"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Entity name"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type (e.g., country, city, region)"
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "Optional description"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "LTREE path (e.g., world.asia.japan.tokyo)"
+    },
+    "path_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Pre-computed path depth"
+    },
+    "location": {
+      "type": ["object", "null"],
+      "description": "GeoJSON geometry",
+      "$ref": "#/definitions/Geometry"
+    },
+    "confidence_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence score (0.0-1.0)"
+    },
+    "children_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of direct children (F-0005: REQUIRED)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp (ISO 8601)"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    }
+  },
+  "definitions": {
+    "Geometry": {
+      "oneOf": [
+        { "$ref": "#/definitions/PointGeometry" },
+        { "$ref": "#/definitions/LineStringGeometry" },
+        { "$ref": "#/definitions/PolygonGeometry" }
+      ]
+    },
+    "PointGeometry": {
+      "type": "object",
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "Point",
+          "description": "Geometry type discriminator"
+        },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": { "type": "number" },
+          "description": "[longitude, latitude] or [longitude, latitude, altitude]"
+        }
+      }
+    },
+    "LineStringGeometry": {
+      "type": "object",
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "LineString"
+        },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+    "PolygonGeometry": {
+      "type": "object",
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "Polygon"
+        },
+        "coordinates": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 3,
+              "items": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
