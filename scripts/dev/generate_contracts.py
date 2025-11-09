@@ -54,11 +54,17 @@ class ContractGenerator:
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    # Check if it's a dataclass or Pydantic model
+                    # Process dataclasses and Pydantic models
                     if self._is_dataclass_or_model(node):
                         interface = self._generate_interface(node, file_path)
                         if interface and node.name not in self.processed_classes:
                             self.interfaces.append(interface)
+                            self.processed_classes.add(node.name)
+                    # Process enums
+                    elif self._is_enum(node):
+                        enum_type = self._generate_enum(node, file_path)
+                        if enum_type and node.name not in self.processed_classes:
+                            self.interfaces.append(enum_type)
                             self.processed_classes.add(node.name)
 
         except Exception as e:
@@ -77,6 +83,18 @@ class ContractGenerator:
         # Check if it inherits from BaseModel (Pydantic)
         for base in node.bases:
             if isinstance(base, ast.Name) and base.id == 'BaseModel':
+                return True
+
+        return False
+
+    def _is_enum(self, node: ast.ClassDef) -> bool:
+        """Check if a class is an Enum"""
+        # Check if it inherits from Enum
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == 'Enum':
+                return True
+            # Handle from enum import Enum as E
+            if isinstance(base, ast.Attribute) and base.attr == 'Enum':
                 return True
 
         return False
@@ -111,6 +129,38 @@ class ContractGenerator:
         interface_lines.append("")  # Blank line between interfaces
 
         return "\n".join(interface_lines)
+
+    def _generate_enum(self, node: ast.ClassDef, source_file: Path) -> str:
+        """Generate TypeScript union type from Python Enum"""
+        values = []
+
+        # Extract enum members
+        for item in node.body:
+            if isinstance(item, ast.Assign):
+                for target in item.targets:
+                    if isinstance(target, ast.Name):
+                        # Get the value
+                        if isinstance(item.value, ast.Constant):
+                            # String literal enum
+                            values.append(f"'{item.value.value}'")
+                        elif isinstance(item.value, ast.Str):
+                            # Legacy string literal (Python < 3.8)
+                            values.append(f"'{item.value.s}'")
+
+        if not values:
+            return ""
+
+        union_type = " | ".join(values)
+
+        enum_lines = [
+            f"/**",
+            f" * Generated from: {source_file.relative_to(self.backend_dir)}",
+            f" * Python enum: {node.name}",
+            f" */",
+            f"export type {node.name} = {union_type};",
+            "",
+        ]
+        return "\n".join(enum_lines)
 
     def _convert_type(self, annotation: ast.expr) -> str:
         """Convert Python type annotation to TypeScript type"""
@@ -202,6 +252,28 @@ export function toCamelCase(obj: Record<string, any>): Record<string, any> {
     result[camelKey] = value;
   }
   return result;
+}
+
+/**
+ * Helper: Extract confidence score from entity with default fallback
+ * Referenced by: EntityDetail.tsx:24, MillerColumns.tsx:42
+ */
+export function getConfidence(entity: { confidence?: number | null }): number {
+  if (typeof entity.confidence === 'number') {
+    return Math.max(0, Math.min(1, entity.confidence));
+  }
+  return 0;
+}
+
+/**
+ * Helper: Extract children count from entity with default fallback
+ * Referenced by: EntityDetail.tsx:24, MillerColumns.tsx:42
+ */
+export function getChildrenCount(entity: { childrenCount?: number | null; hasChildren?: boolean }): number {
+  if (typeof entity.childrenCount === 'number') {
+    return Math.max(0, entity.childrenCount);
+  }
+  return entity.hasChildren ? 1 : 0;
 }
 '''
 

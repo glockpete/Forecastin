@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED TypeScript Interfaces from Backend Pydantic Models
- * Generated: 2025-11-08T17:45:26.738520
+ * Generated: 2025-11-09T05:16:17.933458
  *
  * DO NOT EDIT MANUALLY - Regenerate using: npm run generate:contracts
  *
@@ -80,6 +80,18 @@ export interface FeatureFlagMetrics {
   websocketNotifications?: number;
   avgResponseTimeMs?: number;
 }
+
+/**
+ * Generated from: api/services/scenario_service.py
+ * Python enum: ValidationStatus
+ */
+export type ValidationStatus = 'pending' | 'validated' | 'failed' | 'in_progress';
+
+/**
+ * Generated from: api/services/scenario_service.py
+ * Python enum: RiskLevel
+ */
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
 /**
  * Generated from: api/services/scenario_service.py
@@ -289,6 +301,12 @@ export interface MessageMeta {
 
 /**
  * Generated from: api/models/websocket_schemas.py
+ * Python enum: LayerType
+ */
+export type LayerType = 'point' | 'polygon' | 'line' | 'linestring' | 'heatmap' | 'cluster' | 'geojson';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
  * Python class: LayerDataUpdatePayload
  */
 export interface LayerDataUpdatePayload {
@@ -298,6 +316,18 @@ export interface LayerDataUpdatePayload {
   bbox?: BoundingBox | null;
   changedAt: number;
 }
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterType
+ */
+export type FilterType = 'spatial' | 'temporal' | 'attribute' | 'composite';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterStatus
+ */
+export type FilterStatus = 'applied' | 'pending' | 'error' | 'cleared';
 
 /**
  * Generated from: api/models/websocket_schemas.py
@@ -333,6 +363,12 @@ export interface GPUFilterSyncPayload {
 
 /**
  * Generated from: api/models/websocket_schemas.py
+ * Python enum: MessageType
+ */
+export type MessageType = 'ping' | 'pong' | 'layer_data_update' | 'gpu_filter_sync' | 'polygon_update' | 'linestring_update' | 'search_update' | 'error' | 'echo';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
  * Python class: BaseWebSocketMessage
  */
 export interface BaseWebSocketMessage {
@@ -353,4 +389,26 @@ export function toCamelCase(obj: Record<string, any>): Record<string, any> {
     result[camelKey] = value;
   }
   return result;
+}
+
+/**
+ * Helper: Extract confidence score from entity with default fallback
+ * Referenced by: EntityDetail.tsx:24, MillerColumns.tsx:42
+ */
+export function getConfidence(entity: { confidence?: number | null }): number {
+  if (typeof entity.confidence === 'number') {
+    return Math.max(0, Math.min(1, entity.confidence));
+  }
+  return 0;
+}
+
+/**
+ * Helper: Extract children count from entity with default fallback
+ * Referenced by: EntityDetail.tsx:24, MillerColumns.tsx:42
+ */
+export function getChildrenCount(entity: { childrenCount?: number | null; hasChildren?: boolean }): number {
+  if (typeof entity.childrenCount === 'number') {
+    return Math.max(0, entity.childrenCount);
+  }
+  return entity.hasChildren ? 1 : 0;
 }

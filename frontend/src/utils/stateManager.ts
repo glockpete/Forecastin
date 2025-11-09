@@ -86,35 +86,34 @@ export class CacheCoordinator {
 
   // Smart cache invalidation based on entity changes
   invalidateEntityCache(entity: Entity, relatedEntities: Entity[] = []) {
-    const invalidationKeys: readonly string[][] = [];
-    
+    const invalidationKeys: string[][] = [];
+
     // Primary entity cache
-    const keys: string[][] = [...invalidationKeys];
-    keys.push([...hierarchyKeys.entity(entity.id)]);
-    
+    invalidationKeys.push([...hierarchyKeys.entity(entity.id)]);
+
     // Parent hierarchy cache
     if (entity.path) {
       const pathParts = entity.path.split('/');
       const parentPath = pathParts.slice(0, -1).join('/');
       const depth = pathParts.length - 1;
-      
-      keys.push([...hierarchyKeys.children(parentPath, depth)] as string[]);
-      keys.push([...hierarchyKeys.breadcrumbs(entity.path)] as string[]);
+
+      invalidationKeys.push([...hierarchyKeys.children(parentPath, depth)] as string[]);
+      invalidationKeys.push([...hierarchyKeys.breadcrumbs(entity.path)] as string[]);
       
       // Ancestor caches
       for (let i = 0; i < pathParts.length - 1; i++) {
         const ancestorPath = pathParts.slice(0, i + 1).join('/');
-        keys.push([...hierarchyKeys.children(ancestorPath, i)] as string[]);
+        invalidationKeys.push([...hierarchyKeys.children(ancestorPath, i)] as string[]);
       }
     }
-    
+
     // Related entities cache
     relatedEntities.forEach(related => {
-      keys.push([...hierarchyKeys.entity(related.id)]);
+      invalidationKeys.push([...hierarchyKeys.entity(related.id)]);
     });
 
     // Batch invalidation for performance
-    this.batchInvalidate(keys);
+    this.batchInvalidate(invalidationKeys);
   }
 
   // Batch cache invalidation with debouncing

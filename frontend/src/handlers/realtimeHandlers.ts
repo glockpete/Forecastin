@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * Real-time State Update Handlers
  * Handles WebSocket messages and coordinates with React Query and Zustand
@@ -578,5 +579,3 @@ export class RealtimePerformanceMonitor {
     };
   }
 }
-
-import React from 'react';
