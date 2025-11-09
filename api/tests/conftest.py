@@ -20,7 +20,7 @@ if str(api_dir) not in sys.path:
     sys.path.insert(0, str(api_dir))
 
 # Mock redis module to use fakeredis properly
-import fakeredis.aioredis as fake_aioredis
+import fakeredis.aioredis as fake_aioredis  # noqa: E402
 
 
 # Create a simple mock ConnectionPool since fakeredis doesn't provide one

@@ -22,7 +22,7 @@ router = APIRouter(tags=["websocket"])
 logger = logging.getLogger(__name__)
 
 # WebSocket Configuration from Environment Variables
-import os
+import os  # noqa: E402
 
 # WebSocket heartbeat/ping configuration
 WS_PING_INTERVAL = float(os.getenv('WS_PING_INTERVAL', '30'))  # seconds

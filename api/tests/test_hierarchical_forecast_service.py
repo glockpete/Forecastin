@@ -25,7 +25,7 @@ sys.modules['pandas'] = MagicMock()
 sys.modules['prophet'] = MagicMock()
 sys.modules['pyarrow'] = MagicMock()
 
-from api.services.hierarchical_forecast_service import (
+from api.services.hierarchical_forecast_service import (  # noqa: E402
     ForecastNode,
     HierarchicalForecast,
     HierarchicalForecastManager,

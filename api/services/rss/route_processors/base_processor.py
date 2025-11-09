@@ -497,8 +497,8 @@ class RSSRouteProcessor:
 
 
 # Import required modules at the end to avoid circular imports
-import hashlib
-import uuid
+import hashlib  # noqa: E402
+import uuid  # noqa: E402
 
 
 # Convenience function for quick article processing
