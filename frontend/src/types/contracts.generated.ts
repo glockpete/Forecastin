@@ -354,3 +354,41 @@ export function toCamelCase(obj: Record<string, any>): Record<string, any> {
   }
   return result;
 }
+
+// ============================================================================
+// Enum Types (manually added - should be generated from backend)
+// ============================================================================
+
+export enum RiskLevel {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+export enum ValidationStatus {
+  PENDING = 'PENDING',
+  VALIDATED = 'VALIDATED',
+  REJECTED = 'REJECTED',
+  NEEDS_REVIEW = 'NEEDS_REVIEW'
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Extract confidence score from an entity
+ * Works with various entity types that may have confidence in different properties
+ */
+export function getConfidence(entity: any): number {
+  return entity?.confidenceScore || entity?.confidence || 0;
+}
+
+/**
+ * Extract children count from an entity
+ * Works with entities that track child count
+ */
+export function getChildrenCount(entity: any): number {
+  return entity?.childrenCount || entity?.children_count || entity?.children?.length || 0;
+}
