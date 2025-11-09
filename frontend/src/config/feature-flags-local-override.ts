@@ -57,6 +57,6 @@ export function isLocalTestingEnabled(): boolean {
 }
 
 // Auto-enable when this module is imported (for development)
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   enableLocalGeospatialTesting();
 }

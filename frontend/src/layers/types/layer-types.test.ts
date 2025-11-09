@@ -59,30 +59,21 @@ const testLayerConfig: LayerConfig = {
 // Test EnhancedLayerConfig compatibility
 const testEnhancedConfig: EnhancedLayerConfig = {
   ...testLayerConfig,
+  data: {
+    id: 'test-data',
+    label: 'Test Data',
+    fields: []
+  },
   visConfig: {
     visible: true,
     opacity: 0.8,
     zIndex: 10,
-    pickable: true,
-    coordinateSystem: 'LNGLAT'
+    pickable: true
   },
   featureFlag: {
     flagName: 'test-feature',
+    enabled: true,
     rolloutPercentage: 100
-  },
-  security: {
-    dataClassification: 'internal',
-    accessControl: {
-      roles: ['user'],
-      permissions: ['read']
-    },
-    auditRequired: true
-  },
-  optimization: {
-    level: 'basic',
-    techniques: ['caching'],
-    quality: 'medium',
-    targetFPS: 60
   }
 };
 

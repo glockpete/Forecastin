@@ -30,33 +30,29 @@ export const RUNTIME = (() => {
   // Port detection - use 9000 for API by default (matching api/main.py:1394)
   // In production with reverse proxy, port may be same as frontend
   const apiPort = Number(
-    process.env.REACT_APP_API_PORT ||
-    process.env.VITE_API_PORT ||
+    import.meta.env.VITE_API_PORT ||
     9000
   );
 
   // WebSocket port - can be different from API port for flexibility
   // Falls back to API port if not specified
   const wsPort = Number(
-    process.env.REACT_APP_WS_PORT ||
-    process.env.VITE_WS_PORT ||
+    import.meta.env.VITE_WS_PORT ||
     apiPort
   );
 
   // Allow environment variable override for development
   // But compute from window.location by default to avoid Docker hostname issues
   const apiBase =
-    process.env.REACT_APP_API_URL_OVERRIDE ||
-    process.env.VITE_API_URL_OVERRIDE ||
+    import.meta.env.VITE_API_URL_OVERRIDE ||
     `${isHttps ? 'https' : 'http'}://${host}:${apiPort}`;
 
   const wsBase =
-    process.env.REACT_APP_WS_URL_OVERRIDE ||
-    process.env.VITE_WS_URL_OVERRIDE ||
+    import.meta.env.VITE_WS_URL_OVERRIDE ||
     `${isHttps ? 'wss' : 'ws'}://${host}:${wsPort}`;
 
   // Log configuration for debugging (only in development)
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.debug('[RUNTIME CONFIG] Environment configuration:', {
       protocol: window.location.protocol,
       host: window.location.hostname,
@@ -92,7 +88,7 @@ export function getWebSocketUrl(): string {
   const url = `${RUNTIME.wsBase}${RUNTIME.wsPath}`;
   
   // Log constructed URL for diagnostics
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.debug(`[WS URL] Constructed WebSocket URL: ${url}`);
   }
   

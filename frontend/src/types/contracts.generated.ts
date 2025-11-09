@@ -392,3 +392,4 @@ export function getConfidence(entity: any): number {
 export function getChildrenCount(entity: any): number {
   return entity?.childrenCount || entity?.children_count || entity?.children?.length || 0;
 }
+}

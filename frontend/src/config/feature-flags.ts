@@ -102,16 +102,16 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
 
 // Environment variable overrides (for deployment configuration)
 const ENV_OVERRIDES: Partial<FeatureFlagConfig> = {
-  'ff.geo.layers_enabled': process.env.REACT_APP_FF_GEOSPATIAL === 'true',
-  'ff.geo.point_layer_active': process.env.REACT_APP_FF_POINT_LAYER === 'true',
-  'ff.geo.clustering_enabled': process.env.REACT_APP_FF_CLUSTERING === 'true',
-  'ff.geo.websocket_layers_enabled': process.env.REACT_APP_FF_WS_LAYERS === 'true',
+  'ff.geo.layers_enabled': import.meta.env.VITE_FF_GEOSPATIAL === 'true',
+  'ff.geo.point_layer_active': import.meta.env.VITE_FF_POINT_LAYER === 'true',
+  'ff.geo.clustering_enabled': import.meta.env.VITE_FF_CLUSTERING === 'true',
+  'ff.geo.websocket_layers_enabled': import.meta.env.VITE_FF_WS_LAYERS === 'true',
   
   rollout_percentages: {
-    core_layers: parseInt(process.env.REACT_APP_FF_CORE_ROLLOUT || '0'),
-    point_layers: parseInt(process.env.REACT_APP_FF_POINT_ROLLOUT || '0'),
-    websocket_integration: parseInt(process.env.REACT_APP_FF_WS_ROLLOUT || '0'),
-    visual_channels: parseInt(process.env.REACT_APP_FF_VISUAL_ROLLOUT || '0')
+    core_layers: parseInt(import.meta.env.VITE_FF_CORE_ROLLOUT || '0'),
+    point_layers: parseInt(import.meta.env.VITE_FF_POINT_ROLLOUT || '0'),
+    websocket_integration: parseInt(import.meta.env.VITE_FF_WS_ROLLOUT || '0'),
+    visual_channels: parseInt(import.meta.env.VITE_FF_VISUAL_ROLLOUT || '0')
   }
 };
 

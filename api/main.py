@@ -151,7 +151,8 @@ async def lifespan(app: FastAPI):
         forecast_manager = HierarchicalForecastManager(
             cache_service=cache_service,
             realtime_service=realtime_service,
-            hierarchy_resolver=hierarchy_resolver
+            hierarchy_resolver=hierarchy_resolver,
+            database_manager=database_manager
         )
 
         scenario_collaboration_service = ScenarioCollaborationService(
@@ -169,7 +170,9 @@ async def lifespan(app: FastAPI):
         # Initialize automated refresh service
         if database_manager and cache_service and feature_flag_service:
             automated_refresh_service = initialize_automated_refresh_service(
-                database_manager, cache_service, feature_flag_service
+                database_manager=database_manager,
+                cache_service=cache_service,
+                feature_flag_service=feature_flag_service
             )
             # Create the feature flag for automated refresh
             try:

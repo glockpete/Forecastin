@@ -113,7 +113,7 @@ export class LayerPerformanceMonitor extends EventEmitter {
       reportingInterval: options.reportingInterval || 30000, // 30 seconds (AGENTS.md pattern)
       sampleSize: options.sampleSize || 1000,
       enableWebSocketReporting: options.enableWebSocketReporting !== false,
-      websocketUrl: options.websocketUrl || process.env.REACT_APP_WS_URL || 'ws://localhost:9000/ws',
+      websocketUrl: options.websocketUrl || import.meta.env.VITE_WS_URL || 'ws://localhost:9000/ws',
       featureFlagThresholds: {
         renderTimeDegradation: options.featureFlagThresholds?.renderTimeDegradation || 10, // 10ms
         gpuFilterDegradation: options.featureFlagThresholds?.gpuFilterDegradation || 200, // 200ms

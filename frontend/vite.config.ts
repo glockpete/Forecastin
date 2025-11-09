@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // WebSocket proxy
       '/ws': {
-        target: process.env.VITE_API_URL || 'http://localhost:9000',
+        target: (import.meta.env?.VITE_API_URL as string) || 'http://localhost:9000',
         ws: true, // Enable WebSocket proxy
         changeOrigin: true,
         secure: false,
@@ -32,7 +32,7 @@ export default defineConfig({
 
       // API proxy
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:9000',
+        target: (import.meta.env?.VITE_API_URL as string) || 'http://localhost:9000',
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {
