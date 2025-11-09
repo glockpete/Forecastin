@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: |
           PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          pip install ruff mypy
-          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+          PYTHONWARNINGS="ignore::DeprecationWarning" pip install ruff mypy
+          if [ -f api/requirements.txt ]; then PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r api/requirements.txt; fi
 
       - name: Lint with Ruff
         run: |
