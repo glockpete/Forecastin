@@ -56,8 +56,8 @@ jobs:
       - name: Install dependencies
         run: |
           PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          pip install pytest pytest-cov pytest-asyncio
-          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+          PYTHONWARNINGS="ignore::DeprecationWarning" pip install pytest pytest-cov pytest-asyncio
+          if [ -f api/requirements.txt ]; then PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r api/requirements.txt; fi
 
       - name: Run backend tests
         run: |

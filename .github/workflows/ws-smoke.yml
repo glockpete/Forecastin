@@ -85,8 +85,8 @@ jobs:
         working-directory: ./api
         run: |
           PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio
+          PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r requirements.txt
+          PYTHONWARNINGS="ignore::DeprecationWarning" pip install pytest pytest-asyncio
 
       - name: Display environment configuration
         run: |
@@ -171,7 +171,7 @@ jobs:
 
       - name: Install analysis tools
         run: |
-          pip install ruff mypy
+          PYTHONWARNINGS="ignore::DeprecationWarning" pip install ruff mypy
 
       - name: Ruff linting (WebSocket files)
         working-directory: ./api
