@@ -23,7 +23,9 @@ env:
   # Ensure CI mode and strict checks
   CI: true
   NODE_ENV: test
-  PYTHONWARNINGS: error
+  # Ignore pkg_resources deprecation from pip's vendored packages (GH Actions env issue)
+  # but still treat all other warnings as errors
+  PYTHONWARNINGS: "ignore::DeprecationWarning:pip._vendor.pkg_resources,error"
   # Treat warnings as errors for Python tools
   MYPY_FORCE_COLOR: 1
   PYTEST_ADDOPTS: "--strict-markers --strict-config"
@@ -61,7 +63,7 @@ jobs:
 
       - name: Install Python linting tools
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
           pip install ruff black isort mypy bandit
 
       - name: Install frontend dependencies
@@ -120,7 +122,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
           pip install mypy types-redis
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
@@ -222,7 +224,7 @@ jobs:
 
       - name: Install backend dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
           pip install pytest pytest-asyncio pytest-cov pytest-benchmark
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
@@ -337,7 +339,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
       - name: Verify Python package structure
