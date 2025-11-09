@@ -21,7 +21,7 @@ Created: 2025-11-09
 import re
 import sys
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Dict
 from dataclasses import dataclass, field
 
 
@@ -165,8 +165,6 @@ class AsyncMockAnalyzer:
         # Look for pattern where AsyncMock base has Mock methods
         for i in range(len(lines) - 2):
             line1 = lines[i].strip()
-            line2 = lines[i + 1].strip()
-            line3 = lines[i + 2].strip() if i + 2 < len(lines) else ""
 
             if 'AsyncMock()' in line1 and '=' in line1:
                 var_name = line1.split('=')[0].strip()

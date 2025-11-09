@@ -86,6 +86,7 @@ def create_cache_service_mock(
     get_value: Any = None,
     set_result: bool = True,
     delete_result: bool = True,
+    clear_pattern_result: bool = True,
     stats: Optional[Dict[str, float]] = None
 ) -> AsyncMock:
     """
@@ -95,6 +96,7 @@ def create_cache_service_mock(
         get_value: Value returned by cache.get()
         set_result: Boolean returned by cache.set()
         delete_result: Boolean returned by cache.delete()
+        clear_pattern_result: Boolean returned by cache.clear_pattern()
         stats: Dict returned by cache.get_stats() (sync method)
 
     Returns:
@@ -137,7 +139,7 @@ def create_realtime_service_mock(
     Returns:
         Properly configured RealtimeService mock
     """
-    return create_async_service_mock(
+    mock = create_async_service_mock(
         type('RealtimeService', (), {}),
         method_return_values={
             'broadcast_update': broadcast_result,
@@ -146,11 +148,18 @@ def create_realtime_service_mock(
         async_methods=['broadcast_update', 'send_to_user']
     )
 
+    # Add connection_manager for API tests
+    mock.connection_manager = Mock()
+    mock.connection_manager.broadcast_message = AsyncMock()
+
+    return mock
+
 
 def create_database_manager_mock(
     fetchrow_result: Optional[Dict[str, Any]] = None,
     fetch_result: Optional[list[Dict[str, Any]]] = None,
-    execute_result: str = "SELECT 1"
+    execute_result: str = "SELECT 1",
+    fetchval_result: Any = None
 ) -> AsyncMock:
     """
     Create a standardized DatabaseManager mock.
@@ -159,6 +168,7 @@ def create_database_manager_mock(
         fetchrow_result: Dict returned by fetchrow()
         fetch_result: List of dicts returned by fetch()
         execute_result: String returned by execute()
+        fetchval_result: Value returned by fetchval()
 
     Returns:
         Properly configured DatabaseManager mock
@@ -218,6 +228,10 @@ def create_async_pool_mock(connection_mock: Optional[AsyncMock] = None) -> Async
     """
     if connection_mock is None:
         connection_mock = AsyncMock()
+        connection_mock.execute = AsyncMock(return_value="SELECT 1")
+        connection_mock.fetch = AsyncMock(return_value=[])
+        connection_mock.fetchrow = AsyncMock(return_value=None)
+        connection_mock.fetchval = AsyncMock(return_value=None)
 
     mock_pool = AsyncMock()
     mock_pool.acquire.return_value = AsyncContextManagerMock(connection_mock)
@@ -267,26 +281,31 @@ def patch_async_method(
 # ============================================================================
 
 def create_websocket_mock(
-    send_side_effect: Optional[Callable] = None
+    send_side_effect: Optional[Callable] = None,
+    receive_return_value: Optional[Dict[str, Any]] = None
 ) -> AsyncMock:
     """
     Create a WebSocket connection mock.
 
     Args:
         send_side_effect: Optional callable for custom send behavior
+        receive_return_value: Optional value to be returned by ws.receive
 
     Returns:
         Properly configured WebSocket mock
 
     Example:
-        >>> ws = create_websocket_mock()
+        >>> ws = create_websocket_mock(receive_return_value={"type": "test"})
         >>> await ws.send('{"type": "test"}')
+        >>> result = await ws.receive()
+        >>> assert result == {"type": "test"}
         >>> ws.send.assert_called_once()
     """
     ws = AsyncMock()
     ws.send = AsyncMock(side_effect=send_side_effect)
-    ws.receive = AsyncMock()
+    ws.receive = AsyncMock(return_value=receive_return_value)
     ws.close = AsyncMock()
+    ws.accept = AsyncMock()
     return ws
 
 
