@@ -1,6 +1,5 @@
 /**
  * AUTO-GENERATED TypeScript Interfaces from Backend Pydantic Models
- * Generated: 2025-11-09T13:05:53.149761
  *
  * DO NOT EDIT MANUALLY - Regenerate using: npm run generate:contracts
  *

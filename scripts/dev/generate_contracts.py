@@ -266,9 +266,8 @@ export type {alias_name} =
 
     def generate_output(self) -> None:
         """Generate the final TypeScript file"""
-        header = f'''/**
+        header = '''/**
  * AUTO-GENERATED TypeScript Interfaces from Backend Pydantic Models
- * Generated: {datetime.now().isoformat()}
  *
  * DO NOT EDIT MANUALLY - Regenerate using: npm run generate:contracts
  *
