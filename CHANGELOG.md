@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Async Mocking Framework (BUG-017) (2025-11-09)**:
+  - Comprehensive async mocking framework for testing WebSocket and real-time features
+  - Mock implementations for AsyncMock patterns with proper await/async support
+  - Integration with existing pytest infrastructure
+  - Documentation and examples for async testing patterns
 - **Repository Audit & Documentation Consolidation (2025-11-08)**:
   - Comprehensive documentation audit with 84 markdown files analysed
   - `checks/help_docs_consolidation.md` - Consolidation report with 15 actions (18% doc reduction)

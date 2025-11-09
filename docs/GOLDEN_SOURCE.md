@@ -1,7 +1,7 @@
 # GOLDEN_SOURCE.md - Forecastin Geopolitical Intelligence Platform
 
 **Document Status:** Active
-**Last Updated:** 2025-11-07T07:30:00Z
+**Last Updated:** 2025-11-09T13:15:00Z
 **Project Scope:** Backend (FastAPI :9000), Frontend (React+Tailwind :3000), Data (PostgreSQL, Qdrant, Redis)
 **Language:** British English (en-GB)
 **Units:** kilometres, metric system
@@ -303,6 +303,7 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - T-2025-11-08-env-configuration: Create comprehensive .env.example files for frontend and backend (✅)
 - T-2025-11-08-type-safety-improvement: Fix unsafe 'as any' type assertion in dispatchMessage function (✅)
 - T-2025-11-08-documentation-corrections: Correct outdated RSS service gap claims in 3 documentation files (✅)
+- T-2025-11-09-async-mocking-framework: Implement comprehensive async mocking framework for WebSocket and real-time feature testing (BUG-017) (✅)
 
 ### Blocked
 *No tasks currently blocked*
@@ -425,6 +426,15 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
 - **T-2025-11-05-websocket-integration** (2025-11-05T12:15:22.456789Z): code - Integrate WebSocket infrastructure for real-time geospatial updates ✅
 - **T-2025-11-05-feature-flag-rollout** (2025-11-05T12:30:44.789012Z): code - Implement feature flag rollout strategy for geospatial components ✅
 - **T-2025-11-05-performance-validation** (2025-11-05T12:45:07.012345Z): test - Validate geospatial system against performance SLOs ✅
+- **T-2025-11-09-async-mocking-framework** (2025-11-09T03:54:13Z): test - Implement comprehensive async mocking framework for WebSocket and real-time feature testing (BUG-017) ✅
+
+### 2025-11-09 - Async Mocking Framework and Documentation Updates
+- **Added:** Comprehensive async mocking framework for WebSocket and real-time features testing (BUG-017)
+- **Added:** Mock implementations for AsyncMock patterns with proper await/async support
+- **Added:** Integration with existing pytest infrastructure
+- **Updated:** Documentation timestamp to reflect current state (2025-11-09)
+- **Updated:** CHANGELOG.md with recent async mocking framework addition
+- **Updated:** Task board with BUG-017 completion entry
 
 ### 2025-11-04 - Initial GOLDEN_SOURCE Creation
 - **Added:** Project snapshot based on PRD analysis
@@ -474,7 +484,7 @@ A unified hierarchical drill-down platform transforming fragmented geopolitical 
     "name": "Forecastin Geopolitical Intelligence Platform",
     "version": "1.1",
     "status": "active",
-    "last_updated": "2025-11-06T04:23:00Z",
+    "last_updated": "2025-11-09T13:15:00Z",
     "scope": ["backend", "frontend", "data"],
     "ports": {
       "backend": 9000,
