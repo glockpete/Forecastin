@@ -51,6 +51,23 @@
       "plugin:@typescript-eslint/recommended",
       "plugin:react/recommended",
       "plugin:react-hooks/recommended"
+    ],
+    "rules": {
+      "no-console": ["error", { "allow": [] }],
+      "react/react-in-jsx-scope": "off"
+    },
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    },
+    "overrides": [
+      {
+        "files": ["src/lib/logger.ts"],
+        "rules": {
+          "no-console": "off"
+        }
+      }
     ]
   },
   "browserslist": {
