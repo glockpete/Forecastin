@@ -57,7 +57,7 @@ interface AppState {
 function AppContent() {
   // Always use dark theme (enforced at html/body level in index.css)
   return (
-    <div className="dark min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <div className="flex flex-col h-screen">
         {/* Header with navigation */}
         <header className="bg-surface border-b border-dark-default">
@@ -65,7 +65,7 @@ function AppContent() {
         </header>
 
         {/* Main content area with Miller's Columns */}
-        <main className="flex-1 overflow-hidden bg-background dark">
+        <main className="flex-1 overflow-hidden bg-background">
           <MillerColumns />
         </main>
       </div>

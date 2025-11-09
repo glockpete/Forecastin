@@ -52,15 +52,11 @@ function shouldLog(level: LogLevel, minLevel: LogLevel): boolean {
 }
 
 /**
- * Formats a log message with optional context
+ * Formats a log message
  */
-function formatMessage(level: LogLevel, message: string, context?: unknown): string {
+function formatMessage(level: LogLevel, message: string): string {
   const timestamp = new Date().toISOString();
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-
-  if (context !== undefined) {
-    return `${prefix} ${message}`;
-  }
 
   return `${prefix} ${message}`;
 }
