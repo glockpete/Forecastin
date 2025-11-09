@@ -258,6 +258,41 @@ export interface MultiLineStringGeometry {
 
 /**
  * Generated from: api/models/websocket_schemas.py
+ * Python union type: Geometry
+ */
+export type Geometry =
+  | PointGeometry
+  | LineStringGeometry
+  | PolygonGeometry
+  | MultiPolygonGeometry
+  | MultiLineStringGeometry;
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: LayerType
+ */
+export type LayerType = 'point' | 'polygon' | 'line' | 'linestring' | 'heatmap' | 'cluster' | 'geojson';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterType
+ */
+export type FilterType = 'spatial' | 'temporal' | 'attribute' | 'composite';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterStatus
+ */
+export type FilterStatus = 'applied' | 'pending' | 'error' | 'cleared';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: MessageType
+ */
+export type MessageType = 'ping' | 'pong' | 'layer_data_update' | 'gpu_filter_sync' | 'polygon_update' | 'linestring_update' | 'search_update' | 'error' | 'echo';
+
+/**
+ * Generated from: api/models/websocket_schemas.py
  * Python class: GeoJSONFeature
  */
 export interface GeoJSONFeature {
