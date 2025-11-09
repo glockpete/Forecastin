@@ -44,6 +44,8 @@ class ContractGenerator:
         self.backend_dir = backend_dir
         self.output_file = output_file
         self.interfaces: List[str] = []
+        self.enums: List[str] = []
+        self.type_aliases: List[str] = []
         self.processed_classes: Set[str] = set()
 
     def parse_python_file(self, file_path: Path) -> None:
@@ -54,12 +56,23 @@ class ContractGenerator:
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
+                    # Check if it's an Enum
+                    if self._is_enum(node):
+                        enum_def = self._generate_enum(node, file_path)
+                        if enum_def and node.name not in self.processed_classes:
+                            self.enums.append(enum_def)
+                            self.processed_classes.add(node.name)
                     # Check if it's a dataclass or Pydantic model
-                    if self._is_dataclass_or_model(node):
+                    elif self._is_dataclass_or_model(node):
                         interface = self._generate_interface(node, file_path)
                         if interface and node.name not in self.processed_classes:
                             self.interfaces.append(interface)
                             self.processed_classes.add(node.name)
+                elif isinstance(node, ast.Assign):
+                    # Check for type aliases (e.g., Geometry = Union[...])
+                    type_alias = self._generate_type_alias(node, file_path)
+                    if type_alias:
+                        self.type_aliases.append(type_alias)
 
         except Exception as e:
             print(f"Warning: Failed to parse {file_path}: {e}")
@@ -80,6 +93,82 @@ class ContractGenerator:
                 return True
 
         return False
+
+    def _is_enum(self, node: ast.ClassDef) -> bool:
+        """Check if a class is a Python Enum"""
+        for base in node.bases:
+            # Check for Enum or str, Enum pattern
+            if isinstance(base, ast.Name) and base.id == 'Enum':
+                return True
+            # Check for (str, Enum) pattern
+            if isinstance(base, ast.Attribute) and base.attr == 'Enum':
+                return True
+        return False
+
+    def _generate_enum(self, node: ast.ClassDef, source_file: Path) -> str:
+        """Generate TypeScript type from Python Enum"""
+        enum_values = []
+
+        # Extract enum values from class body
+        for item in node.body:
+            if isinstance(item, ast.Assign):
+                for target in item.targets:
+                    if isinstance(target, ast.Name) and not target.id.startswith('_'):
+                        # Get the enum value
+                        if isinstance(item.value, ast.Constant):
+                            enum_values.append(f"'{item.value.value}'")
+
+        if not enum_values:
+            return ""
+
+        type_def = f'''/**
+ * Generated from: {source_file.relative_to(self.backend_dir)}
+ * Python enum: {node.name}
+ */
+export type {node.name} = {' | '.join(enum_values)};
+
+'''
+        return type_def
+
+    def _generate_type_alias(self, node: ast.Assign, source_file: Path) -> str:
+        """Generate TypeScript type alias from Python type assignment"""
+        # Check if this is a Union type assignment
+        if not isinstance(node.value, ast.Subscript):
+            return ""
+
+        value = node.value.value
+        if not (isinstance(value, ast.Name) and value.id == 'Union'):
+            return ""
+
+        # Get the alias name
+        if not node.targets or not isinstance(node.targets[0], ast.Name):
+            return ""
+
+        alias_name = node.targets[0].id
+
+        # Skip WebSocketMessage - it's defined comprehensively in ws_messages.ts
+        if alias_name == 'WebSocketMessage':
+            return ""
+
+        # Extract union members
+        union_members = []
+        if isinstance(node.value.slice, ast.Tuple):
+            for elt in node.value.slice.elts:
+                if isinstance(elt, ast.Name):
+                    union_members.append(elt.id)
+
+        if not union_members:
+            return ""
+
+        type_def = f'''/**
+ * Generated from: {source_file.relative_to(self.backend_dir)}
+ * Python union type: {alias_name}
+ */
+export type {alias_name} =
+  | {chr(10).join(f'  | {member}' for member in union_members)[4:]};
+
+'''
+        return type_def
 
     def _generate_interface(self, node: ast.ClassDef, source_file: Path) -> str:
         """Generate TypeScript interface from Python class"""
@@ -203,15 +292,27 @@ export function toCamelCase(obj: Record<string, any>): Record<string, any> {
   }
   return result;
 }
+
+// Utility functions for entity confidence and children count
+export function getConfidence(entity: any): number {
+  return entity.confidence ?? 0;
+}
+
+export function getChildrenCount(entity: any): number {
+  return entity.childrenCount ?? 0;
+}
 '''
 
-        content = header + "\n".join(self.interfaces) + footer
+        # Order: interfaces first, then type aliases (unions), then enums
+        # This ensures that dependent types are defined before they're used
+        all_types = "\n".join(self.interfaces) + "\n".join(self.type_aliases) + "\n".join(self.enums)
+        content = header + all_types + footer
 
         self.output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self.output_file, 'w', encoding='utf-8') as f:
             f.write(content)
 
-        print(f"\n✅ Generated {len(self.interfaces)} interfaces in {self.output_file}")
+        print(f"\n✅ Generated {len(self.interfaces)} interfaces, {len(self.type_aliases)} type aliases, and {len(self.enums)} enums in {self.output_file}")
 
 
 def main():

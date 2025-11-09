@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED TypeScript Interfaces from Backend Pydantic Models
- * Generated: 2025-11-08T17:45:26.738520
+ * Generated: 2025-11-09T13:05:53.149761
  *
  * DO NOT EDIT MANUALLY - Regenerate using: npm run generate:contracts
  *
@@ -258,41 +258,6 @@ export interface MultiLineStringGeometry {
 
 /**
  * Generated from: api/models/websocket_schemas.py
- * Python union type: Geometry
- */
-export type Geometry =
-  | PointGeometry
-  | LineStringGeometry
-  | PolygonGeometry
-  | MultiPolygonGeometry
-  | MultiLineStringGeometry;
-
-/**
- * Generated from: api/models/websocket_schemas.py
- * Python enum: LayerType
- */
-export type LayerType = 'point' | 'polygon' | 'line' | 'linestring' | 'heatmap' | 'cluster' | 'geojson';
-
-/**
- * Generated from: api/models/websocket_schemas.py
- * Python enum: FilterType
- */
-export type FilterType = 'spatial' | 'temporal' | 'attribute' | 'composite';
-
-/**
- * Generated from: api/models/websocket_schemas.py
- * Python enum: FilterStatus
- */
-export type FilterStatus = 'applied' | 'pending' | 'error' | 'cleared';
-
-/**
- * Generated from: api/models/websocket_schemas.py
- * Python enum: MessageType
- */
-export type MessageType = 'ping' | 'pong' | 'layer_data_update' | 'gpu_filter_sync' | 'polygon_update' | 'linestring_update' | 'search_update' | 'error' | 'echo';
-
-/**
- * Generated from: api/models/websocket_schemas.py
  * Python class: GeoJSONFeature
  */
 export interface GeoJSONFeature {
@@ -376,6 +341,58 @@ export interface BaseWebSocketMessage {
   clientId?: string | null;
   meta?: MessageMeta | null;
 }
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python union type: Geometry
+ */
+export type Geometry =
+  | PointGeometry
+  | LineStringGeometry
+  | PolygonGeometry
+  | MultiPolygonGeometry
+  | MultiLineStringGeometry;
+
+/**
+ * Generated from: api/services/scenario_service.py
+ * Python enum: ValidationStatus
+ */
+export type ValidationStatus = 'pending' | 'validated' | 'failed' | 'in_progress';
+
+
+/**
+ * Generated from: api/services/scenario_service.py
+ * Python enum: RiskLevel
+ */
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: LayerType
+ */
+export type LayerType = 'point' | 'polygon' | 'line' | 'linestring' | 'heatmap' | 'cluster' | 'geojson';
+
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterType
+ */
+export type FilterType = 'spatial' | 'temporal' | 'attribute' | 'composite';
+
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: FilterStatus
+ */
+export type FilterStatus = 'applied' | 'pending' | 'error' | 'cleared';
+
+
+/**
+ * Generated from: api/models/websocket_schemas.py
+ * Python enum: MessageType
+ */
+export type MessageType = 'ping' | 'pong' | 'layer_data_update' | 'gpu_filter_sync' | 'polygon_update' | 'linestring_update' | 'search_update' | 'error' | 'echo';
+
 
 /**
  * Utility: Convert snake_case to camelCase
@@ -397,18 +414,4 @@ export function getConfidence(entity: any): number {
 
 export function getChildrenCount(entity: any): number {
   return entity.childrenCount ?? 0;
-}
-
-// Missing enum definitions
-export enum RiskLevel {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
-}
-
-export enum ValidationStatus {
-  PENDING = 'pending',
-  VALID = 'valid',
-  INVALID = 'invalid'
 }
