@@ -117,13 +117,7 @@ class AutomatedRefreshService:
                 FROM materialized_view_refresh_schedule
                 WHERE auto_refresh_enabled = true
             """
-<<<<<<< HEAD
-
-            with self.db_manager.get_connection() as conn:
-=======
-            
-            with self.database_manager.get_connection() as conn:
->>>>>>> origin/main
+with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query)
                     views = cur.fetchall()
@@ -146,13 +140,7 @@ class AutomatedRefreshService:
                 WHERE created_at >= NOW() - INTERVAL '%s minutes'
                 GROUP BY view_name
             """
-<<<<<<< HEAD
-
-            with self.db_manager.get_connection() as conn:
-=======
-            
-            with self.database_manager.get_connection() as conn:
->>>>>>> origin/main
+with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query, (self.time_threshold_minutes,))
                     results = cur.fetchall()
@@ -369,13 +357,7 @@ class AutomatedRefreshService:
         """Force refresh all materialized views."""
         try:
             batch_id = str(uuid.uuid4())
-<<<<<<< HEAD
-
-            with self.db_manager.get_connection() as conn:
-=======
-            
-            with self.database_manager.get_connection() as conn:
->>>>>>> origin/main
+with self.database_manager.get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT automated_refresh_all_materialized_views(%s)", (batch_id,))
                     result = cur.fetchone()[0]
@@ -397,13 +379,7 @@ def get_automated_refresh_service() -> AutomatedRefreshService:
     if _automated_refresh_service is None:
         raise RuntimeError("Automated refresh service not initialized")
     return _automated_refresh_service
-<<<<<<< HEAD
-
-def initialize_automated_refresh_service(db_manager: DatabaseManager,
-=======
-    
 def initialize_automated_refresh_service(database_manager: DatabaseManager,
->>>>>>> origin/main
                                        cache_service: CacheService,
                                        feature_flag_service: FeatureFlagService) -> AutomatedRefreshService:
     """Initialize the global automated refresh service instance."""

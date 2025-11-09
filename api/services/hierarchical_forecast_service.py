@@ -43,6 +43,7 @@ from navigation_api.database.optimized_hierarchy_resolver import (
     OptimizedHierarchyResolver,
 )
 from services.cache_service import CacheService
+from services.database_manager import DatabaseManager
 from services.realtime_service import RealtimeService, safe_serialize_message
 
 logger = logging.getLogger(__name__)
