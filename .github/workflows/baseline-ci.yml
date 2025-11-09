@@ -62,9 +62,11 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install Python linting tools
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning"
         run: |
-          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          PYTHONWARNINGS="ignore::DeprecationWarning" pip install ruff black isort mypy bandit
+          python -m pip install --upgrade pip setuptools wheel
+          pip install ruff black isort mypy bandit
 
       - name: Install frontend dependencies
         run: |
@@ -121,10 +123,12 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install dependencies
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning"
         run: |
-          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          PYTHONWARNINGS="ignore::DeprecationWarning" pip install mypy types-redis
-          if [ -f api/requirements.txt ]; then PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r api/requirements.txt; fi
+          python -m pip install --upgrade pip setuptools wheel
+          pip install mypy types-redis
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
       - name: Run mypy type checking
         run: |
@@ -223,10 +227,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install backend dependencies
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning"
         run: |
-          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          PYTHONWARNINGS="ignore::DeprecationWarning" pip install pytest pytest-asyncio pytest-cov pytest-benchmark
-          if [ -f api/requirements.txt ]; then PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r api/requirements.txt; fi
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pytest pytest-asyncio pytest-cov pytest-benchmark
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
       - name: Install frontend dependencies
         run: |
@@ -338,9 +344,11 @@ jobs:
           cache-dependency-path: 'api/requirements.txt'
 
       - name: Install dependencies
+        env:
+          PYTHONWARNINGS: "ignore::DeprecationWarning"
         run: |
-          PYTHONWARNINGS="ignore::DeprecationWarning" python -m pip install --upgrade pip setuptools wheel
-          if [ -f api/requirements.txt ]; then PYTHONWARNINGS="ignore::DeprecationWarning" pip install -r api/requirements.txt; fi
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
       - name: Verify Python package structure
         run: |
