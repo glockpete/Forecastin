@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://forecastin.example.com/schemas/hierarchy_response.schema.json",
+  "title": "HierarchyResponse",
+  "description": "Hierarchy query response - paginated list of entities (F-0005: includes entities array)",
+  "type": "object",
+  "required": [
+    "entities",
+    "total",
+    "has_more",
+    "offset",
+    "limit",
+    "max_depth_reached"
+  ],
+  "properties": {
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "entity_response.schema.json"
+      },
+      "description": "Array of entities (F-0005: REQUIRED property)"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total count of entities (across all pages)"
+    },
+    "has_more": {
+      "type": "boolean",
+      "description": "True if more results available"
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Current offset"
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Current limit"
+    },
+    "parent_path": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "Parent path queried (null for root)"
+    },
+    "max_depth_reached": {
+      "type": "boolean",
+      "description": "True if maximum depth was reached during traversal"
+    }
+  }
+}

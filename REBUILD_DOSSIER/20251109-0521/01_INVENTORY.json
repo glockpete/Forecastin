@@ -1,0 +1,155 @@
+{
+  "metadata": {
+    "repository": "Forecastin",
+    "analysis_date": "2025-11-09T05:21:00Z",
+    "branch": "claude/rebuild-dossier-audit-011CUwkh3z7W1NBQwe4Ysshk",
+    "total_files": 300,
+    "total_loc": 95000,
+    "documentation_size_kb": 964
+  },
+  "areas": [
+    {
+      "name": "api",
+      "path": "/home/user/Forecastin/api",
+      "tech": ["Python 3.11", "FastAPI 0.104.1", "PostgreSQL", "Redis"],
+      "file_count": 71,
+      "loc": 58000,
+      "stability": "moderate",
+      "coupling": "medium",
+      "ownership": "backend-team",
+      "key_files": [
+        {"path": "api/main.py", "size_bytes": 11018, "purpose": "FastAPI entry point"},
+        {"path": "api/navigation_api/database/optimized_hierarchy_resolver.py", "size_bytes": 58629, "purpose": "LTREE queries"},
+        {"path": "api/services/cache_service.py", "size_bytes": 48563, "purpose": "Multi-tier caching"},
+        {"path": "api/services/feature_flag_service.py", "size_bytes": 49031, "purpose": "Feature flags"},
+        {"path": "api/services/scenario_service.py", "size_bytes": 50800, "purpose": "Scenario planning"},
+        {"path": "api/routers/websocket.py", "size_bytes": 26278, "purpose": "WebSocket handler"}
+      ]
+    },
+    {
+      "name": "frontend",
+      "path": "/home/user/Forecastin/frontend",
+      "tech": ["React 18.2.0", "TypeScript 5.3.0", "Vite 5.4.11"],
+      "file_count": 76,
+      "loc": 35000,
+      "stability": "medium",
+      "coupling": "low",
+      "ownership": "frontend-team",
+      "key_files": [
+        {"path": "frontend/src/hooks/useHybridState.ts", "size_bytes": 19436, "purpose": "Hybrid state management"},
+        {"path": "frontend/src/types/ws_messages.ts", "size_bytes": 31902, "purpose": "WebSocket message types"},
+        {"path": "frontend/src/integrations/LayerWebSocketIntegration.ts", "size_bytes": 21388, "purpose": "Layer-WS integration"},
+        {"path": "frontend/src/config/feature-flags.ts", "size_bytes": 13548, "purpose": "Feature flag config"}
+      ]
+    },
+    {
+      "name": "migrations",
+      "path": "/home/user/Forecastin/migrations",
+      "tech": ["PostgreSQL 13", "LTREE", "PostGIS"],
+      "file_count": 6,
+      "loc": 2000,
+      "stability": "high",
+      "coupling": "medium",
+      "ownership": "backend-team",
+      "key_files": [
+        {"path": "migrations/001_initial_schema.sql", "size_bytes": 9084, "purpose": "Core schema"},
+        {"path": "migrations/002_ml_ab_testing_framework.sql", "size_bytes": 22656, "purpose": "ML experiments"},
+        {"path": "migrations/004_automated_materialized_view_refresh.sql", "size_bytes": 13522, "purpose": "Materialized views"},
+        {"path": "migrations/004_rss_entity_extraction_schema.sql", "size_bytes": 7384, "purpose": "RSS tables"}
+      ]
+    },
+    {
+      "name": "contracts",
+      "path": "/home/user/Forecastin/contracts",
+      "tech": ["Pydantic", "JSON Schema", "TypeScript"],
+      "file_count": 3,
+      "loc": 500,
+      "stability": "medium",
+      "coupling": "high",
+      "ownership": "shared",
+      "key_files": [
+        {"path": "contracts/openapi.json", "size_bytes": 6265, "purpose": "REST API schema"},
+        {"path": "contracts/ws.json", "size_bytes": 77109, "purpose": "WebSocket messages"},
+        {"path": "contracts/contracts.generated.ts", "size_bytes": 8744, "purpose": "TypeScript types"}
+      ]
+    },
+    {
+      "name": "scripts",
+      "path": "/home/user/Forecastin/scripts",
+      "tech": ["Python 3.11", "TypeScript", "Bash"],
+      "file_count": 30,
+      "loc": 5000,
+      "stability": "high",
+      "coupling": "low",
+      "ownership": "devops-team",
+      "key_files": [
+        {"path": "scripts/dev/generate_contracts.py", "purpose": "Contract generation"},
+        {"path": "scripts/check_performance_slos.py", "purpose": "SLO validation"},
+        {"path": "scripts/monitoring/infrastructure_health_monitor.py", "purpose": "Health monitoring"}
+      ]
+    },
+    {
+      "name": "docs",
+      "path": "/home/user/Forecastin/docs",
+      "tech": ["Markdown"],
+      "file_count": 60,
+      "loc": 30000,
+      "stability": "high",
+      "coupling": "low",
+      "ownership": "all-teams",
+      "key_files": [
+        {"path": "docs/GOLDEN_SOURCE.md", "size_bytes": 39191, "purpose": "Core requirements"},
+        {"path": "docs/DISCOVERY.md", "size_bytes": 30124, "purpose": "System discovery"},
+        {"path": "docs/RSS_INGESTION_SERVICE_ARCHITECTURE.md", "size_bytes": 29922, "purpose": "RSS architecture"}
+      ]
+    },
+    {
+      "name": "ci_cd",
+      "path": "/home/user/Forecastin/.github/workflows",
+      "tech": ["GitHub Actions", "YAML"],
+      "file_count": 9,
+      "loc": 2000,
+      "stability": "high",
+      "coupling": "medium",
+      "ownership": "devops-team",
+      "key_files": [
+        {"path": ".github/workflows/baseline-ci.yml", "size_bytes": 12768, "purpose": "Strict baseline"},
+        {"path": ".github/workflows/performance-validation.yml", "size_bytes": 26025, "purpose": "Performance SLOs"},
+        {"path": ".github/workflows/ws-smoke.yml", "size_bytes": 9707, "purpose": "WebSocket tests"}
+      ]
+    }
+  ],
+  "dependencies": {
+    "backend": {
+      "fastapi": "0.104.1",
+      "uvicorn": "0.24.0",
+      "psycopg": "3.2.3",
+      "SQLAlchemy": "2.0.44",
+      "redis": "5.0.1",
+      "orjson": "3.9.10",
+      "pydantic": "2.6.0",
+      "pytest": "8.3.3"
+    },
+    "frontend": {
+      "react": "18.2.0",
+      "typescript": "5.3.0",
+      "vite": "5.4.11",
+      "@tanstack/react-query": "5.90.7",
+      "zustand": "4.4.6",
+      "deck.gl": "9.2.2",
+      "vitest": "4.0.8"
+    },
+    "infrastructure": {
+      "postgres": "13-alpine",
+      "redis": "6-alpine",
+      "nginx": "alpine"
+    }
+  },
+  "metrics": {
+    "throughput_rps": 42726,
+    "ancestor_resolution_ms": 3.46,
+    "cache_hit_rate_percent": 99.2,
+    "materialized_view_refresh_ms": 850,
+    "websocket_serialization_ms": 0.019
+  }
+}
