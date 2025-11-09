@@ -61,6 +61,7 @@ jobs:
 
       - name: Install Python linting tools
         run: |
+          export PYTHONWARNINGS=ignore
           python -m pip install --upgrade pip
           pip install ruff black isort mypy bandit
 
@@ -122,6 +123,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export PYTHONWARNINGS=ignore
           python -m pip install --upgrade pip
           pip install mypy types-redis
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
@@ -226,6 +228,7 @@ jobs:
 
       - name: Install backend dependencies
         run: |
+          export PYTHONWARNINGS=ignore
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio pytest-cov pytest-benchmark
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
@@ -342,6 +345,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export PYTHONWARNINGS=ignore
           python -m pip install --upgrade pip
           if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
 
