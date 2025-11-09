@@ -11,10 +11,11 @@ Following AGENTS.md patterns for performance and reliability.
 """
 
 import asyncio
+import hashlib
 import logging
 import re
+import uuid
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
 from datetime import datetime
 
 import aiohttp
@@ -22,47 +23,10 @@ from bs4 import BeautifulSoup
 
 from services.cache_service import CacheService
 from services.realtime_service import RealtimeService
+from ..models import RSSArticle, ExtractionResult
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class RSSArticle:
-    """RSS article with extracted content and metadata"""
-    
-    id: str
-    url: str
-    title: str
-    content: str
-    published_at: datetime
-    feed_source: str
-    author: Optional[str] = None
-    language: str = "en"
-    content_hash: Optional[str] = None
-    confidence_scores: Dict[str, float] = None
-    metadata: Dict[str, Any] = None
-    
-    def __post_init__(self):
-        if self.confidence_scores is None:
-            self.confidence_scores = {}
-        if self.metadata is None:
-            self.metadata = {}
-        
-        # Generate content hash for deduplication
-        if self.content and not self.content_hash:
-            import hashlib
-            self.content_hash = hashlib.sha256(self.content.encode()).hexdigest()
-
-
-@dataclass
-class ExtractionResult:
-    """Result of CSS selector extraction with confidence"""
-    
-    value: str
-    selector_used: str
-    confidence: float
-    fallback_used: bool = False
 
 
 class RSSRouteProcessor:
@@ -496,11 +460,6 @@ class RSSRouteProcessor:
         except Exception as e:
             logger.error(f"Failed to parse RSS feed {feed_url}: {e}")
             return []
-
-
-# Import required modules at the end to avoid circular imports
-import hashlib
-import uuid
 
 
 # Convenience function for quick article processing

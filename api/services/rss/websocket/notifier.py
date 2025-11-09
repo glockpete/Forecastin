@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from services.realtime_service import RealtimeService, safe_serialize_message
+from ..models import RSSArticle, RSSEntity
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ class RSSWebSocketNotifier:
     async def notify_ingestion_error(self, job_id: str, error: str, article_id: Optional[str] = None):
         """
         Notify clients of ingestion error.
-        
+
         Args:
             job_id: Ingestion job identifier
             error: Error message
@@ -233,9 +234,136 @@ class RSSWebSocketNotifier:
                 "error_at": datetime.utcnow().isoformat()
             }
         )
-        
+
         await self._send_message(message)
-    
+
+    async def notify_batch_start(self, job_id: str, feed_count: int):
+        """
+        Notify clients that batch ingestion has started.
+
+        Args:
+            job_id: Batch ingestion job identifier
+            feed_count: Number of feeds in the batch
+        """
+        message = RSSWebSocketMessage(
+            type="rss_batch_start",
+            data={
+                "job_id": job_id,
+                "feed_count": feed_count,
+                "started_at": datetime.utcnow().isoformat()
+            }
+        )
+
+        await self._send_message(message)
+
+    async def notify_batch_complete(self, job_id: str, results: Dict[str, Any]):
+        """
+        Notify clients that batch ingestion has completed.
+
+        Args:
+            job_id: Batch ingestion job identifier
+            results: Batch processing results including counts and metrics
+        """
+        message = RSSWebSocketMessage(
+            type="rss_batch_complete",
+            batch_id=job_id,
+            data={
+                "job_id": job_id,
+                "total_feeds": results.get("total_feeds", 0),
+                "successful_feeds": results.get("successful", 0),
+                "failed_feeds": results.get("failed", 0),
+                "total_articles": results.get("total_articles", 0),
+                "total_entities": results.get("total_entities", 0),
+                "duration_ms": results.get("duration_ms", 0),
+                "completed_at": datetime.utcnow().isoformat()
+            }
+        )
+
+        await self._send_message(message)
+
+    async def notify_article_ingested(self, article: RSSArticle):
+        """
+        Notify clients of newly ingested article.
+
+        Args:
+            article: The RSS article that was ingested
+        """
+        message = RSSWebSocketMessage(
+            type="rss_article_ingested",
+            data={
+                "article_id": article.id,
+                "title": article.title,
+                "feed_source": article.feed_source,
+                "published_at": article.published_at.isoformat() if article.published_at else None,
+                "confidence_score": article.get_overall_confidence(),
+                "entity_count": len(article.entities),
+                "url": article.url,
+                "author": article.author,
+                "ingested_at": datetime.utcnow().isoformat()
+            }
+        )
+
+        await self._send_message(message)
+
+    async def notify_entity_extraction_summary(
+        self,
+        entities: List[RSSEntity],
+        job_id: str
+    ):
+        """
+        Notify clients of entity extraction results summary.
+
+        Args:
+            entities: List of extracted entities
+            job_id: Job identifier for tracking
+        """
+        # Group entities by 5-W type
+        entity_summary = {
+            "who": len([e for e in entities if e.entity_type == "who"]),
+            "what": len([e for e in entities if e.entity_type == "what"]),
+            "where": len([e for e in entities if e.entity_type == "where"]),
+            "when": len([e for e in entities if e.entity_type == "when"]),
+            "why": len([e for e in entities if e.entity_type == "why"])
+        }
+
+        # Calculate average confidence
+        avg_confidence = (
+            sum(e.confidence for e in entities) / len(entities)
+            if entities else 0.0
+        )
+
+        message = RSSWebSocketMessage(
+            type="entity_extraction_summary",
+            data={
+                "job_id": job_id,
+                "entity_summary": entity_summary,
+                "total_entities": len(entities),
+                "avg_confidence": avg_confidence,
+                "extracted_at": datetime.utcnow().isoformat()
+            }
+        )
+
+        await self._send_message(message)
+
+    async def notify_ingestion_failed(self, job_id: str, error: str):
+        """
+        Notify clients of ingestion failure.
+
+        Args:
+            job_id: Ingestion job identifier
+            error: Error message describing the failure
+        """
+        message = RSSWebSocketMessage(
+            type="rss_ingestion_failed",
+            data={
+                "job_id": job_id,
+                "error": error,
+                "failed_at": datetime.utcnow().isoformat()
+            }
+        )
+
+        await self._send_message(message)
+
     async def _send_message(self, message: RSSWebSocketMessage, throttle: bool = False):
         """
         Send message via WebSocket with proper serialization.

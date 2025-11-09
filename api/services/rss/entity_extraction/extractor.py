@@ -8,37 +8,14 @@ and hierarchical entity linking for RSS content.
 import logging
 import re
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
 from datetime import datetime
 from urllib.parse import urlparse
 
 from navigation_api.database.optimized_hierarchy_resolver import OptimizedHierarchyResolver
+from ..models import RSSArticle, RSSEntity
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class RSSEntity:
-    """RSS entity with 5-W framework and confidence scoring"""
-    id: str
-    entity_type: str  # who, what, where, when, why
-    text: str
-    confidence: float
-    canonical_key: str
-    article_id: str
-    extracted_at: datetime
-    hierarchy_path: Optional[str] = None
-    audit_trail: List[str] = field(default_factory=list)
-
-@dataclass 
-class RSSArticle:
-    """RSS article data structure"""
-    id: str
-    title: str
-    content: str
-    url: str
-    published_at: datetime
-    source: str
-    entities: List[RSSEntity] = field(default_factory=list)
 
 class RSSEntityExtractor:
     """
