@@ -2,7 +2,7 @@
 # Build time: ~3-5 minutes
 
 # FastAPI and ASGI
-fastapi==0.104.1
+fastapi==0.121.1
 uvicorn[standard]==0.24.0
 
 # Database
