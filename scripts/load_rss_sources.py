@@ -25,7 +25,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 import yaml
 import asyncpg
@@ -313,16 +313,26 @@ def get_database_url() -> str:
     # Try to load from .env file if it exists
     env_file = Path(__file__).parent.parent / '.env'
     if env_file.exists():
-        with open(env_file, 'r') as f:
-            for line in f:
-                if line.startswith('DATABASE_URL='):
-                    return line.split('=', 1)[1].strip()
+        try:
+            with open(env_file, 'r') as f:
+                for line in f:
+                    if line.startswith('DATABASE_URL='):
+                        return line.split('=', 1)[1].strip()
+        except Exception as e:
+            logger.warning(f"Failed to read .env file: {e}")
 
-    # Default database URL
-    return os.getenv(
-        'DATABASE_URL',
-        'postgresql://forecastin:forecastin_password@localhost:5432/forecastin'
+    # Get from environment variable
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        return db_url
+
+    # If no DATABASE_URL found, require it explicitly
+    logger.error(
+        "DATABASE_URL not set in environment or .env file. "
+        "Please set it securely before running this script."
     )
+    logger.error("Example: export DATABASE_URL='postgresql://user:password@localhost:5432/forecastin'")
+    sys.exit(1)
 
 
 async def main():

@@ -10,7 +10,19 @@ Forecastin includes a comprehensive database of **1,000+ global RSS sources** co
 
 ## Quick Start
 
-### 1. Load RSS Sources into Database
+### 1. Apply Database Migration
+
+First, apply the database migration to create the necessary tables:
+
+```bash
+# Using psql
+psql -U forecastin -d forecastin -f migrations/005_rss_feed_sources_schema.sql
+
+# Or using Docker
+docker-compose exec db psql -U forecastin -d forecastin -f /migrations/005_rss_feed_sources_schema.sql
+```
+
+### 2. Load RSS Sources into Database
 
 The RSS sources are configured in `api/config/rss_sources.yaml` and can be loaded into the database using the provided script:
 
@@ -23,18 +35,6 @@ python scripts/load_rss_sources.py
 
 # Clear existing and reload (CAUTION: destructive)
 python scripts/load_rss_sources.py --clear-existing
-```
-
-### 2. Apply Database Migration
-
-Before loading sources, apply the database migration to create the necessary tables:
-
-```bash
-# Using psql
-psql -U forecastin -d forecastin -f migrations/005_rss_feed_sources_schema.sql
-
-# Or using Docker
-docker-compose exec db psql -U forecastin -d forecastin -f /migrations/005_rss_feed_sources_schema.sql
 ```
 
 ### 3. Verify Loaded Sources

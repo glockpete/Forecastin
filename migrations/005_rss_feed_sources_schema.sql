@@ -2,45 +2,13 @@
 -- Created: 2025-11-09
 -- Purpose: Store RSS feed sources and route configurations for comprehensive global coverage
 --
--- This migration adds tables for managing 1,000+ RSS sources across:
+-- This migration adds tables for managing RSS sources across:
 -- - All geographic regions
 -- - Multiple languages
 -- - Diverse political orientations
 -- - Different source types (news agencies, newspapers, think tanks, etc.)
 
--- RSS Feed Sources Table
-CREATE TABLE IF NOT EXISTS rss_feed_sources (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL UNIQUE,
-    url VARCHAR(2048) NOT NULL,
-    region VARCHAR(50) NOT NULL, -- global, americas, europe, asia, middle_east, africa, oceania
-    language VARCHAR(10) NOT NULL, -- ISO 639-1 code (en, es, fr, ar, zh, ru, etc.)
-    political_orientation VARCHAR(50) NOT NULL, -- left, center-left, center, center-right, right, mixed, governmental, independent
-    source_type VARCHAR(50) NOT NULL, -- news_agency, newspaper, tv_radio, think_tank, government, magazine, blog
-    reliability_score DECIMAL(3,2) DEFAULT 0.75, -- 0.00 to 1.00
-
-    -- Configuration
-    route_config_id UUID REFERENCES rss_route_configs(id) ON DELETE SET NULL,
-    is_active BOOLEAN DEFAULT true,
-
-    -- Monitoring metrics
-    last_checked TIMESTAMP WITH TIME ZONE,
-    last_successful_fetch TIMESTAMP WITH TIME ZONE,
-    success_rate DECIMAL(5,4) DEFAULT 1.0,
-    total_articles_fetched INTEGER DEFAULT 0,
-    total_fetch_attempts INTEGER DEFAULT 0,
-    consecutive_failures INTEGER DEFAULT 0,
-
-    -- Timestamps
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-    -- Constraints
-    CONSTRAINT valid_reliability_score CHECK (reliability_score >= 0.0 AND reliability_score <= 1.0),
-    CONSTRAINT valid_success_rate CHECK (success_rate >= 0.0 AND success_rate <= 1.0)
-);
-
--- RSS Route Configurations Table
+-- RSS Route Configurations Table (MUST BE CREATED FIRST - referenced by rss_feed_sources)
 CREATE TABLE IF NOT EXISTS rss_route_configs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     route_name VARCHAR(255) UNIQUE NOT NULL,
@@ -76,7 +44,44 @@ CREATE TABLE IF NOT EXISTS rss_route_configs (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- RSS Feed Sources Table
+CREATE TABLE IF NOT EXISTS rss_feed_sources (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    url VARCHAR(2048) NOT NULL,
+    region VARCHAR(50) NOT NULL,
+    language VARCHAR(10) NOT NULL,
+    political_orientation VARCHAR(50) NOT NULL,
+    source_type VARCHAR(50) NOT NULL,
+    reliability_score DECIMAL(3,2) DEFAULT 0.75,
+
+    -- Configuration
+    route_config_id UUID REFERENCES rss_route_configs(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true,
+
+    -- Monitoring metrics
+    last_checked TIMESTAMP WITH TIME ZONE,
+    last_successful_fetch TIMESTAMP WITH TIME ZONE,
+    success_rate DECIMAL(5,4) DEFAULT 1.0,
+    total_articles_fetched INTEGER DEFAULT 0,
+    total_fetch_attempts INTEGER DEFAULT 0,
+    consecutive_failures INTEGER DEFAULT 0,
+
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT valid_reliability_score CHECK (reliability_score >= 0.0 AND reliability_score <= 1.0),
+    CONSTRAINT valid_success_rate CHECK (success_rate >= 0.0 AND success_rate <= 1.0),
+    CONSTRAINT valid_region CHECK (region IN ('global', 'americas', 'europe', 'asia', 'middle_east', 'africa', 'oceania')),
+    CONSTRAINT valid_political_orientation CHECK (political_orientation IN ('left', 'center-left', 'center', 'center-right', 'right', 'mixed', 'governmental', 'independent')),
+    CONSTRAINT valid_source_type CHECK (source_type IN ('news_agency', 'newspaper', 'tv_radio', 'think_tank', 'government', 'magazine', 'blog'))
+);
+
 -- Create indexes for performance optimization
+CREATE INDEX IF NOT EXISTS idx_rss_route_configs_name ON rss_route_configs(route_name);
+
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_region ON rss_feed_sources(region);
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_language ON rss_feed_sources(language);
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_political_orientation ON rss_feed_sources(political_orientation);
@@ -85,8 +90,6 @@ CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_is_active ON rss_feed_sources(is
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_reliability_score ON rss_feed_sources(reliability_score DESC);
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_success_rate ON rss_feed_sources(success_rate DESC);
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_last_checked ON rss_feed_sources(last_checked DESC);
-
-CREATE INDEX IF NOT EXISTS idx_rss_route_configs_name ON rss_route_configs(route_name);
 
 -- Composite indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_rss_feed_sources_active_region
@@ -286,7 +289,7 @@ GRANT ALL PRIVILEGES ON TABLE rss_route_configs TO forecastin;
 GRANT SELECT ON mv_rss_source_statistics TO forecastin;
 
 -- Comments for documentation
-COMMENT ON TABLE rss_feed_sources IS 'Comprehensive database of 1,000+ global RSS sources across all languages and political orientations';
+COMMENT ON TABLE rss_feed_sources IS 'Database of 300+ global RSS sources (designed for 1,000+ capacity) across all languages and political orientations';
 COMMENT ON TABLE rss_route_configs IS 'Reusable route configurations for RSS content extraction with CSS selectors';
 COMMENT ON COLUMN rss_feed_sources.reliability_score IS 'Editorial quality score (0.0-1.0) based on journalistic standards and fact-checking';
 COMMENT ON COLUMN rss_feed_sources.political_orientation IS 'Editorial political leaning for balanced source diversity';
