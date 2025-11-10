@@ -51,7 +51,7 @@ mypy==1.7.1
 types-redis==4.6.0.11
 
 # Security Scanning
-bandit==1.7.5
+bandit==1.8.6
 safety==3.7.0  # Updated from 2.3.5 to resolve packaging dependency conflict with black
 semgrep==1.45.0
 
