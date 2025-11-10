@@ -3,7 +3,7 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
 # Database
-psycopg[binary]==3.2.3
+psycopg[binary]==3.2.12
 SQLAlchemy==2.0.44
 asyncpg==0.29.0
 
