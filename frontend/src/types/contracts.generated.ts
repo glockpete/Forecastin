@@ -377,3 +377,42 @@ export enum ValidationStatus {
   VALID = 'valid',
   INVALID = 'invalid'
 }
+
+export enum MessageType {
+  PING = 'ping',
+  PONG = 'pong',
+  LAYER_DATA_UPDATE = 'layer_data_update',
+  GPU_FILTER_SYNC = 'gpu_filter_sync',
+  POLYGON_UPDATE = 'polygon_update',
+  LINESTRING_UPDATE = 'linestring_update',
+  SEARCH_UPDATE = 'search_update',
+  ERROR = 'error',
+  ECHO = 'echo'
+}
+
+export enum LayerType {
+  POINT = 'point',
+  POLYGON = 'polygon',
+  LINE = 'line',
+  LINESTRING = 'linestring',
+  HEATMAP = 'heatmap',
+  CLUSTER = 'cluster',
+  GEOJSON = 'geojson'
+}
+
+export enum FilterType {
+  SPATIAL = 'spatial',
+  TEMPORAL = 'temporal',
+  ATTRIBUTE = 'attribute',
+  COMPOSITE = 'composite'
+}
+
+export enum FilterStatus {
+  APPLIED = 'applied',
+  PENDING = 'pending',
+  ERROR = 'error',
+  CLEARED = 'cleared'
+}
+
+// Geometry union type
+export type Geometry = PointGeometry | LineStringGeometry | PolygonGeometry | MultiPolygonGeometry | MultiLineStringGeometry;
