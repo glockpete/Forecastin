@@ -246,8 +246,29 @@ CREATE INDEX IF NOT EXISTS idx_mv_rss_source_stats_region
 -- Function to refresh source statistics
 CREATE OR REPLACE FUNCTION refresh_rss_source_statistics()
 RETURNS void AS $$
+DECLARE
+    lock_acquired boolean;
 BEGIN
-    REFRESH MATERIALIZED VIEW mv_rss_source_statistics;
+    -- Acquire advisory lock to prevent concurrent refreshes
+    -- Use consistent lock ID for this specific materialized view
+    SELECT pg_try_advisory_lock(hashtext('mv_rss_source_statistics')) INTO lock_acquired;
+
+    IF NOT lock_acquired THEN
+        RAISE NOTICE 'Could not acquire lock for mv_rss_source_statistics, refresh already in progress';
+        RETURN;
+    END IF;
+
+    BEGIN
+        -- Use CONCURRENTLY to avoid blocking reads during refresh
+        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_rss_source_statistics;
+    EXCEPTION
+        WHEN insufficient_privilege OR feature_not_supported THEN
+            -- Fallback to regular refresh if concurrent not available (requires unique index)
+            REFRESH MATERIALIZED VIEW mv_rss_source_statistics;
+    END;
+
+    -- Always release the advisory lock
+    PERFORM pg_advisory_unlock(hashtext('mv_rss_source_statistics'));
 END;
 $$ LANGUAGE plpgsql;
 

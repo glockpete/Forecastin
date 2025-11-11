@@ -37,6 +37,7 @@ try:
     import redis
     from psycopg2 import pool as psycopg2_pool
     from psycopg2.extras import RealDictCursor
+    from psycopg2 import sql
     import psycopg2
 except ImportError as e:
     logging.warning(f"Database dependencies not available: {e}")
@@ -44,6 +45,7 @@ except ImportError as e:
     psycopg2_pool = None
     RealDictCursor = None
     psycopg2 = None
+    sql = None
 
 
 @dataclass
@@ -651,27 +653,60 @@ class OptimizedHierarchyResolver:
             conn = self.db_pool.getconn()
             try:
                 with conn.cursor() as cur:
-                    # Refresh materialized view with concurrent option to minimize locking
-                    cur.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view_name}")
-                    conn.commit()
-                    
-                    self.last_mv_refresh = time.time()
-                    self.logger.info(f"Successfully refreshed materialized view: {view_name}")
-                    return True
-            
+                    # Acquire advisory lock to prevent concurrent refreshes
+                    # Use hash of view name for consistent lock ID
+                    lock_id = hash(view_name) & 0x7FFFFFFF  # Ensure positive 32-bit integer
+                    cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
+                    lock_acquired = cur.fetchone()[0]
+
+                    if not lock_acquired:
+                        self.logger.warning(f"Could not acquire lock for {view_name}, refresh already in progress")
+                        return False
+
+                    try:
+                        # Refresh materialized view with concurrent option to minimize locking
+                        # Use sql.Identifier to prevent SQL injection
+                        cur.execute(sql.SQL("REFRESH MATERIALIZED VIEW CONCURRENTLY {}").format(
+                            sql.Identifier(view_name)
+                        ))
+                        conn.commit()
+
+                        self.last_mv_refresh = time.time()
+                        self.logger.info(f"Successfully refreshed materialized view: {view_name}")
+                        return True
+                    finally:
+                        # Always release the advisory lock
+                        cur.execute("SELECT pg_advisory_unlock(%s)", (lock_id,))
+
             except Exception as e:
                 # If concurrent refresh fails, try regular refresh
                 self.logger.warning(f"Concurrent refresh failed, trying regular refresh: {e}")
-                
+
                 try:
                     with conn.cursor() as cur:
-                        cur.execute(f"REFRESH MATERIALIZED VIEW {view_name}")
-                        conn.commit()
-                        
-                        self.last_mv_refresh = time.time()
-                        self.logger.info(f"Successfully refreshed materialized view (regular): {view_name}")
-                        return True
-                
+                        # Acquire advisory lock for regular refresh too
+                        lock_id = hash(view_name) & 0x7FFFFFFF
+                        cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
+                        lock_acquired = cur.fetchone()[0]
+
+                        if not lock_acquired:
+                            self.logger.warning(f"Could not acquire lock for {view_name}, refresh already in progress")
+                            return False
+
+                        try:
+                            # Use sql.Identifier to prevent SQL injection
+                            cur.execute(sql.SQL("REFRESH MATERIALIZED VIEW {}").format(
+                                sql.Identifier(view_name)
+                            ))
+                            conn.commit()
+
+                            self.last_mv_refresh = time.time()
+                            self.logger.info(f"Successfully refreshed materialized view (regular): {view_name}")
+                            return True
+                        finally:
+                            # Always release the advisory lock
+                            cur.execute("SELECT pg_advisory_unlock(%s)", (lock_id,))
+
                 except Exception as e2:
                     self.logger.error(f"Regular refresh also failed: {e2}")
                     return False

@@ -34,6 +34,14 @@ from asyncpg import Connection
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 
+# Import validation utilities
+from services.validation import (
+    validate_and_normalize_url,
+    validate_language_code,
+    validate_region,
+    ValidationError
+)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -164,10 +172,26 @@ class RSSSourceLoader:
             source_type = source['source_type']
             reliability_score = source.get('reliability_score', 0.75)
 
+            # Validate and normalize inputs with security checks
+            try:
+                # Validate and normalize URL with IDNA encoding for international domains
+                # This prevents homograph attacks and ensures proper encoding
+                url = validate_and_normalize_url(url, allow_private=False)
+
+                # Validate language code (ISO 639-1)
+                language = validate_language_code(language)
+
+                # Validate region
+                region = validate_region(region)
+
+            except ValidationError as ve:
+                logger.error(f"Validation failed for source '{name}': {ve}")
+                return False
+
             if dry_run:
                 logger.info(
                     f"[DRY RUN] Would insert: {name} | {region} | {language} | "
-                    f"{political_orientation} | {source_type} | {reliability_score:.2f}"
+                    f"{political_orientation} | {source_type} | {reliability_score:.2f} | {url}"
                 )
                 return True
 

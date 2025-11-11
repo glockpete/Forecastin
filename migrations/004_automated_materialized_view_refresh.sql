@@ -56,47 +56,64 @@ DECLARE
     change_threshold INTEGER;
     time_threshold INTEGER;
     recent_changes BIGINT;
+    lock_acquired BOOLEAN;
 BEGIN
     start_time := clock_timestamp();
-    
-    -- Get smart trigger parameters
-    SELECT 
-        COALESCE(threshold_changes, 100),
-        COALESCE(threshold_time_minutes, 15)
-    INTO change_threshold, time_threshold
-    FROM materialized_view_refresh_schedule
-    WHERE view_name = view_name_param;
-    
-    -- Check if refresh is needed (unless forced)
-    IF NOT force_refresh THEN
-        -- Count recent changes (last threshold_time_minutes)
-        SELECT COUNT(*)
-        INTO recent_changes
-        FROM entity_change_log
-        WHERE created_at >= NOW() - (time_threshold || ' minutes')::INTERVAL
-        AND (batch_id_param IS NULL OR batch_id = batch_id_param);
-        
-        -- Skip if no significant changes
-        IF recent_changes < change_threshold THEN
-            result := jsonb_build_object(
-                'status', 'skipped',
-                'reason', 'insufficient_changes',
-                'recent_changes', recent_changes,
-                'threshold', change_threshold
-            );
-            RETURN result;
-        END IF;
+
+    -- Acquire advisory lock to prevent concurrent refreshes of the same view
+    -- Use hash of view name for consistent lock ID
+    SELECT pg_try_advisory_lock(hashtext(view_name_param)) INTO lock_acquired;
+
+    IF NOT lock_acquired THEN
+        result := jsonb_build_object(
+            'status', 'skipped',
+            'reason', 'refresh_already_in_progress',
+            'view_name', view_name_param
+        );
+        RETURN result;
     END IF;
-    
-    -- Perform the refresh with timing
+
     BEGIN
-        -- Try concurrent refresh first (non-blocking)
-        EXECUTE 'REFRESH MATERIALIZED VIEW CONCURRENTLY ' || quote_ident(view_name_param);
-    EXCEPTION
-        WHEN insufficient_privilege OR feature_not_supported THEN
-            -- Fallback to regular refresh if concurrent not available
-            EXECUTE 'REFRESH MATERIALIZED VIEW ' || quote_ident(view_name_param);
-    END;
+        -- Get smart trigger parameters
+        SELECT
+            COALESCE(threshold_changes, 100),
+            COALESCE(threshold_time_minutes, 15)
+        INTO change_threshold, time_threshold
+        FROM materialized_view_refresh_schedule
+        WHERE view_name = view_name_param;
+
+        -- Check if refresh is needed (unless forced)
+        IF NOT force_refresh THEN
+            -- Count recent changes (last threshold_time_minutes)
+            SELECT COUNT(*)
+            INTO recent_changes
+            FROM entity_change_log
+            WHERE created_at >= NOW() - (time_threshold || ' minutes')::INTERVAL
+            AND (batch_id_param IS NULL OR batch_id = batch_id_param);
+
+            -- Skip if no significant changes
+            IF recent_changes < change_threshold THEN
+                result := jsonb_build_object(
+                    'status', 'skipped',
+                    'reason', 'insufficient_changes',
+                    'recent_changes', recent_changes,
+                    'threshold', change_threshold
+                );
+                -- Release lock before returning
+                PERFORM pg_advisory_unlock(hashtext(view_name_param));
+                RETURN result;
+            END IF;
+        END IF;
+
+        -- Perform the refresh with timing
+        BEGIN
+            -- Try concurrent refresh first (non-blocking)
+            EXECUTE 'REFRESH MATERIALIZED VIEW CONCURRENTLY ' || quote_ident(view_name_param);
+        EXCEPTION
+            WHEN insufficient_privilege OR feature_not_supported THEN
+                -- Fallback to regular refresh if concurrent not available
+                EXECUTE 'REFRESH MATERIALIZED VIEW ' || quote_ident(view_name_param);
+        END;
     
     -- Calculate duration
     duration_ms := EXTRACT(EPOCH FROM (clock_timestamp() - start_time)) * 1000;
@@ -125,32 +142,38 @@ BEGIN
         'recent_changes', recent_changes,
         'timestamp', NOW()
     );
-    
+
+    -- Release advisory lock before returning
+    PERFORM pg_advisory_unlock(hashtext(view_name_param));
     RETURN result;
-    
-EXCEPTION WHEN OTHERS THEN
-    -- Handle refresh failures
-    duration_ms := EXTRACT(EPOCH FROM (clock_timestamp() - start_time)) * 1000;
-    
-    UPDATE materialized_view_refresh_schedule
-    SET 
-        last_refresh_at = NOW(),
-        last_refresh_duration_ms = duration_ms,
-        last_success = false,
-        failure_count = failure_count + 1,
-        last_failure_reason = SQLERRM,
-        updated_at = NOW()
-    WHERE view_name = view_name_param;
-    
-    result := jsonb_build_object(
-        'status', 'error',
-        'view_name', view_name_param,
-        'error', SQLERRM,
-        'duration_ms', duration_ms,
-        'timestamp', NOW()
-    );
-    
-    RETURN result;
+
+    EXCEPTION WHEN OTHERS THEN
+        -- Always release the advisory lock on error
+        PERFORM pg_advisory_unlock(hashtext(view_name_param));
+
+        -- Handle refresh failures
+        duration_ms := EXTRACT(EPOCH FROM (clock_timestamp() - start_time)) * 1000;
+
+        UPDATE materialized_view_refresh_schedule
+        SET
+            last_refresh_at = NOW(),
+            last_refresh_duration_ms = duration_ms,
+            last_success = false,
+            failure_count = failure_count + 1,
+            last_failure_reason = SQLERRM,
+            updated_at = NOW()
+        WHERE view_name = view_name_param;
+
+        result := jsonb_build_object(
+            'status', 'error',
+            'view_name', view_name_param,
+            'error', SQLERRM,
+            'duration_ms', duration_ms,
+            'timestamp', NOW()
+        );
+
+        RETURN result;
+    END;
 END;
 $$ LANGUAGE plpgsql;
 
