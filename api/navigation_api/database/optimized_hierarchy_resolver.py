@@ -655,9 +655,14 @@ class OptimizedHierarchyResolver:
                 with conn.cursor() as cur:
                     # Acquire advisory lock to prevent concurrent refreshes
                     # Use deterministic hash for consistent lock ID across processes
+                    # Include schema to avoid cross-schema collisions
                     # Note: Can't use Python hash() - it uses random seed per process!
                     import hashlib
-                    lock_id = int(hashlib.md5(view_name.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
+                    # Get current schema context (default to 'public' if not set)
+                    cur.execute("SELECT current_schema()")
+                    current_schema = cur.fetchone()[0] or 'public'
+                    lock_key = f"{current_schema}.{view_name}"
+                    lock_id = int(hashlib.md5(lock_key.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
                     cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
                     lock_acquired = cur.fetchone()[0]
 
@@ -687,8 +692,12 @@ class OptimizedHierarchyResolver:
                 try:
                     with conn.cursor() as cur:
                         # Acquire advisory lock for regular refresh too
+                        # Include schema to avoid cross-schema collisions
                         import hashlib
-                        lock_id = int(hashlib.md5(view_name.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
+                        cur.execute("SELECT current_schema()")
+                        current_schema = cur.fetchone()[0] or 'public'
+                        lock_key = f"{current_schema}.{view_name}"
+                        lock_id = int(hashlib.md5(lock_key.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
                         cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
                         lock_acquired = cur.fetchone()[0]
 

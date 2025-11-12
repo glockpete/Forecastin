@@ -35,19 +35,22 @@ async def get_entities():
 
 
 @router.get("/{entity_id}/hierarchy")
-async def get_entity_hierarchy(entity_id: UUID):
+async def get_entity_hierarchy(entity_id: str):
     """Get entity hierarchy with optimized performance
 
     Args:
-        entity_id: UUID of the entity (automatically validated by FastAPI)
+        entity_id: Entity identifier (preferably UUID format, but accepts legacy string IDs)
 
     Returns:
         Entity hierarchy information
 
     Raises:
-        HTTPException: 422 if entity_id is not a valid UUID
         HTTPException: 503 if service not initialized
         HTTPException: 500 on internal errors
+
+    Note:
+        For production use, entity_id should be a valid UUID.
+        Non-UUID strings are accepted for backwards compatibility but may be deprecated.
     """
     try:
         from main import hierarchy_resolver
@@ -55,14 +58,16 @@ async def get_entity_hierarchy(entity_id: UUID):
         if not hierarchy_resolver:
             raise HTTPException(status_code=503, detail="Service not initialized")
 
-        # Use cached hierarchy data (convert UUID to string for internal processing)
-        hierarchy = await hierarchy_resolver.get_entity_hierarchy(str(entity_id))
+        # Optionally validate UUID format (warning only, not blocking)
+        try:
+            UUID(entity_id)
+        except ValueError:
+            logger.warning(f"Non-UUID entity_id used: {entity_id} (consider migrating to UUID)")
+
+        # Use cached hierarchy data
+        hierarchy = await hierarchy_resolver.get_entity_hierarchy(entity_id)
         return JSONResponse(content={"hierarchy": hierarchy})
 
-    except ValueError as e:
-        # UUID validation error
-        logger.warning(f"Invalid entity_id format: {entity_id}")
-        raise HTTPException(status_code=422, detail=f"Invalid entity_id format: {str(e)}")
     except Exception as e:
         logger.error(f"Error getting hierarchy for {entity_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

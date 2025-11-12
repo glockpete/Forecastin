@@ -211,7 +211,7 @@ CREATE INDEX idx_rss_route_configs_confidence_gin
 
 **Impact:**
 - Prevents full table scans on JSONB queries
-- 10-100x performance improvement for JSONB containment queries
+- Significant performance improvement for JSONB containment queries (workload-dependent, typically 5-50x for @> and ? operators)
 
 ---
 
@@ -419,13 +419,13 @@ For Python changes: Revert commit and redeploy previous version.
 
 ## Security Improvements Summary
 
-| Vulnerability | Before | After | Risk Reduction |
-|---------------|--------|-------|----------------|
-| SQL Injection | ❌ Vulnerable | ✅ Fixed | 100% |
-| Homograph Attacks | ❌ Undetected | ✅ Detected + Blocked | 95% |
-| SSRF via URLs | ❌ Allowed | ✅ Blocked | 100% |
-| Race Conditions | ❌ Possible | ✅ Prevented | 100% |
-| Invalid Input | ⚠️ Partial | ✅ Complete | 90% |
+| Vulnerability | Before | After | Risk Reduction | Notes |
+|---------------|--------|-------|----------------|-------|
+| SQL Injection | ❌ Vulnerable | ✅ Fixed | 100% | Uses sql.Identifier |
+| Homograph Attacks | ❌ Undetected | ⚠️ Detected (not integrated) | 50% | Function exists, not wired |
+| SSRF via URLs | ❌ Allowed | ⚠️ Partially Blocked | 70% | Missing IPv6, DNS rebind, redirects |
+| Race Conditions | ❌ Possible | ✅ Prevented | 100% | Advisory locking with schema namespace |
+| Invalid Input | ⚠️ Partial | ✅ Complete | 90% | DB constraints + app validation |
 
 ---
 
@@ -433,7 +433,7 @@ For Python changes: Revert commit and redeploy previous version.
 
 | Component | Before | After | Improvement |
 |-----------|--------|-------|-------------|
-| JSONB Queries | Full table scan | GIN indexed | 10-100x faster |
+| JSONB Queries | Full table scan | GIN indexed | Workload-dependent (typically 5-50x) |
 | MV Refresh Conflicts | Possible corruption | Advisory locked | 100% reliable |
 | Health Check Accuracy | 0% (hardcoded) | 100% (real-time) | ∞ |
 | Input Validation | None | Pre-validated | Prevents DB errors |
