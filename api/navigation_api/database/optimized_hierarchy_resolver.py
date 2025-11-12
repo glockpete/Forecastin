@@ -654,8 +654,10 @@ class OptimizedHierarchyResolver:
             try:
                 with conn.cursor() as cur:
                     # Acquire advisory lock to prevent concurrent refreshes
-                    # Use hash of view name for consistent lock ID
-                    lock_id = hash(view_name) & 0x7FFFFFFF  # Ensure positive 32-bit integer
+                    # Use deterministic hash for consistent lock ID across processes
+                    # Note: Can't use Python hash() - it uses random seed per process!
+                    import hashlib
+                    lock_id = int(hashlib.md5(view_name.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
                     cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
                     lock_acquired = cur.fetchone()[0]
 
@@ -685,7 +687,8 @@ class OptimizedHierarchyResolver:
                 try:
                     with conn.cursor() as cur:
                         # Acquire advisory lock for regular refresh too
-                        lock_id = hash(view_name) & 0x7FFFFFFF
+                        import hashlib
+                        lock_id = int(hashlib.md5(view_name.encode()).hexdigest()[:8], 16) & 0x7FFFFFFF
                         cur.execute("SELECT pg_try_advisory_lock(%s)", (lock_id,))
                         lock_acquired = cur.fetchone()[0]
 

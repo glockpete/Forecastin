@@ -329,3 +329,27 @@ BEGIN
 
     RAISE NOTICE '✓ Migration 006 completed successfully';
 END $$;
+
+-- ============================================================================
+-- PART 7: GRANT PERMISSIONS FOR APPLICATION ROLE
+-- ============================================================================
+
+-- Grant SELECT permissions on monitoring views to application role
+-- This allows the application to query monitoring data for health checks
+GRANT SELECT ON v_materialized_view_health TO forecastin;
+GRANT SELECT ON v_index_health TO forecastin;
+GRANT SELECT ON v_gin_index_health TO forecastin;
+
+-- Grant EXECUTE permission on alerting function
+-- This allows the application to retrieve critical alerts
+GRANT EXECUTE ON FUNCTION get_critical_alerts() TO forecastin;
+
+COMMENT ON VIEW v_materialized_view_health IS
+'Monitoring view for MV staleness - query with: SELECT * FROM v_materialized_view_health WHERE staleness_status = ''CRITICAL''';
+
+COMMENT ON VIEW v_index_health IS
+'Index usage monitoring - query with: SELECT * FROM v_index_health WHERE usage_status = ''UNUSED''';
+
+COMMENT ON FUNCTION get_critical_alerts() IS
+'Returns critical system alerts for monitoring integration (Prometheus, Datadog, etc.)';
+

@@ -243,6 +243,14 @@ GROUP BY region, language, political_orientation, source_type;
 CREATE INDEX IF NOT EXISTS idx_mv_rss_source_stats_region
     ON mv_rss_source_statistics(region);
 
+-- Unique index required for REFRESH MATERIALIZED VIEW CONCURRENTLY
+-- CONCURRENTLY requires at least one unique index on the MV
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_rss_source_stats_unique
+    ON mv_rss_source_statistics(region, language, political_orientation, source_type);
+
+COMMENT ON INDEX idx_mv_rss_source_stats_unique IS
+'Unique index on GROUP BY columns, required for CONCURRENTLY refresh to avoid blocking reads';
+
 -- Function to refresh source statistics
 CREATE OR REPLACE FUNCTION refresh_rss_source_statistics()
 RETURNS void AS $$
